@@ -1,13 +1,39 @@
 .world-title,.world-progress,.destination-card{transition:opacity .45s ease,transform .6s ease}
-.regional-mode .world-title{opacity:0;transform:translateX(-35px);pointer-events:none}
-.regional-mode .world-progress,.regional-mode .destination-card{opacity:0;transform:translateX(25px);pointer-events:none}
-.regional-mode .world-dock{opacity:.45;transform:translateX(-50%) translateY(12px)}
-.regional-mode .globe-stage{left:43%;top:205px;width:650px;height:650px;transition:left .8s ease,width .8s ease,height .8s ease}
+/* —— Level attention model ——
+ * world: ribbon + brand + layers + globe + seasonal + dock
+ * map levels: breadcrumb path + map + ranking/panel  (hide world chrome) */
+.regional-mode .world-title{opacity:0;transform:translateX(-35px);pointer-events:none;visibility:hidden}
+.regional-mode .world-progress,.regional-mode .destination-card{opacity:0;transform:translateX(25px);pointer-events:none;visibility:hidden}
+/* Hide bottom dock on L2/L3 maps (continent / country / region) */
+.regional-mode .world-dock,
+.country-mode .world-dock,
+.region-mode .world-dock{opacity:0;visibility:hidden;pointer-events:none;transform:translateX(-50%) translateY(18px)}
+/* Continent strip is world-only; deeper levels use breadcrumb instead */
+.regional-mode .world-ribbon,
+.country-mode .world-ribbon,
+.region-mode .world-ribbon{
+  opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-8px);
+}
+.regional-mode .world-topline{opacity:.72}
+/* PC: breadcrumb takes the ribbon slot once world chrome is dismissed */
+.regional-mode .map-breadcrumb,
+.country-mode .map-breadcrumb,
+.region-mode .map-breadcrumb{top:134px}
+.regional-mode .globe-stage{left:43%;top:188px;width:650px;height:650px;transition:left .8s ease,width .8s ease,height .8s ease}
 .country-mode .globe-stage{left:42%}
 .regional-mode .orbit{opacity:.18}
-.map-breadcrumb{position:absolute;z-index:5;left:5.4vw;top:229px;display:flex;align-items:center;gap:9px;color:#8fa7a0;font:9px 'DM Mono';letter-spacing:.7px}
-.map-breadcrumb button,.map-breadcrumb b{padding:7px 10px;border:1px solid #78938c50;background:#0b282ba3;color:#cfddd6;font-weight:400}
-.map-breadcrumb .current,.map-breadcrumb b{border-color:#e7d6a38e;color:#f3dca6}.map-breadcrumb i{font-style:normal;color:#607b75}
+.map-breadcrumb{
+  position:absolute;z-index:6;left:5.4vw;top:229px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  color:#8fa7a0;font:9px 'DM Mono';letter-spacing:.5px;
+  max-width:min(520px,42vw);
+}
+.map-breadcrumb button,.map-breadcrumb b{
+  padding:7px 10px;border:1px solid #78938c50;background:#0b282ba3;color:#cfddd6;font-weight:400;
+  white-space:nowrap;
+}
+.map-breadcrumb .current,.map-breadcrumb b{border-color:#e7d6a38e;color:#f3dca6}
+.map-breadcrumb i{font-style:normal;color:#607b75;flex:0 0 auto}
 .country-ranking{position:absolute;z-index:5;right:5vw;top:238px;width:272px;color:#e9eee5;background:#0a2427d9;border:1px solid #9db7af43;box-shadow:0 24px 60px #0010128f;backdrop-filter:blur(15px);animation:ranking-enter .7s cubic-bezier(.2,.8,.2,1) both}
 .ranking-head{padding:18px 18px 15px;border-bottom:1px solid #8fa9a238}.ranking-head>span{display:block;color:#dd8058;font:7px 'DM Mono';letter-spacing:1.3px}.ranking-head>b{display:block;font:19px 'Noto Serif SC';margin:6px 0 3px}.ranking-head>small{font:8px 'DM Mono';color:#95aaa4}
 .ranking-list{padding:6px}.ranking-list button{width:100%;display:grid;grid-template-columns:27px 1fr 30px;align-items:center;gap:8px;padding:9px 10px;color:#d9e2dc;text-align:left;border:1px solid transparent;transition:.25s}.ranking-list button:hover,.ranking-list button.selected{background:#e7e8d9;color:#173638;border-color:#fff1c1;transform:translateX(-5px);box-shadow:5px 5px 0 #c66f4b}.ranking-list em{font:8px 'DM Mono';font-style:normal;color:#d87a54}.ranking-list span b{display:block;font:11px 'Noto Serif SC'}.ranking-list span small{display:block;font:7px 'DM Mono';opacity:.65;margin-top:2px}.ranking-list strong{font:18px 'DM Serif Display';font-weight:400;text-align:right}.ranking-list strong:after{content:'°';font-size:7px;color:#d77952}.ranking-foot{display:flex;align-items:center;gap:7px;padding:10px 16px;border-top:1px solid #8fa9a238;color:#94a9a2;font:7px 'DM Mono'}.ranking-foot i{width:5px;height:5px;border-radius:50%;background:#e27c53;box-shadow:0 0 8px #e27c53}
@@ -19,4 +45,49 @@
 .cinematic-flight:after{animation-direction:reverse;animation-duration:1.2s;opacity:.45}.cinematic-flight>span{font:7px 'DM Mono';letter-spacing:2px;color:#e79a72;margin-top:24px}.cinematic-flight>b{font:30px 'Noto Serif SC';letter-spacing:2px;margin:5px 0}.cinematic-flight>small{font:8px 'DM Mono';color:#afc6bf}.flight-reticle{position:relative;width:88px;height:88px;margin:auto;border:1px solid #e9f0df66;border-radius:50%;animation:reticle 1s ease-in-out infinite alternate}.flight-reticle:before,.flight-reticle:after{content:'';position:absolute;background:#e9f0df69}.flight-reticle:before{width:116px;height:1px;left:-14px;top:43px}.flight-reticle:after{height:116px;width:1px;top:-14px;left:43px}.flight-reticle i{position:absolute;border:1px solid #e4805b;border-radius:50%;inset:18px}.flight-reticle i:nth-child(2){inset:32px;background:#e4805b}.flight-reticle i:nth-child(3){inset:-10px;border-style:dashed;border-color:#b7d4c955;animation:speed-spin 3s linear infinite}
 .is-travelling canvas{animation:travel-lens 1.75s ease both}.is-travelling .terrain-legend,.is-travelling .light-status,.is-travelling .drag-hint{opacity:0!important}
 @keyframes ranking-enter{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}@keyframes speed-spin{to{transform:rotate(360deg)}}@keyframes reticle{to{transform:scale(1.09)}}@keyframes flight-flash{0%{opacity:0}8%,72%{opacity:1}100%{opacity:0}}@keyframes travel-lens{0%{filter:saturate(1.1)}20%{filter:saturate(.65) brightness(.8) blur(1.7px)}52%{filter:saturate(1.55) contrast(1.18) blur(2.5px)}100%{filter:saturate(1.14) contrast(1.04)}}
-@media(max-width:760px){.regional-mode .globe-stage,.country-mode .globe-stage{left:50%;top:265px;width:410px;height:410px}.map-breadcrumb{left:20px;top:208px}.regional-mode .world-ribbon{opacity:.35}.world-ribbon button:nth-child(n+3){display:block}.country-ranking{top:auto;bottom:73px;left:14px;right:14px;width:auto}.ranking-head{padding:10px 12px}.ranking-head>b{font-size:15px}.ranking-list{display:flex;overflow-x:auto}.ranking-list button{flex:0 0 165px;grid-template-columns:20px 1fr 25px;padding:7px}.ranking-list button:nth-child(n+5){display:none}.ranking-foot{display:none}.regional-mode .focus-mode{left:20px;bottom:8px;transform:scale(.8);transform-origin:left bottom}.boundary-legend{left:12%;bottom:17%}.cinematic-flight{inset:-2%}.flight-reticle{width:64px;height:64px}.flight-reticle:before{width:90px;top:31px;left:-13px}.flight-reticle:after{height:90px;left:31px;top:-13px}.flight-reticle i{inset:14px}.flight-reticle i:nth-child(2){inset:24px}.cinematic-flight>b{font-size:22px}}
+@media(max-width:760px){
+  /* Map levels: breadcrumb owns the chrome strip that ribbon used on world */
+  .regional-mode .world-topline,
+  .country-mode .world-topline,
+  .region-mode .world-topline{display:none} /* status noise off — focus on map path */
+
+  .map-breadcrumb,
+  .regional-mode .map-breadcrumb,
+  .country-mode .map-breadcrumb,
+  .region-mode .map-breadcrumb{
+    left:14px;right:14px;top:88px;z-index:8;
+    max-width:none;width:auto;
+    gap:5px;padding:8px 0 6px;
+    overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    background:linear-gradient(180deg,#061519f2 60%,#06151900);
+  }
+  .map-breadcrumb::-webkit-scrollbar{display:none}
+  .map-breadcrumb button,.map-breadcrumb b{
+    padding:7px 9px;font-size:10px;background:#0d2a2df0;backdrop-filter:blur(8px);
+  }
+  .map-breadcrumb button:first-child{
+    background:#e8e4d4;color:#173a39;border-color:#f3dca5;font-weight:600;
+  }
+
+  .regional-mode .globe-stage,
+  .country-mode .globe-stage,
+  .region-mode .globe-stage{left:50%;top:148px;width:min(410px,calc(100vw - 28px));height:min(410px,52vw)}
+
+  .country-ranking{top:auto;bottom:73px;left:14px;right:14px;width:auto}
+  .ranking-head{padding:10px 12px}
+  .ranking-head>b{font-size:15px}
+  .ranking-list{display:flex;overflow-x:auto}
+  .ranking-list button{flex:0 0 165px;grid-template-columns:20px 1fr 25px;padding:7px}
+  .ranking-list button:nth-child(n+5){display:none}
+  .ranking-foot{display:none}
+  .regional-mode .focus-mode{left:20px;bottom:8px;transform:scale(.8);transform-origin:left bottom}
+  .boundary-legend{left:12%;bottom:17%}
+  .cinematic-flight{inset:-2%}
+  .flight-reticle{width:64px;height:64px}
+  .flight-reticle:before{width:90px;top:31px;left:-13px}
+  .flight-reticle:after{height:90px;left:31px;top:-13px}
+  .flight-reticle i{inset:14px}
+  .flight-reticle i:nth-child(2){inset:24px}
+  .cinematic-flight>b{font-size:22px}
+}

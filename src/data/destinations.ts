@@ -42,28 +42,38 @@ export const RESOURCE_ICONS: Record<string, string> = {
 
 const REGION_SPOTLIGHTS: Record<string, Record<string, string[]>> = {
   hokkaido: { 滑雪: ["羊蹄山", "留寿都"], 徒步: ["大雪山", "知床五湖"], 温泉: ["洞爷湖", "登别"] },
-  okinawa: { 潜水: ["庆良间群岛", "青之洞窟"], 海岛: ["石垣岛", "宫古岛"], 亲子: ["美丽海水族馆", "古宇利岛"] },
-  kyushu: { 徒步: ["阿苏火山", "屋久岛"], 温泉: ["由布院", "黑川温泉"], 自驾: ["日南海岸", "阿苏环线"] },
+  tohoku: { 温泉: ["银山温泉", "酸汤温泉"], 徒步: ["十和田湖", "藏王"], 文化: ["仙台", "平泉"] },
+  kanto: { 城市: ["东京塔", "横滨港"], 徒步: ["高尾山", "奥多摩"], 滑雪: ["谷川岳", "草津"] },
+  chubu: { 徒步: ["富士山", "上高地"], 滑雪: ["白马", "志贺高原"], 自驾: ["北阿尔卑斯", "立山黑部"] },
+  kinki: { 文化: ["京都古寺", "奈良町"], 徒步: ["熊野古道", "六甲山"], 美食: ["大阪道顿堀", "锦市场"] },
   chugoku: { 文化: ["严岛神社", "仓敷古城"], 徒步: ["大山", "三段峡"], 骑行: ["岛波海道", "宍道湖"] },
-  kansai: { 文化: ["京都古寺", "奈良町"], 徒步: ["熊野古道", "六甲山"], 美食: ["大阪道顿堀", "锦市场"] },
-  kanto: { 城市: ["东京塔", "横滨港"], 徒步: ["富士山", "高尾山"], 滑雪: ["谷川岳", "草津"] },
-  xinjiang: { 骑马草原: ["喀拉峻", "那拉提"], 徒步: ["夏塔古道", "喀纳斯"], 滑雪: ["将军山", "丝绸之路"] },
-  south: { 潜水: ["蜈支洲岛", "涠洲岛"], 徒步: ["武功山", "漓江古道"], 美食: ["广州西关", "潮州古城"] },
-  north: { 文化: ["北京中轴线", "大同古城"], 徒步: ["长城", "五台山"], 滑雪: ["崇礼", "南山"] },
-  northwest: { 自驾: ["河西走廊", "独库公路"], 徒步: ["祁连山", "麦积山"], 摄影: ["敦煌", "张掖丹霞"] },
+  shikoku: { 徒步: ["四国遍路", "石锤山"], 文化: ["金刀比罗宫", "道后温泉"], 自驾: ["四国遍路公路", "祖谷溪"] },
+  kyushu: { 徒步: ["阿苏火山", "屋久岛"], 温泉: ["由布院", "黑川温泉"], 潜水: ["庆良间群岛", "青之洞窟"] },
+  "capital-kr": { 城市: ["首尔南山", "仁川松岛"], 文化: ["景福宫", "北村"], 美食: ["弘大", "明洞"] },
+  gangwon: { 滑雪: ["龙平滑雪场", "平昌"], 徒步: ["雪岳山", "五台山"], 海岸: ["江陵", "束草"] },
+  chungcheong: { 文化: ["公州", "扶余"], 徒步: ["鸡龙山", "俗离山"], 城市: ["大田", "世宗"] },
+  jeolla: { 美食: ["全州拌饭", "光州"], 海岸: ["木浦", "丽水"], 文化: ["全州韩屋村", "潭阳"] },
+  gyeongsang: { 城市: ["釜山海云台", "大邱"], 文化: ["庆州佛国寺", "安东河回"], 海岸: ["釜山太宗台", "浦项"] },
+  jeju: { 海岛: ["城山日出峰", "牛岛"], 徒步: ["汉拿山", "奥尔勒步道"], 亲子: ["泰迪熊博物馆", "香水湾"] },
   northeast: { 滑雪: ["长白山", "亚布力"], 徒步: ["大兴安岭", "镜泊湖"], 温泉: ["长白山温泉", "阿尔山"] },
+  north: { 文化: ["北京中轴线", "大同古城"], 徒步: ["长城", "五台山"], 滑雪: ["崇礼", "南山"] },
+  east: { 文化: ["苏州园林", "杭州西湖"], 海岸: ["青岛", "厦门鼓浪屿"], 美食: ["上海本帮", "南京秦淮"] },
+  central: { 徒步: ["张家界", "三峡"], 文化: ["洛阳龙门", "武汉黄鹤楼"], 自驾: ["神农架", "恩施"] },
+  south: { 潜水: ["蜈支洲岛", "涠洲岛"], 徒步: ["武功山", "漓江古道"], 美食: ["广州西关", "潮州古城"] },
+  southwest: { 徒步: ["稻城亚丁", "香格里拉"], 文化: ["丽江古城", "布达拉宫"], 摄影: ["九寨沟", "黄果树"] },
+  northwest: { 自驾: ["河西走廊", "独库公路"], 徒步: ["喀纳斯", "祁连山"], 摄影: ["敦煌", "张掖丹霞"] },
   "north-italy": { 徒步: ["多洛米蒂", "科莫湖"], 滑雪: ["科尔蒂纳", "瓦尔加迪纳"], 自驾: ["加尔达湖", "斯泰尔维奥"] },
-  tuscany: { 文化: ["佛罗伦萨", "锡耶纳"], 骑行: ["奥尔恰谷", "基安蒂"], 美食: ["卢卡", "圣吉米尼亚诺"] },
-  "west-coast": { 自驾: ["一号公路", "红杉公路"], 徒步: ["优胜美地", "雷尼尔山"], 冲浪: ["圣克鲁兹", "马里布"] },
-  rockies: { 徒步: ["大提顿", "冰川公园"], 滑雪: ["阿斯彭", "杰克逊霍尔"], 露营: ["黄石", "落基山公园"] },
+  "central-italy": { 文化: ["佛罗伦萨", "锡耶纳"], 骑行: ["奥尔恰谷", "基安蒂"], 美食: ["卢卡", "圣吉米尼亚诺"] },
+  "west": { 自驾: ["一号公路", "红杉公路"], 徒步: ["优胜美地", "雷尼尔山"], 冲浪: ["圣克鲁兹", "马里布"] },
+  "mountain-us": { 徒步: ["大提顿", "冰川公园"], 滑雪: ["阿斯彭", "杰克逊霍尔"], 露营: ["黄石", "落基山公园"] },
   "south-iceland": { 自驾: ["维克", "杰古沙龙冰河湖"], 徒步: ["斯科加瀑布", "斯卡夫塔山"], 温泉: ["蓝湖", "天空之湖"] },
-  "bernese-oberland": { 徒步: ["格林德瓦", "劳特布龙嫩"], 摄影: ["少女峰", "布里恩茨湖"], 亲子: ["因特拉肯", "门利兴"] },
-  "west-fjords": { 自驾: ["松恩峡湾", "大西洋之路"], 徒步: ["布道石", "恶魔之舌"], 摄影: ["盖朗厄尔峡湾", "弗洛姆"] },
-  bali: { 潜水: ["努沙佩尼达", "图兰奔"], 徒步: ["巴杜尔火山", "坎普罕山脊"], 海岸: ["乌鲁瓦图", "水明漾"] },
+  "alpine-ch": { 徒步: ["格林德瓦", "劳特布龙嫩"], 摄影: ["少女峰", "布里恩茨湖"], 亲子: ["因特拉肯", "门利兴"] },
+  "west-no": { 自驾: ["松恩峡湾", "大西洋之路"], 徒步: ["布道石", "恶魔之舌"], 摄影: ["盖朗厄尔峡湾", "弗洛姆"] },
+  "bali-nt": { 潜水: ["努沙佩尼达", "图兰奔"], 徒步: ["巴杜尔火山", "坎普罕山脊"], 海岸: ["乌鲁瓦图", "水明漾"] },
   "south-island": { 自驾: ["米尔福德峡湾", "瓦纳卡"], 徒步: ["胡克谷步道", "路特本步道"], 亲子: ["皇后镇", "蒂卡波湖"] },
-  "canadian-rockies": { 徒步: ["露易丝湖", "冰原大道"], 自驾: ["班夫", "贾斯珀"], 摄影: ["梦莲湖", "佩托湖"] },
-  "andaman-coast": { 潜水: ["斯米兰群岛", "皮皮岛"], 海岛: ["普吉岛", "兰塔岛"], 亲子: ["甲米", "攀牙湾"] },
-  "queensland-tropics": { 潜水: ["大堡礁", "圣灵群岛"], 徒步: ["丹翠雨林", "库兰达"], 海岛: ["汉密尔顿岛", "磁岛"] },
+  "west-ca": { 徒步: ["露易丝湖", "冰原大道"], 自驾: ["班夫", "贾斯珀"], 摄影: ["梦莲湖", "佩托湖"] },
+  "south-th": { 潜水: ["斯米兰群岛", "皮皮岛"], 海岛: ["普吉岛", "兰塔岛"], 亲子: ["甲米", "攀牙湾"] },
+  qld: { 潜水: ["大堡礁", "圣灵群岛"], 徒步: ["丹翠雨林", "库兰达"], 海岛: ["汉密尔顿岛", "磁岛"] },
 }
 
 const SPOT_COORDINATES: Record<string, [number, number]> = {
@@ -143,71 +153,249 @@ export const COUNTRIES_BY_CONTINENT: Record<string, DestinationCountry[]> = {
     { code: "MEX", name: "墨西哥", english: "Mexico", focus: [23.6, -102.5], score: 92, tagline: "遗址、色彩与加勒比海", season: "11—04 月", visited: false },
     { code: "CRI", name: "哥斯达黎加", english: "Costa Rica", focus: [9.7, -84.1], score: 89, tagline: "雨林、火山与动物", season: "12—04 月", visited: false },
   ],
+  南美: [
+    { code: "BRA", name: "巴西", english: "Brazil", focus: [-14.2, -51.9], score: 97, tagline: "雨林、海岸与瀑布", season: "05—09 月", visited: false },
+    { code: "ARG", name: "阿根廷", english: "Argentina", focus: [-38.4, -63.6], score: 96, tagline: "巴塔哥尼亚与冰川", season: "11—03 月", visited: false },
+    { code: "PER", name: "秘鲁", english: "Peru", focus: [-9.2, -75.0], score: 95, tagline: "安第斯遗址与高原", season: "05—09 月", visited: false },
+    { code: "CHL", name: "智利", english: "Chile", focus: [-35.7, -71.5], score: 93, tagline: "火山、沙漠与南端公路", season: "11—03 月", visited: false },
+  ],
+  非洲: [
+    { code: "ZAF", name: "南非", english: "South Africa", focus: [-30.6, 22.9], score: 97, tagline: "国家公园与好望角", season: "05—09 月", visited: false },
+    { code: "EGY", name: "埃及", english: "Egypt", focus: [26.8, 30.8], score: 95, tagline: "尼罗河与古文明", season: "10—04 月", visited: false },
+    { code: "MAR", name: "摩洛哥", english: "Morocco", focus: [31.8, -7.1], score: 94, tagline: "古城、沙漠与阿特拉斯", season: "03—05 / 09—11 月", visited: false },
+    { code: "KEN", name: "肯尼亚", english: "Kenya", focus: [0.0, 37.9], score: 96, tagline: "大迁徙与东非草原", season: "07—10 月", visited: false },
+    { code: "TZA", name: "坦桑尼亚", english: "Tanzania", focus: [-6.4, 34.9], score: 95, tagline: "塞伦盖蒂与乞力马扎罗", season: "06—10 月", visited: false },
+  ],
 }
 
 export function findCountry(code: string) {
   return Object.values(COUNTRIES_BY_CONTINENT).flat().find(country => country.code === code)
 }
 
+/** Regional divisions follow each country's common tourism / geographic scheme. */
 export const REGIONS_BY_COUNTRY: Record<string, DestinationRegion[]> = {
+  /* 日本：八大地方区分（九州通常含冲绳） */
   JPN: [
-    { id: "hokkaido", name: "北海道", english: "Hokkaido", focus: [43.2, 142.7], heat: 99, visited: true, summary: "粉雪、火山湖与长距离自驾", resources: [{ type: "滑雪", score: 99 }, { type: "徒步", score: 91 }, { type: "温泉", score: 96 }] },
-    { id: "okinawa", name: "冲绳", english: "Okinawa", focus: [26.3, 127.8], heat: 96, visited: false, summary: "珊瑚海、离岛与亚热带森林", resources: [{ type: "潜水", score: 99 }, { type: "海岛", score: 97 }, { type: "亲子", score: 91 }] },
-    { id: "kyushu", name: "九州", english: "Kyushu", focus: [32.6, 130.8], heat: 93, visited: false, summary: "活火山、温泉与山海公路", resources: [{ type: "徒步", score: 95 }, { type: "温泉", score: 98 }, { type: "自驾", score: 92 }] },
-    { id: "chugoku", name: "中国地区", english: "Chugoku", focus: [34.5, 133.5], heat: 87, visited: false, summary: "古城、峡谷与濑户内海", resources: [{ type: "文化", score: 93 }, { type: "徒步", score: 84 }, { type: "骑行", score: 91 }] },
-    { id: "kansai", name: "关西", english: "Kansai", focus: [34.8, 135.5], heat: 98, visited: true, summary: "京都古寺、熊野古道与美食", resources: [{ type: "文化", score: 99 }, { type: "徒步", score: 92 }, { type: "美食", score: 98 }] },
-    { id: "kanto", name: "关东", english: "Kanto", focus: [36, 139.5], heat: 97, visited: true, summary: "东京城市圈与富士山路线", resources: [{ type: "城市", score: 99 }, { type: "徒步", score: 93 }, { type: "滑雪", score: 87 }] },
+    { id: "hokkaido", name: "北海道地方", english: "Hokkaido", focus: [43.2, 142.7], heat: 99, visited: true, summary: "夏季花海与冬季粉雪滑雪", resources: [{ type: "滑雪", score: 99 }, { type: "徒步", score: 91 }, { type: "温泉", score: 96 }] },
+    { id: "tohoku", name: "东北地方", english: "Tohoku", focus: [39.7, 140.7], heat: 92, visited: false, summary: "本州最北端的自然风光与温泉", resources: [{ type: "温泉", score: 97 }, { type: "徒步", score: 93 }, { type: "文化", score: 90 }] },
+    { id: "kanto", name: "关东地方", english: "Kanto", focus: [36.0, 139.5], heat: 98, visited: true, summary: "以东京为中心的政治经济核心", resources: [{ type: "城市", score: 99 }, { type: "徒步", score: 90 }, { type: "美食", score: 96 }] },
+    { id: "chubu", name: "中部地方", english: "Chubu", focus: [36.2, 138.0], heat: 97, visited: false, summary: "富士山与日本阿尔卑斯山景", resources: [{ type: "徒步", score: 99 }, { type: "滑雪", score: 96 }, { type: "自驾", score: 94 }] },
+    { id: "kinki", name: "近畿地方", english: "Kinki (Kansai)", focus: [34.8, 135.5], heat: 99, visited: true, summary: "关西古都文化中心（京都·大阪·奈良）", resources: [{ type: "文化", score: 99 }, { type: "美食", score: 98 }, { type: "徒步", score: 92 }] },
+    { id: "chugoku", name: "中国地方", english: "Chugoku", focus: [34.5, 133.2], heat: 88, visited: false, summary: "本州最西部的古城与濑户内海", resources: [{ type: "文化", score: 94 }, { type: "骑行", score: 92 }, { type: "徒步", score: 86 }] },
+    { id: "shikoku", name: "四国地方", english: "Shikoku", focus: [33.8, 133.5], heat: 89, visited: false, summary: "四国岛遍路与溪谷山景", resources: [{ type: "徒步", score: 96 }, { type: "文化", score: 93 }, { type: "自驾", score: 90 }] },
+    { id: "kyushu", name: "九州地方", english: "Kyushu (incl. Okinawa)", focus: [32.0, 130.5], heat: 96, visited: false, summary: "九州火山温泉与冲绳亚热带海岛", resources: [{ type: "温泉", score: 98 }, { type: "潜水", score: 97 }, { type: "徒步", score: 94 }] },
   ],
+  /* 韩国：六大旅游文化圈 */
+  KOR: [
+    { id: "capital-kr", name: "首都圈", english: "Capital Area", focus: [37.5, 127.0], heat: 99, visited: false, summary: "首尔、京畿道与仁川", resources: [{ type: "城市", score: 99 }, { type: "文化", score: 97 }, { type: "美食", score: 96 }] },
+    { id: "gangwon", name: "江原道", english: "Gangwon", focus: [37.8, 128.2], heat: 95, visited: false, summary: "山地自然风光与滑雪胜地", resources: [{ type: "滑雪", score: 98 }, { type: "徒步", score: 96 }, { type: "海岸", score: 90 }] },
+    { id: "chungcheong", name: "忠清道", english: "Chungcheong", focus: [36.5, 127.3], heat: 88, visited: false, summary: "中部大田、世宗与百济遗产", resources: [{ type: "文化", score: 93 }, { type: "城市", score: 88 }, { type: "徒步", score: 86 }] },
+    { id: "jeolla", name: "全罗道", english: "Jeolla", focus: [35.2, 126.9], heat: 92, visited: false, summary: "西南平原与韩式美食故乡", resources: [{ type: "美食", score: 99 }, { type: "文化", score: 94 }, { type: "海岸", score: 90 }] },
+    { id: "gyeongsang", name: "庆尚道", english: "Gyeongsang", focus: [35.5, 128.8], heat: 96, visited: false, summary: "釜山、大邱与庆州新罗遗产", resources: [{ type: "城市", score: 97 }, { type: "文化", score: 98 }, { type: "海岸", score: 94 }] },
+    { id: "jeju", name: "济州岛", english: "Jeju", focus: [33.4, 126.5], heat: 98, visited: false, summary: "韩国最大岛屿与度假胜地", resources: [{ type: "海岛", score: 99 }, { type: "徒步", score: 95 }, { type: "亲子", score: 96 }] },
+  ],
+  /* 中国：七大地理分区 */
   CHN: [
-    { id: "xinjiang", name: "新疆", english: "Xinjiang", focus: [42.3, 85.6], heat: 99, visited: true, summary: "雪山、草原、沙漠与史诗公路", resources: [{ type: "骑马草原", score: 99 }, { type: "徒步", score: 98 }, { type: "滑雪", score: 93 }] },
-    { id: "south", name: "华南", english: "South China", focus: [23.5, 112.6], heat: 95, visited: true, summary: "喀斯特、海岛与热带雨林", resources: [{ type: "潜水", score: 94 }, { type: "徒步", score: 90 }, { type: "美食", score: 98 }] },
-    { id: "north", name: "华北", english: "North China", focus: [38.5, 115.2], heat: 93, visited: true, summary: "长城、古都与山地穿越", resources: [{ type: "文化", score: 99 }, { type: "徒步", score: 94 }, { type: "滑雪", score: 86 }] },
-    { id: "northwest", name: "西北", english: "Northwest China", focus: [36.8, 103.3], heat: 96, visited: false, summary: "高原、戈壁与丝路遗迹", resources: [{ type: "自驾", score: 98 }, { type: "徒步", score: 95 }, { type: "摄影", score: 99 }] },
-    { id: "northeast", name: "东北", english: "Northeast China", focus: [45.3, 126.6], heat: 91, visited: false, summary: "森林、火山湖与冰雪世界", resources: [{ type: "滑雪", score: 98 }, { type: "徒步", score: 90 }, { type: "温泉", score: 88 }] },
+    { id: "northeast", name: "东北地区", english: "Northeast", focus: [45.3, 126.6], heat: 93, visited: false, summary: "黑吉辽冰雪文化与林海雪原", resources: [{ type: "滑雪", score: 98 }, { type: "徒步", score: 90 }, { type: "温泉", score: 88 }] },
+    { id: "north", name: "华北地区", english: "North China", focus: [39.5, 116.0], heat: 96, visited: true, summary: "京津冀晋与内蒙古中部古都草原", resources: [{ type: "文化", score: 99 }, { type: "徒步", score: 94 }, { type: "滑雪", score: 86 }] },
+    { id: "east", name: "华东地区", english: "East China", focus: [31.2, 120.5], heat: 98, visited: false, summary: "沪苏浙皖闽赣鲁台江南水乡", resources: [{ type: "文化", score: 98 }, { type: "美食", score: 97 }, { type: "海岸", score: 92 }] },
+    { id: "central", name: "华中地区", english: "Central China", focus: [30.6, 114.3], heat: 91, visited: false, summary: "豫鄂湘交通枢纽与山水奇观", resources: [{ type: "徒步", score: 96 }, { type: "文化", score: 93 }, { type: "自驾", score: 90 }] },
+    { id: "south", name: "华南地区", english: "South China", focus: [23.1, 113.3], heat: 95, visited: true, summary: "粤桂琼港澳热带海滨风情", resources: [{ type: "潜水", score: 94 }, { type: "美食", score: 98 }, { type: "海岸", score: 96 }] },
+    { id: "southwest", name: "西南地区", english: "Southwest", focus: [29.6, 102.7], heat: 97, visited: false, summary: "渝川黔滇藏自然与民族文化", resources: [{ type: "徒步", score: 99 }, { type: "文化", score: 97 }, { type: "摄影", score: 99 }] },
+    { id: "northwest", name: "西北地区", english: "Northwest", focus: [40.0, 95.0], heat: 99, visited: true, summary: "陕甘青宁新丝路与大漠高山", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 97 }, { type: "摄影", score: 99 }] },
   ],
-  ISL: [
-    { id: "south-iceland", name: "冰岛南岸", english: "South Iceland", focus: [63.8, -19.6], heat: 98, visited: false, summary: "黑沙滩、瀑布、冰川与火山地貌", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 94 }, { type: "温泉", score: 96 }] },
-    { id: "north-iceland", name: "北部冰岛", english: "North Iceland", focus: [65.6, -17.2], heat: 91, visited: false, summary: "火山湖、峡谷与北境观鲸", resources: [{ type: "自驾", score: 93 }, { type: "摄影", score: 97 }, { type: "温泉", score: 91 }] },
-  ],
-  CHE: [
-    { id: "bernese-oberland", name: "伯尔尼高地", english: "Bernese Oberland", focus: [46.62, 7.94], heat: 98, visited: false, summary: "雪峰、瀑布谷与高山列车", resources: [{ type: "徒步", score: 99 }, { type: "摄影", score: 98 }, { type: "亲子", score: 94 }] },
-    { id: "lake-geneva", name: "日内瓦湖区", english: "Lake Geneva", focus: [46.45, 6.55], heat: 93, visited: false, summary: "湖岸葡萄园与法语古城", resources: [{ type: "文化", score: 96 }, { type: "骑行", score: 92 }, { type: "美食", score: 95 }] },
-  ],
-  NOR: [
-    { id: "west-fjords", name: "西部峡湾", english: "Western Fjords", focus: [61.1, 6.8], heat: 99, visited: false, summary: "峡湾公路、瀑布与高山步道", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 97 }, { type: "摄影", score: 99 }] },
-    { id: "arctic-norway", name: "北极圈北部", english: "Arctic Norway", focus: [68.4, 17.6], heat: 95, visited: false, summary: "极光、海岸山脉与午夜太阳", resources: [{ type: "摄影", score: 99 }, { type: "徒步", score: 94 }, { type: "自驾", score: 92 }] },
-  ],
-  IDN: [
-    { id: "bali", name: "巴厘岛", english: "Bali", focus: [-8.42, 115.19], heat: 98, visited: false, summary: "火山、珊瑚海与稻田文化", resources: [{ type: "潜水", score: 98 }, { type: "徒步", score: 91 }, { type: "海岸", score: 97 }] },
-    { id: "java", name: "爪哇岛", english: "Java", focus: [-7.5, 110.2], heat: 94, visited: false, summary: "火山群、古迹与纵贯铁路", resources: [{ type: "徒步", score: 97 }, { type: "文化", score: 98 }, { type: "摄影", score: 95 }] },
-  ],
-  NZL: [
-    { id: "south-island", name: "南岛", english: "South Island", focus: [-44.6, 169.1], heat: 99, visited: false, summary: "冰川、峡湾与高山湖泊", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 99 }, { type: "亲子", score: 94 }] },
-    { id: "north-island", name: "北岛", english: "North Island", focus: [-38.4, 175.6], heat: 94, visited: false, summary: "火山地热、海湾与毛利文化", resources: [{ type: "文化", score: 96 }, { type: "徒步", score: 93 }, { type: "海岸", score: 95 }] },
-  ],
-  CAN: [
-    { id: "canadian-rockies", name: "加拿大落基山", english: "Canadian Rockies", focus: [51.3, -116.2], heat: 99, visited: false, summary: "冰川湖、高山公路与国家公园", resources: [{ type: "徒步", score: 99 }, { type: "自驾", score: 98 }, { type: "摄影", score: 99 }] },
-    { id: "pacific-canada", name: "太平洋沿岸", english: "Pacific Canada", focus: [49.4, -123.2], heat: 94, visited: false, summary: "雨林、海湾与山海城市", resources: [{ type: "海岸", score: 96 }, { type: "徒步", score: 94 }, { type: "城市", score: 95 }] },
-  ],
+  /* 泰国：北 / 东北 / 中部 / 东 / 南 */
   THA: [
-    { id: "andaman-coast", name: "安达曼海岸", english: "Andaman Coast", focus: [8.1, 98.4], heat: 97, visited: false, summary: "石灰岩海湾、离岛与潜点", resources: [{ type: "潜水", score: 98 }, { type: "海岛", score: 99 }, { type: "亲子", score: 92 }] },
-    { id: "north-thailand", name: "泰北", english: "North Thailand", focus: [18.8, 99.0], heat: 92, visited: false, summary: "山地古城、森林与市集", resources: [{ type: "文化", score: 96 }, { type: "徒步", score: 91 }, { type: "美食", score: 97 }] },
+    { id: "north-th", name: "北部", english: "Northern Thailand", focus: [18.8, 99.0], heat: 94, visited: false, summary: "清迈清莱山地古城与市集", resources: [{ type: "文化", score: 96 }, { type: "徒步", score: 91 }, { type: "美食", score: 97 }] },
+    { id: "northeast-th", name: "东北部", english: "Isan", focus: [15.0, 103.0], heat: 86, visited: false, summary: "伊桑高原文化与高棉遗迹", resources: [{ type: "文化", score: 92 }, { type: "美食", score: 94 }, { type: "徒步", score: 84 }] },
+    { id: "central-th", name: "中部", english: "Central Thailand", focus: [14.0, 100.5], heat: 95, visited: false, summary: "曼谷与大城古都核心", resources: [{ type: "城市", score: 98 }, { type: "文化", score: 97 }, { type: "美食", score: 96 }] },
+    { id: "east-th", name: "东部", english: "Eastern Thailand", focus: [12.9, 100.9], heat: 90, visited: false, summary: "芭堤雅与东南海岸度假", resources: [{ type: "海岸", score: 95 }, { type: "亲子", score: 91 }, { type: "潜水", score: 88 }] },
+    { id: "south-th", name: "南部", english: "Southern Thailand", focus: [8.1, 98.4], heat: 98, visited: false, summary: "安达曼与泰国湾海岛潜点", resources: [{ type: "潜水", score: 99 }, { type: "海岛", score: 99 }, { type: "亲子", score: 92 }] },
   ],
-  AUS: [
-    { id: "queensland-tropics", name: "昆士兰热带北部", english: "Tropical Queensland", focus: [-18.2, 146.2], heat: 98, visited: false, summary: "珊瑚礁、热带雨林与海岛", resources: [{ type: "潜水", score: 99 }, { type: "徒步", score: 91 }, { type: "海岛", score: 98 }] },
-    { id: "tasmania", name: "塔斯马尼亚", english: "Tasmania", focus: [-42.0, 146.7], heat: 94, visited: false, summary: "荒野海岸与高山步道", resources: [{ type: "徒步", score: 98 }, { type: "自驾", score: 96 }, { type: "摄影", score: 95 }] },
+  /* 印尼：主要大岛分区 */
+  IDN: [
+    { id: "sumatra", name: "苏门答腊", english: "Sumatra", focus: [0.5, 101.5], heat: 88, visited: false, summary: "雨林、火山湖与猩猩栖息地", resources: [{ type: "徒步", score: 94 }, { type: "摄影", score: 92 }, { type: "文化", score: 88 }] },
+    { id: "java", name: "爪哇", english: "Java", focus: [-7.5, 110.2], heat: 95, visited: false, summary: "火山群、日惹古迹与纵贯铁路", resources: [{ type: "徒步", score: 97 }, { type: "文化", score: 98 }, { type: "摄影", score: 95 }] },
+    { id: "bali-nt", name: "巴厘与努沙登加拉", english: "Bali & Nusa Tenggara", focus: [-8.5, 117.0], heat: 99, visited: false, summary: "巴厘文化与科莫多群岛", resources: [{ type: "潜水", score: 98 }, { type: "海岸", score: 97 }, { type: "徒步", score: 91 }] },
+    { id: "kalimantan", name: "加里曼丹", english: "Kalimantan", focus: [0.5, 114.0], heat: 84, visited: false, summary: "婆罗洲雨林与河岸生态", resources: [{ type: "徒步", score: 93 }, { type: "摄影", score: 90 }, { type: "亲子", score: 80 }] },
+    { id: "sulawesi", name: "苏拉威西", english: "Sulawesi", focus: [-2.0, 120.0], heat: 87, visited: false, summary: "托拉查文化与布纳肯潜水", resources: [{ type: "潜水", score: 97 }, { type: "文化", score: 94 }, { type: "徒步", score: 88 }] },
+    { id: "papua-maluku", name: "巴布亚与马鲁古", english: "Papua & Maluku", focus: [-4.0, 138.0], heat: 85, visited: false, summary: "极东群岛与原始雨林", resources: [{ type: "潜水", score: 96 }, { type: "徒步", score: 95 }, { type: "摄影", score: 94 }] },
   ],
+  /* 越南：北中南 */
+  VNM: [
+    { id: "north-vn", name: "北部", english: "Northern Vietnam", focus: [21.0, 105.8], heat: 97, visited: false, summary: "河内、下龙湾与沙巴山地", resources: [{ type: "文化", score: 96 }, { type: "徒步", score: 94 }, { type: "海岸", score: 93 }] },
+    { id: "central-vn", name: "中部", english: "Central Vietnam", focus: [16.0, 108.2], heat: 95, visited: false, summary: "顺化会安与岘港海岸", resources: [{ type: "文化", score: 98 }, { type: "海岸", score: 95 }, { type: "美食", score: 94 }] },
+    { id: "south-vn", name: "南部", english: "Southern Vietnam", focus: [10.8, 106.7], heat: 94, visited: false, summary: "胡志明市与湄公河三角洲", resources: [{ type: "城市", score: 95 }, { type: "美食", score: 96 }, { type: "亲子", score: 88 }] },
+  ],
+  /* 意大利：西北 / 东北 / 中部 / 南部 / 岛屿 */
   ITA: [
-    { id: "north-italy", name: "意大利北部", english: "Northern Italy", focus: [45.7, 10.7], heat: 98, visited: false, summary: "多洛米蒂与湖区", resources: [{ type: "徒步", score: 99 }, { type: "滑雪", score: 97 }, { type: "自驾", score: 94 }] },
-    { id: "tuscany", name: "托斯卡纳", english: "Tuscany", focus: [43.4, 11.1], heat: 97, visited: false, summary: "丘陵、庄园与文艺古城", resources: [{ type: "文化", score: 99 }, { type: "骑行", score: 94 }, { type: "美食", score: 98 }] },
-    { id: "south-italy", name: "意大利南部", english: "Southern Italy", focus: [40.5, 16.2], heat: 92, visited: false, summary: "悬崖海岸与古老村落", resources: [{ type: "海岸", score: 97 }, { type: "徒步", score: 89 }, { type: "文化", score: 95 }] },
-    { id: "sicily", name: "西西里", english: "Sicily", focus: [37.6, 14.1], heat: 94, visited: false, summary: "火山、遗址与地中海", resources: [{ type: "潜水", score: 91 }, { type: "徒步", score: 95 }, { type: "美食", score: 96 }] },
+    { id: "northwest-it", name: "西北部", english: "Northwest Italy", focus: [45.1, 7.7], heat: 94, visited: false, summary: "米兰、都灵与利古里亚海岸", resources: [{ type: "城市", score: 97 }, { type: "美食", score: 96 }, { type: "海岸", score: 92 }] },
+    { id: "northeast-it", name: "东北部", english: "Northeast Italy", focus: [45.7, 11.5], heat: 98, visited: false, summary: "多洛米蒂、威尼斯与加尔达湖", resources: [{ type: "徒步", score: 99 }, { type: "滑雪", score: 97 }, { type: "文化", score: 96 }] },
+    { id: "central-italy", name: "中部", english: "Central Italy", focus: [42.9, 12.5], heat: 99, visited: false, summary: "罗马、托斯卡纳与翁布里亚", resources: [{ type: "文化", score: 99 }, { type: "美食", score: 98 }, { type: "骑行", score: 94 }] },
+    { id: "south-italy", name: "南部", english: "Southern Italy", focus: [40.9, 15.0], heat: 93, visited: false, summary: "那不勒斯湾与普利亚海岸", resources: [{ type: "海岸", score: 97 }, { type: "美食", score: 96 }, { type: "文化", score: 94 }] },
+    { id: "islands-it", name: "西西里与撒丁", english: "Sicily & Sardinia", focus: [39.0, 9.1], heat: 95, visited: false, summary: "地中海火山岛与沙滩", resources: [{ type: "海岸", score: 98 }, { type: "徒步", score: 93 }, { type: "美食", score: 95 }] },
   ],
+  /* 法国：本土主要旅游大区 */
+  FRA: [
+    { id: "idf", name: "法兰西岛", english: "Île-de-France", focus: [48.86, 2.35], heat: 99, visited: false, summary: "巴黎都会与周边城堡", resources: [{ type: "城市", score: 99 }, { type: "文化", score: 99 }, { type: "美食", score: 97 }] },
+    { id: "north-fra", name: "北部与诺曼底", english: "North & Normandy", focus: [49.2, 0.4], heat: 90, visited: false, summary: "海岸、二战遗址与田园", resources: [{ type: "海岸", score: 93 }, { type: "文化", score: 94 }, { type: "自驾", score: 90 }] },
+    { id: "east-fra", name: "东部阿尔卑斯", english: "East & Alps", focus: [45.9, 6.1], heat: 96, visited: false, summary: "霞慕尼与汝拉山地", resources: [{ type: "滑雪", score: 98 }, { type: "徒步", score: 97 }, { type: "摄影", score: 95 }] },
+    { id: "west-fra", name: "西部大西洋", english: "West Atlantic", focus: [47.2, -1.6], heat: 91, visited: false, summary: "布列塔尼与卢瓦尔河谷", resources: [{ type: "海岸", score: 95 }, { type: "文化", score: 96 }, { type: "骑行", score: 92 }] },
+    { id: "south-fra", name: "南部地中海", english: "South Mediterranean", focus: [43.6, 5.4], heat: 98, visited: false, summary: "普罗旺斯、蔚蓝海岸与科西嘉", resources: [{ type: "海岸", score: 98 }, { type: "美食", score: 97 }, { type: "摄影", score: 96 }] },
+  ],
+  /* 冰岛：首都 / 西 / 北 / 东 / 南 */
+  ISL: [
+    { id: "capital-is", name: "首都圈", english: "Capital Region", focus: [64.15, -21.95], heat: 94, visited: false, summary: "雷克雅未克与周边温泉", resources: [{ type: "城市", score: 93 }, { type: "温泉", score: 96 }, { type: "文化", score: 90 }] },
+    { id: "west-is", name: "西部与西峡湾", english: "West & Westfjords", focus: [65.0, -22.5], heat: 90, visited: false, summary: "斯奈山半岛与西峡湾", resources: [{ type: "自驾", score: 95 }, { type: "摄影", score: 97 }, { type: "徒步", score: 92 }] },
+    { id: "north-is", name: "北部", english: "North Iceland", focus: [65.6, -18.0], heat: 92, visited: false, summary: "阿克雷里、米湖与观鲸", resources: [{ type: "自驾", score: 93 }, { type: "摄影", score: 97 }, { type: "温泉", score: 91 }] },
+    { id: "east-is", name: "东部", english: "East Iceland", focus: [65.0, -14.0], heat: 88, visited: false, summary: "峡湾村落与冰川前缘", resources: [{ type: "自驾", score: 92 }, { type: "徒步", score: 93 }, { type: "摄影", score: 94 }] },
+    { id: "south-iceland", name: "南部", english: "South Iceland", focus: [63.8, -19.6], heat: 99, visited: false, summary: "黑沙滩、瀑布与杰古沙龙", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 94 }, { type: "温泉", score: 96 }] },
+  ],
+  /* 西班牙：北 / 中 / 东 / 南 / 群岛 */
+  ESP: [
+    { id: "north-es", name: "北部", english: "Northern Spain", focus: [43.3, -3.0], heat: 93, visited: false, summary: "巴斯克、阿斯图里亚斯与朝圣之路", resources: [{ type: "美食", score: 98 }, { type: "徒步", score: 95 }, { type: "海岸", score: 92 }] },
+    { id: "central-es", name: "中部", english: "Central Spain", focus: [40.4, -3.7], heat: 95, visited: false, summary: "马德里与卡斯蒂利亚古城", resources: [{ type: "城市", score: 97 }, { type: "文化", score: 98 }, { type: "美食", score: 94 }] },
+    { id: "east-es", name: "东部", english: "Eastern Spain", focus: [39.5, -0.4], heat: 94, visited: false, summary: "巴塞罗那、瓦伦西亚与地中海", resources: [{ type: "城市", score: 98 }, { type: "海岸", score: 95 }, { type: "文化", score: 96 }] },
+    { id: "south-es", name: "南部", english: "Andalusia", focus: [37.4, -5.0], heat: 97, visited: false, summary: "安达卢西亚摩尔遗产与阳光海岸", resources: [{ type: "文化", score: 99 }, { type: "海岸", score: 94 }, { type: "美食", score: 95 }] },
+    { id: "islands-es", name: "群岛", english: "Balearic & Canary", focus: [28.3, -16.5], heat: 96, visited: false, summary: "巴利阿里与加那利度假群岛", resources: [{ type: "海岛", score: 98 }, { type: "冲浪", score: 94 }, { type: "徒步", score: 90 }] },
+  ],
+  /* 瑞士：西 / 中原 / 阿尔卑斯 / 南提契诺 */
+  CHE: [
+    { id: "west-ch", name: "西部罗曼蒂", english: "Romandy", focus: [46.5, 6.6], heat: 94, visited: false, summary: "日内瓦湖区与法语区古城", resources: [{ type: "文化", score: 96 }, { type: "骑行", score: 92 }, { type: "美食", score: 95 }] },
+    { id: "plateau-ch", name: "中部高原", english: "Swiss Plateau", focus: [47.4, 8.5], heat: 91, visited: false, summary: "苏黎世、伯尔尼与城市湖岸", resources: [{ type: "城市", score: 95 }, { type: "文化", score: 93 }, { type: "亲子", score: 90 }] },
+    { id: "alpine-ch", name: "阿尔卑斯", english: "Swiss Alps", focus: [46.6, 8.0], heat: 99, visited: false, summary: "伯尔尼高地、瓦莱与高山列车", resources: [{ type: "徒步", score: 99 }, { type: "摄影", score: 98 }, { type: "滑雪", score: 97 }] },
+    { id: "ticino", name: "提契诺", english: "Ticino", focus: [46.2, 8.8], heat: 90, visited: false, summary: "南阿尔卑斯意大利语区湖城", resources: [{ type: "海岸", score: 88 }, { type: "徒步", score: 92 }, { type: "美食", score: 93 }] },
+  ],
+  /* 挪威：东 / 南 / 西 / 中 / 北 */
+  NOR: [
+    { id: "east-no", name: "东部", english: "Eastern Norway", focus: [59.9, 10.8], heat: 92, visited: false, summary: "奥斯陆与内陆山林", resources: [{ type: "城市", score: 94 }, { type: "徒步", score: 91 }, { type: "文化", score: 90 }] },
+    { id: "south-no", name: "南部", english: "Southern Norway", focus: [58.1, 7.0], heat: 88, visited: false, summary: "南海岸夏日小镇", resources: [{ type: "海岸", score: 93 }, { type: "亲子", score: 90 }, { type: "自驾", score: 88 }] },
+    { id: "west-no", name: "西部峡湾", english: "Western Fjords", focus: [61.1, 6.8], heat: 99, visited: false, summary: "松恩、盖朗厄尔与国家景观公路", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 97 }, { type: "摄影", score: 99 }] },
+    { id: "central-no", name: "中部", english: "Trøndelag", focus: [63.4, 10.4], heat: 87, visited: false, summary: "特隆赫姆与海岸山脉", resources: [{ type: "文化", score: 90 }, { type: "徒步", score: 91 }, { type: "自驾", score: 88 }] },
+    { id: "north-no", name: "北部", english: "Northern Norway", focus: [68.4, 17.6], heat: 96, visited: false, summary: "罗弗敦、特罗姆瑟与极光", resources: [{ type: "摄影", score: 99 }, { type: "徒步", score: 94 }, { type: "自驾", score: 93 }] },
+  ],
+  /* 新西兰：南北岛 */
+  NZL: [
+    { id: "north-island", name: "北岛", english: "North Island", focus: [-38.4, 175.6], heat: 94, visited: false, summary: "火山地热、海湾与毛利文化", resources: [{ type: "文化", score: 96 }, { type: "徒步", score: 93 }, { type: "海岸", score: 95 }] },
+    { id: "south-island", name: "南岛", english: "South Island", focus: [-44.0, 170.0], heat: 99, visited: false, summary: "冰川、峡湾与高山湖泊", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 99 }, { type: "亲子", score: 94 }] },
+  ],
+  /* 澳大利亚：六州二领地（旅游合并） */
+  AUS: [
+    { id: "nsw-act", name: "新南威尔士与首都", english: "NSW & ACT", focus: [-33.9, 151.2], heat: 95, visited: false, summary: "悉尼、蓝山与堪培拉", resources: [{ type: "城市", score: 97 }, { type: "海岸", score: 95 }, { type: "徒步", score: 92 }] },
+    { id: "vic", name: "维多利亚", english: "Victoria", focus: [-37.8, 144.9], heat: 94, visited: false, summary: "墨尔本与大洋路", resources: [{ type: "城市", score: 96 }, { type: "自驾", score: 97 }, { type: "美食", score: 95 }] },
+    { id: "qld", name: "昆士兰", english: "Queensland", focus: [-18.2, 146.2], heat: 98, visited: false, summary: "大堡礁与热带北部", resources: [{ type: "潜水", score: 99 }, { type: "海岛", score: 98 }, { type: "徒步", score: 91 }] },
+    { id: "sa", name: "南澳", english: "South Australia", focus: [-34.9, 138.6], heat: 88, visited: false, summary: "阿德莱德与酒乡袋鼠岛", resources: [{ type: "美食", score: 94 }, { type: "海岸", score: 90 }, { type: "自驾", score: 89 }] },
+    { id: "wa", name: "西澳", english: "Western Australia", focus: [-31.9, 115.9], heat: 90, visited: false, summary: "珀斯、宁格鲁礁与荒野公路", resources: [{ type: "自驾", score: 96 }, { type: "潜水", score: 95 }, { type: "海岸", score: 93 }] },
+    { id: "tas", name: "塔斯马尼亚", english: "Tasmania", focus: [-42.0, 146.7], heat: 93, visited: false, summary: "荒野海岸与高山步道", resources: [{ type: "徒步", score: 98 }, { type: "自驾", score: 96 }, { type: "摄影", score: 95 }] },
+    { id: "nt", name: "北领地", english: "Northern Territory", focus: [-23.7, 133.9], heat: 91, visited: false, summary: "乌鲁鲁与卡卡杜", resources: [{ type: "摄影", score: 98 }, { type: "徒步", score: 94 }, { type: "文化", score: 93 }] },
+  ],
+  FJI: [
+    { id: "viti-levu", name: "维提岛", english: "Viti Levu", focus: [-17.8, 178.0], heat: 95, visited: false, summary: "主岛城市、海岸与高地", resources: [{ type: "海岸", score: 96 }, { type: "文化", score: 92 }, { type: "亲子", score: 93 }] },
+    { id: "vanua-levu", name: "瓦努阿岛", english: "Vanua Levu", focus: [-16.6, 179.0], heat: 88, visited: false, summary: "北岛潜水与种植园", resources: [{ type: "潜水", score: 94 }, { type: "海岸", score: 92 }, { type: "摄影", score: 88 }] },
+    { id: "outer-islands", name: "外岛群", english: "Outer Islands", focus: [-17.5, 177.0], heat: 92, visited: false, summary: "玛玛努卡与亚萨瓦度假岛", resources: [{ type: "海岛", score: 99 }, { type: "潜水", score: 97 }, { type: "亲子", score: 94 }] },
+  ],
+  /* 美国：人口普查四大区 + 夏威夷 / 阿拉斯加 */
   USA: [
-    { id: "west-coast", name: "西海岸", english: "West Coast", focus: [37.2, -120.1], heat: 99, visited: false, summary: "太平洋公路与国家公园", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 98 }, { type: "冲浪", score: 93 }] },
-    { id: "rockies", name: "落基山地区", english: "Rockies", focus: [42.4, -110.1], heat: 97, visited: false, summary: "雪山、峡谷与荒野", resources: [{ type: "徒步", score: 99 }, { type: "滑雪", score: 98 }, { type: "露营", score: 97 }] },
-    { id: "northeast-us", name: "东北部", english: "Northeast", focus: [42.5, -73.2], heat: 91, visited: false, summary: "城市、森林与秋色公路", resources: [{ type: "城市", score: 97 }, { type: "徒步", score: 88 }, { type: "自驾", score: 91 }] },
+    { id: "northeast-us", name: "东北部", english: "Northeast", focus: [41.5, -73.5], heat: 93, visited: false, summary: "纽约、新英格兰与秋色公路", resources: [{ type: "城市", score: 98 }, { type: "徒步", score: 90 }, { type: "自驾", score: 91 }] },
+    { id: "midwest", name: "中西部", english: "Midwest", focus: [41.9, -87.6], heat: 88, visited: false, summary: "五大湖与草原都市", resources: [{ type: "城市", score: 92 }, { type: "自驾", score: 90 }, { type: "亲子", score: 88 }] },
+    { id: "south-us", name: "南部", english: "South", focus: [32.8, -96.8], heat: 92, visited: false, summary: "德州、湾岸与东南海岸", resources: [{ type: "海岸", score: 93 }, { type: "美食", score: 95 }, { type: "文化", score: 92 }] },
+    { id: "west", name: "西部", english: "West", focus: [37.2, -119.0], heat: 99, visited: false, summary: "加州海岸与西南国家公园", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 98 }, { type: "冲浪", score: 93 }] },
+    { id: "mountain-us", name: "山地区", english: "Mountain West", focus: [40.5, -111.0], heat: 97, visited: false, summary: "落基山与大盆地荒野", resources: [{ type: "徒步", score: 99 }, { type: "滑雪", score: 98 }, { type: "露营", score: 97 }] },
     { id: "hawaii", name: "夏威夷", english: "Hawaii", focus: [20.8, -156.3], heat: 96, visited: false, summary: "火山群岛与深蓝海洋", resources: [{ type: "潜水", score: 99 }, { type: "冲浪", score: 99 }, { type: "徒步", score: 94 }] },
+    { id: "alaska", name: "阿拉斯加", english: "Alaska", focus: [64.2, -149.5], heat: 91, visited: false, summary: "冰川峡湾与极地公路", resources: [{ type: "摄影", score: 99 }, { type: "徒步", score: 95 }, { type: "自驾", score: 92 }] },
+  ],
+  /* 加拿大：大西洋 / 魁北克 / 安大略 / 草原 / 西部 / 北部 */
+  CAN: [
+    { id: "atlantic-ca", name: "大西洋沿岸", english: "Atlantic Canada", focus: [46.1, -63.0], heat: 90, visited: false, summary: "新斯科舍与纽芬兰海岸", resources: [{ type: "海岸", score: 96 }, { type: "自驾", score: 93 }, { type: "摄影", score: 92 }] },
+    { id: "quebec", name: "魁北克", english: "Quebec", focus: [46.8, -71.2], heat: 93, visited: false, summary: "魁北克城与蒙特利尔法语文化", resources: [{ type: "文化", score: 97 }, { type: "城市", score: 95 }, { type: "美食", score: 94 }] },
+    { id: "ontario", name: "安大略", english: "Ontario", focus: [43.7, -79.4], heat: 94, visited: false, summary: "多伦多、渥太华与尼亚加拉", resources: [{ type: "城市", score: 96 }, { type: "亲子", score: 93 }, { type: "徒步", score: 88 }] },
+    { id: "prairies", name: "草原三省", english: "Prairies", focus: [51.0, -106.0], heat: 87, visited: false, summary: "草原公路与湖区", resources: [{ type: "自驾", score: 92 }, { type: "摄影", score: 90 }, { type: "徒步", score: 86 }] },
+    { id: "west-ca", name: "西部", english: "Western Canada", focus: [51.0, -116.5], heat: 99, visited: false, summary: "BC 与阿尔伯塔落基山国家公园", resources: [{ type: "徒步", score: 99 }, { type: "自驾", score: 98 }, { type: "摄影", score: 99 }] },
+    { id: "north-ca", name: "北部领地", english: "Northern Territories", focus: [62.5, -114.4], heat: 86, visited: false, summary: "育空、西北与努纳武特极地", resources: [{ type: "摄影", score: 97 }, { type: "徒步", score: 93 }, { type: "自驾", score: 88 }] },
+  ],
+  MEX: [
+    { id: "north-mx", name: "北部", english: "Northern Mexico", focus: [28.6, -106.1], heat: 86, visited: false, summary: "沙漠边境与铜峡谷", resources: [{ type: "自驾", score: 92 }, { type: "徒步", score: 90 }, { type: "文化", score: 88 }] },
+    { id: "central-mx", name: "中部高原", english: "Central Highlands", focus: [19.4, -99.1], heat: 97, visited: false, summary: "墨西哥城与殖民古城", resources: [{ type: "文化", score: 99 }, { type: "美食", score: 98 }, { type: "城市", score: 96 }] },
+    { id: "pacific-mx", name: "太平洋沿岸", english: "Pacific Coast", focus: [20.7, -105.2], heat: 93, visited: false, summary: "巴亚尔塔港与瓦哈卡海岸", resources: [{ type: "海岸", score: 96 }, { type: "冲浪", score: 94 }, { type: "美食", score: 93 }] },
+    { id: "yucatan", name: "尤卡坦半岛", english: "Yucatán", focus: [20.7, -88.0], heat: 98, visited: false, summary: "玛雅遗址与加勒比海", resources: [{ type: "文化", score: 99 }, { type: "潜水", score: 97 }, { type: "海岛", score: 96 }] },
+  ],
+  CRI: [
+    { id: "central-valley", name: "中央谷地", english: "Central Valley", focus: [9.9, -84.1], heat: 92, visited: false, summary: "圣何塞与火山门户", resources: [{ type: "城市", score: 90 }, { type: "文化", score: 88 }, { type: "亲子", score: 89 }] },
+    { id: "pacific-north-cr", name: "北太平洋", english: "North Pacific", focus: [10.3, -85.8], heat: 95, visited: false, summary: "瓜纳卡斯特海滩与旱林", resources: [{ type: "海岸", score: 97 }, { type: "冲浪", score: 95 }, { type: "亲子", score: 92 }] },
+    { id: "pacific-south-cr", name: "南太平洋", english: "South Pacific", focus: [9.2, -83.8], heat: 93, visited: false, summary: "马努埃尔安东尼奥与奥萨半岛", resources: [{ type: "徒步", score: 96 }, { type: "海岸", score: 95 }, { type: "摄影", score: 94 }] },
+    { id: "caribbean-cr", name: "加勒比沿岸", english: "Caribbean Coast", focus: [9.9, -83.0], heat: 91, visited: false, summary: "利蒙与托尔图盖罗雨林", resources: [{ type: "海岸", score: 94 }, { type: "徒步", score: 93 }, { type: "摄影", score: 92 }] },
+    { id: "north-plains-cr", name: "北部平原", english: "Northern Plains", focus: [10.5, -84.5], heat: 90, visited: false, summary: "阿雷纳尔火山与云雾林", resources: [{ type: "徒步", score: 97 }, { type: "摄影", score: 95 }, { type: "亲子", score: 91 }] },
+  ],
+  /* 巴西：IBGE 五大区 */
+  BRA: [
+    { id: "north-br", name: "北部", english: "North Brazil", focus: [-3.1, -60.0], heat: 94, visited: false, summary: "亚马孙雨林与河港都市", resources: [{ type: "徒步", score: 94 }, { type: "摄影", score: 97 }, { type: "亲子", score: 86 }] },
+    { id: "northeast-br", name: "东北部", english: "Northeast Brazil", focus: [-8.1, -34.9], heat: 95, visited: false, summary: "累西腓、萨尔瓦多与阳光海岸", resources: [{ type: "海岸", score: 98 }, { type: "文化", score: 96 }, { type: "美食", score: 94 }] },
+    { id: "central-west-br", name: "中西部", english: "Central-West", focus: [-15.8, -47.9], heat: 89, visited: false, summary: "巴西利亚与潘塔纳尔湿地", resources: [{ type: "摄影", score: 96 }, { type: "文化", score: 90 }, { type: "自驾", score: 88 }] },
+    { id: "southeast-br", name: "东南部", english: "Southeast Brazil", focus: [-22.9, -43.2], heat: 99, visited: false, summary: "里约、圣保罗与米纳斯", resources: [{ type: "城市", score: 98 }, { type: "海岸", score: 97 }, { type: "徒步", score: 92 }] },
+    { id: "south-br", name: "南部", english: "South Brazil", focus: [-27.6, -48.5], heat: 91, visited: false, summary: "伊瓜苏瀑布与欧洲风小镇", resources: [{ type: "徒步", score: 96 }, { type: "摄影", score: 97 }, { type: "亲子", score: 91 }] },
+  ],
+  /* 阿根廷：旅游地理分区 */
+  ARG: [
+    { id: "northwest-ar", name: "西北部", english: "Northwest Argentina", focus: [-24.2, -65.3], heat: 92, visited: false, summary: "彩色山脊与安第斯小镇", resources: [{ type: "自驾", score: 95 }, { type: "摄影", score: 98 }, { type: "文化", score: 92 }] },
+    { id: "northeast-ar", name: "东北部", english: "Northeast Argentina", focus: [-25.7, -54.6], heat: 91, visited: false, summary: "伊瓜苏与美索不达米亚湿地", resources: [{ type: "徒步", score: 94 }, { type: "摄影", score: 96 }, { type: "亲子", score: 90 }] },
+    { id: "cuyo", name: "库约", english: "Cuyo", focus: [-32.9, -68.8], heat: 90, visited: false, summary: "门多萨酒乡与阿空加瓜", resources: [{ type: "美食", score: 96 }, { type: "徒步", score: 94 }, { type: "自驾", score: 91 }] },
+    { id: "pampas", name: "潘帕与布宜诺斯艾利斯", english: "Pampas & Buenos Aires", focus: [-34.6, -58.4], heat: 95, visited: false, summary: "首都探戈与潘帕牧场", resources: [{ type: "城市", score: 97 }, { type: "文化", score: 98 }, { type: "美食", score: 96 }] },
+    { id: "patagonia-ar", name: "巴塔哥尼亚", english: "Patagonia", focus: [-50.1, -73.0], heat: 99, visited: false, summary: "冰川、菲茨罗伊与无尽公路", resources: [{ type: "徒步", score: 99 }, { type: "自驾", score: 96 }, { type: "摄影", score: 99 }] },
+  ],
+  /* 秘鲁：海岸 / 高原 / 亚马孙 */
+  PER: [
+    { id: "coast-pe", name: "太平洋沿岸", english: "Coast", focus: [-12.0, -77.0], heat: 93, visited: false, summary: "利马美食与北部沙漠海岸", resources: [{ type: "美食", score: 99 }, { type: "文化", score: 94 }, { type: "海岸", score: 90 }] },
+    { id: "sierra-pe", name: "安第斯高原", english: "Sierra", focus: [-13.5, -71.9], heat: 99, visited: false, summary: "库斯科圣谷与马丘比丘", resources: [{ type: "徒步", score: 99 }, { type: "文化", score: 99 }, { type: "摄影", score: 97 }] },
+    { id: "amazon-pe", name: "亚马孙", english: "Amazon Peru", focus: [-3.7, -73.2], heat: 90, visited: false, summary: "伊基托斯与热带雨林", resources: [{ type: "摄影", score: 95 }, { type: "徒步", score: 92 }, { type: "亲子", score: 85 }] },
+  ],
+  /* 智利：大北 / 小北 / 中部 / 南部 / 极南 */
+  CHL: [
+    { id: "norte-grande", name: "大北部", english: "Norte Grande", focus: [-23.6, -68.2], heat: 96, visited: false, summary: "阿塔卡马沙漠与星空", resources: [{ type: "摄影", score: 99 }, { type: "自驾", score: 94 }, { type: "徒步", score: 91 }] },
+    { id: "norte-chico", name: "小北部", english: "Norte Chico", focus: [-29.9, -71.3], heat: 88, visited: false, summary: "海岸天文与半干旱谷地", resources: [{ type: "海岸", score: 90 }, { type: "摄影", score: 91 }, { type: "自驾", score: 89 }] },
+    { id: "central-cl", name: "中部", english: "Central Chile", focus: [-33.4, -70.7], heat: 93, visited: false, summary: "圣地亚哥、瓦尔帕莱索与酒谷", resources: [{ type: "城市", score: 95 }, { type: "美食", score: 94 }, { type: "文化", score: 93 }] },
+    { id: "south-cl", name: "南部湖区", english: "Lake District", focus: [-41.5, -72.9], heat: 94, visited: false, summary: "火山湖泊与奇洛埃", resources: [{ type: "徒步", score: 96 }, { type: "自驾", score: 94 }, { type: "摄影", score: 95 }] },
+    { id: "patagonia-cl", name: "极南巴塔哥尼亚", english: "Austral Patagonia", focus: [-51.0, -73.0], heat: 99, visited: false, summary: "托雷斯德尔帕伊内与峡湾", resources: [{ type: "徒步", score: 99 }, { type: "摄影", score: 98 }, { type: "露营", score: 95 }] },
+  ],
+  /* 南非：主要旅游区 */
+  ZAF: [
+    { id: "gauteng", name: "豪登", english: "Gauteng", focus: [-26.2, 28.0], heat: 90, visited: false, summary: "约翰内斯堡与比勒陀利亚门户", resources: [{ type: "城市", score: 93 }, { type: "文化", score: 92 }, { type: "亲子", score: 88 }] },
+    { id: "cape-region", name: "西开普", english: "Western Cape", focus: [-33.9, 18.4], heat: 99, visited: false, summary: "开普敦、好望角与酒乡", resources: [{ type: "自驾", score: 97 }, { type: "海岸", score: 96 }, { type: "美食", score: 94 }] },
+    { id: "garden-route", name: "花园大道与东开普", english: "Garden Route & Eastern Cape", focus: [-34.0, 23.0], heat: 94, visited: false, summary: "森林泻湖与滨海小镇", resources: [{ type: "自驾", score: 98 }, { type: "徒步", score: 92 }, { type: "海岸", score: 95 }] },
+    { id: "kzn", name: "夸祖鲁-纳塔尔", english: "KwaZulu-Natal", focus: [-29.9, 31.0], heat: 93, visited: false, summary: "德班海岸与德拉肯斯堡", resources: [{ type: "海岸", score: 95 }, { type: "徒步", score: 94 }, { type: "文化", score: 91 }] },
+    { id: "kruger", name: "克鲁格与低veld", english: "Kruger & Lowveld", focus: [-24.0, 31.5], heat: 99, visited: false, summary: "大型野生动物保护区", resources: [{ type: "摄影", score: 99 }, { type: "自驾", score: 95 }, { type: "亲子", score: 93 }] },
+  ],
+  /* 埃及：开罗 / 上埃及 / 红海 / 三角洲 / 西部沙漠 */
+  EGY: [
+    { id: "cairo-giza", name: "开罗与吉萨", english: "Cairo & Giza", focus: [29.98, 31.13], heat: 99, visited: false, summary: "金字塔与尼罗河都市", resources: [{ type: "文化", score: 99 }, { type: "摄影", score: 96 }, { type: "亲子", score: 90 }] },
+    { id: "upper-egypt", name: "上埃及", english: "Upper Egypt", focus: [25.7, 32.6], heat: 97, visited: false, summary: "卢克索、阿斯旺与尼罗河游船", resources: [{ type: "文化", score: 99 }, { type: "摄影", score: 95 }, { type: "自驾", score: 88 }] },
+    { id: "red-sea", name: "红海与西奈", english: "Red Sea & Sinai", focus: [27.3, 33.8], heat: 96, visited: false, summary: "赫尔格达、沙姆与珊瑚礁", resources: [{ type: "潜水", score: 99 }, { type: "海岸", score: 97 }, { type: "亲子", score: 91 }] },
+    { id: "delta-alex", name: "三角洲与亚历山大", english: "Delta & Alexandria", focus: [31.2, 29.9], heat: 90, visited: false, summary: "地中海都市与尼罗河口", resources: [{ type: "城市", score: 92 }, { type: "文化", score: 93 }, { type: "海岸", score: 90 }] },
+    { id: "western-desert", name: "西部沙漠", english: "Western Desert", focus: [25.5, 29.0], heat: 88, visited: false, summary: "绿洲与白色沙漠", resources: [{ type: "自驾", score: 94 }, { type: "摄影", score: 96 }, { type: "露营", score: 91 }] },
+  ],
+  /* 摩洛哥：北 / 中阿特拉斯 / 大西洋 / 撒哈拉 / 东 */
+  MAR: [
+    { id: "north-ma", name: "北部", english: "Northern Morocco", focus: [35.8, -5.8], heat: 91, visited: false, summary: "丹吉尔、舍夫沙万与里夫山", resources: [{ type: "文化", score: 95 }, { type: "徒步", score: 90 }, { type: "海岸", score: 89 }] },
+    { id: "marrakech-atlas", name: "中部与阿特拉斯", english: "Marrakech & Atlas", focus: [31.6, -8.0], heat: 99, visited: false, summary: "马拉喀什集市与高山村落", resources: [{ type: "文化", score: 99 }, { type: "徒步", score: 94 }, { type: "美食", score: 96 }] },
+    { id: "atlantic-ma", name: "大西洋沿岸", english: "Atlantic Coast", focus: [33.6, -7.6], heat: 93, visited: false, summary: "卡萨布兰卡、拉巴特与索维拉", resources: [{ type: "海岸", score: 94 }, { type: "城市", score: 92 }, { type: "冲浪", score: 93 }] },
+    { id: "sahara-edge", name: "撒哈拉边缘", english: "Sahara Edge", focus: [31.0, -4.0], heat: 96, visited: false, summary: "梅尔祖卡沙丘与绿洲公路", resources: [{ type: "自驾", score: 96 }, { type: "摄影", score: 98 }, { type: "露营", score: 93 }] },
+    { id: "east-ma", name: "东部", english: "Eastern Morocco", focus: [34.0, -2.0], heat: 85, visited: false, summary: "乌季达与东部高原", resources: [{ type: "文化", score: 88 }, { type: "自驾", score: 86 }, { type: "摄影", score: 85 }] },
+  ],
+  /* 肯尼亚：常见旅游环线分区 */
+  KEN: [
+    { id: "nairobi", name: "内罗毕", english: "Nairobi", focus: [-1.3, 36.8], heat: 92, visited: false, summary: "首都门户与城市国家公园", resources: [{ type: "城市", score: 93 }, { type: "文化", score: 90 }, { type: "亲子", score: 88 }] },
+    { id: "masai-mara", name: "西南草原", english: "Masai Mara & Southwest", focus: [-1.5, 35.1], heat: 99, visited: false, summary: "马赛马拉大迁徙核心", resources: [{ type: "摄影", score: 99 }, { type: "自驾", score: 94 }, { type: "亲子", score: 90 }] },
+    { id: "rift-valley", name: "裂谷", english: "Rift Valley", focus: [-0.5, 36.1], heat: 94, visited: false, summary: "纳库鲁、奈瓦沙与火烈鸟湖", resources: [{ type: "摄影", score: 97 }, { type: "徒步", score: 91 }, { type: "自驾", score: 92 }] },
+    { id: "coast-ke", name: "印度洋海岸", english: "Kenya Coast", focus: [-4.0, 39.7], heat: 93, visited: false, summary: "蒙巴萨与拉穆海岸", resources: [{ type: "海岸", score: 96 }, { type: "文化", score: 93 }, { type: "潜水", score: 90 }] },
+    { id: "central-highlands", name: "中央高地", english: "Central Highlands", focus: [-0.4, 37.0], heat: 90, visited: false, summary: "肯尼亚山与咖啡产区", resources: [{ type: "徒步", score: 95 }, { type: "摄影", score: 92 }, { type: "文化", score: 88 }] },
+    { id: "north-ke", name: "北部", english: "Northern Kenya", focus: [2.0, 37.5], heat: 86, visited: false, summary: "桑布鲁与图尔卡纳边疆", resources: [{ type: "摄影", score: 94 }, { type: "自驾", score: 90 }, { type: "徒步", score: 88 }] },
+  ],
+  /* 坦桑尼亚：北环 / 南环 / 海岸桑岛 / 西部 / 中部 */
+  TZA: [
+    { id: "northern-circuit", name: "北部环线", english: "Northern Circuit", focus: [-3.0, 36.5], heat: 99, visited: false, summary: "塞伦盖蒂、恩戈罗恩戈罗与乞力马", resources: [{ type: "摄影", score: 99 }, { type: "徒步", score: 97 }, { type: "露营", score: 93 }] },
+    { id: "southern-circuit", name: "南部环线", english: "Southern Circuit", focus: [-7.8, 35.0], heat: 90, visited: false, summary: "塞卢斯与鲁阿哈荒野", resources: [{ type: "摄影", score: 96 }, { type: "自驾", score: 91 }, { type: "露营", score: 92 }] },
+    { id: "zanzibar", name: "桑给巴尔与海岸", english: "Zanzibar & Coast", focus: [-6.2, 39.2], heat: 96, visited: false, summary: "香料岛与印度洋海滩", resources: [{ type: "海岸", score: 98 }, { type: "潜水", score: 95 }, { type: "文化", score: 93 }] },
+    { id: "western-tz", name: "西部", english: "Western Tanzania", focus: [-4.9, 29.7], heat: 87, visited: false, summary: "马哈莱与戈姆贝黑猩猩", resources: [{ type: "徒步", score: 95 }, { type: "摄影", score: 94 }, { type: "露营", score: 90 }] },
+    { id: "central-tz", name: "中部", english: "Central Tanzania", focus: [-6.2, 35.7], heat: 84, visited: false, summary: "多多马高原门户", resources: [{ type: "自驾", score: 86 }, { type: "文化", score: 84 }, { type: "摄影", score: 83 }] },
   ],
 }
 

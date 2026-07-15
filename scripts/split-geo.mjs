@@ -15,6 +15,8 @@ const continentFiles = {
   Europe: "europe",
   Oceania: "oceania",
   "North America": "north-america",
+  "South America": "south-america",
+  Africa: "africa",
 }
 
 for (const [continent, file] of Object.entries(continentFiles)) {
@@ -26,6 +28,8 @@ const supportedCountries = [
   "JPN", "THA", "IDN", "VNM", "CHN", "KOR",
   "ITA", "FRA", "ISL", "ESP", "CHE", "NOR",
   "NZL", "AUS", "FJI", "USA", "CAN", "MEX", "CRI",
+  "BRA", "ARG", "PER", "CHL",
+  "ZAF", "EGY", "MAR", "KEN", "TZA",
 ]
 
 for (const code of supportedCountries) {

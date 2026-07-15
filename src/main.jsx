@@ -12,6 +12,7 @@ import './region.css';
 import './flat-map.css';
 import './passport.css';
 import './seasonal.css';
+import './features/attraction-explorer/attraction-explorer.css';
 import { GlobeWeather } from './components/ui/cobe-globe-weather';
 import { FlatAtlasMap } from './components/ui/flat-atlas-map';
 import { CardFanCarousel } from './components/ui/card-fan-carousel';
@@ -19,6 +20,11 @@ import { COUNTRIES_BY_CONTINENT, findCountry, getRegionsForCountry } from './dat
 import { PASSPORT_OPTIONS } from './data/passports';
 import { getDestinationKey, getSeasonForDate, getSeasonalRecommendations, MONTH_NAMES, SEASON_CONTINENTS, SEASONAL_RECOMMENDATIONS, TRAVEL_SEASONS } from './data/seasonal-recommendations';
 import { getUnlockProfile } from './data/unlock-destinations';
+import { fanStatusFromMeta, loadMastered, loadWishlist, resolveDestinationStatus, saveMastered, saveWishlist, toggleId } from './data/destination-status';
+import { isCountryFreeAccess, resolveTravelAccess } from './data/travel-access';
+import { destinationFromRegion, regionKeyFromWishId, resolveWishlistItem } from './data/wishlist-destinations';
+import { GLOBE_LAYERS, buildDestinationBeacons, filterBeaconsByLayers } from './data/beacons';
+import { AttractionExplorerPanel, resolveAttractions, selectAttractions } from './features/attraction-explorer';
 
 const photos = [
   { name: '雪国的第一束光', place: '留寿都 · 42.861° N', image: 'https://images.unsplash.com/photo-1483347756197-71ef80e95f73?auto=format&fit=crop&w=600&q=85', className: 'photo-a' },
@@ -48,24 +54,43 @@ function App() {
   const [unlockTarget, setUnlockTarget] = useState(null);
   const [pendingUnlockNavigation, setPendingUnlockNavigation] = useState(null);
   const [unlockedRegions, setUnlockedRegions] = useState(() => {
-    const defaults = ['JPN:hokkaido', 'JPN:kansai', 'CHN:xinjiang'];
+    const defaults = ['JPN:hokkaido', 'JPN:kinki', 'CHN:northwest'];
     try { return [...new Set([...defaults, ...JSON.parse(localStorage.getItem('atlas-unlocked-regions') || '[]')])]; } catch { return defaults; }
   });
+  const [wishlist, setWishlist] = useState(() => loadWishlist());
+  const [mastered, setMastered] = useState(() => loadMastered());
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [wishlistIndex, setWishlistIndex] = useState(0);
+  /** When unlock modal was opened from wishlist, closing unlock restores wishlist */
+  const [unlockFromWishlist, setUnlockFromWishlist] = useState(false);
+  const [globeLayers, setGlobeLayers] = useState(['recommend', 'footprint']);
   const [routeFlight, setRouteFlight] = useState(null);
   const [unlockToast, setUnlockToast] = useState(null);
   const calendarNow = React.useMemo(() => new Date(), []);
   const [selectedSeason, setSelectedSeason] = useState(() => getSeasonForDate(calendarNow));
   const [seasonContinent, setSeasonContinent] = useState('全球');
   const [progressScope, setProgressScope] = useState('country');
+  const [attractionPreference, setAttractionPreference] = useState('popular');
+  const [attractionCategory, setAttractionCategory] = useState('全部');
+  const [selectedAttractionId, setSelectedAttractionId] = useState(null);
+  const [attractionMapView, setAttractionMapView] = useState({ zoom: 7.4 });
   const seasonalRecommendations = React.useMemo(() => getSeasonalRecommendations(selectedSeason, seasonContinent), [selectedSeason, seasonContinent]);
   const liveDate = `${String(calendarNow.getDate()).padStart(2, '0')} ${MONTH_NAMES[calendarNow.getMonth()]} ${calendarNow.getFullYear()}`;
-  const continents = { '亚洲': ['1280', '35', '北海道雪景'], '欧洲': ['964', '02', '阿尔卑斯花季'], '大洋洲': ['218', '00', '塔斯曼海风'], '北美': ['742', '05', '落基山盛夏'] };
+  const continents = {
+    '亚洲': ['1280', '35', '北海道雪景'],
+    '欧洲': ['964', '02', '阿尔卑斯花季'],
+    '大洋洲': ['218', '00', '塔斯曼海风'],
+    '北美': ['742', '05', '落基山盛夏'],
+    '南美': ['486', '00', '安第斯与亚马孙'],
+    '非洲': ['612', '00', '撒哈拉与野生公园'],
+  };
   React.useEffect(() => setProgressScope('country'), [profile?.code]);
   const selectContinent = name => {
     if (worldHandoff || routeFlight) return;
     setContinent(name);
     setActiveCountry(null);
     setActiveRegion(null);
+    setSelectedAttractionId(null);
     if (mapLevel === 'world') {
       setWorldHandoff(name);
       window.clearTimeout(handoffTimer.current);
@@ -81,14 +106,19 @@ function App() {
     const known = findCountry(picked.code);
     setActiveCountry(known || { ...picked, score: 84, tagline: '从地球上发现的目的地', season: '待探索', visited: false });
     setActiveRegion(null);
+    setSelectedAttractionId(null);
     setMapLevel('country');
   };
   const selectRegion = region => {
     setActiveRegion(region);
+    setSelectedAttractionId(null);
+    setAttractionCategory('全部');
+    setAttractionMapView({ zoom: 7.4 });
     setMapLevel('region');
   };
   const goBackMap = () => {
     if (mapLevel === 'region') {
+      setSelectedAttractionId(null);
       setActiveRegion(null);
       setMapLevel('country');
     } else if (mapLevel === 'country') {
@@ -128,37 +158,188 @@ function App() {
     localStorage.removeItem('atlas-passport-profile');
     setProfileOpen(false);
   };
-  const isDestinationUnlocked = destination => destination.defaultUnlocked || unlockedRegions.includes(getDestinationKey(destination));
+  // 未设定角色时与进度面板一致，默认以中国护照判定本国/免签
+  const passportCode = profile?.code || 'CHN';
+  const getAccessForDestination = destination => resolveTravelAccess({
+    destinationCountryCode: destination.countryCode,
+    destinationKey: getDestinationKey(destination),
+    passportCode,
+    unlockedKeys: unlockedRegions,
+  });
+  /** 已点亮 / 本国 / 免签 → 无需解锁窗，可直接进入地图 */
+  const isDestinationUnlocked = destination => getAccessForDestination(destination).free;
+  const getStatusForDestination = destination => resolveDestinationStatus({
+    destination,
+    unlockedKeys: unlockedRegions,
+    wishlistIds: wishlist,
+    masteredIds: mastered,
+    isInSeasonalList: seasonalRecommendations.some(item => item.id === destination.id),
+    passportCode,
+  });
+  const toggleWishlist = destinationOrCard => {
+    const id = destinationOrCard.id;
+    const next = toggleId(wishlist, id);
+    setWishlist(next);
+    saveWishlist(next);
+    setUnlockToast(next.includes(id) ? `${destinationOrCard.title || id} 已加入心愿单` : `${destinationOrCard.title || id} 已移出心愿单`);
+    window.setTimeout(() => setUnlockToast(null), 2200);
+  };
+  const markMastered = destination => {
+    const key = getDestinationKey(destination);
+    const next = [...new Set([...mastered, destination.id, key])];
+    setMastered(next);
+    saveMastered(next);
+  };
   const navigateToDestination = destination => {
     const country = findCountry(destination.countryCode);
     if (!country) return;
     const destinationRegion = getRegionsForCountry(country).find(item => item.id === destination.regionId) || getRegionsForCountry(country)[0];
     setWorldHandoff(null);
     setRouteFlight(null);
+    setWishlistOpen(false);
     setContinent(destination.continent);
     setActiveCountry(country);
     setActiveRegion(destinationRegion || null);
+    setSelectedAttractionId(null);
+    setAttractionCategory('全部');
+    setAttractionMapView({ zoom: 7.4 });
     setMapLevel(destinationRegion ? 'region' : 'country');
     window.requestAnimationFrame(() => document.getElementById('top')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
-  const openDestinationUnlock = destination => {
+  const openDestinationUnlock = (destination, options = {}) => {
+    const fromWishlist = Boolean(options.fromWishlist);
+    const access = getAccessForDestination(destination);
+    if (access.free) {
+      navigateToDestination(destination);
+      if (access.tier === 'domestic' || access.tier === 'visa_free') {
+        setUnlockToast(`${destination.title} · ${access.label}，已直达地图`);
+        window.setTimeout(() => setUnlockToast(null), 2400);
+      }
+      return;
+    }
     const destinationProfile = getUnlockProfile(destination);
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(`atlas-unlock-tasks:${destinationProfile.key}`) || '{}'); } catch { saved = {}; }
     setUnlockTarget(destination);
     setUnlockDraft(saved);
     setUnlockSaved(saved);
+    setUnlockFromWishlist(fromWishlist);
     setUnlockOpen(true);
+    setWishlistOpen(false);
   };
+  const closeUnlockModal = () => {
+    setUnlockOpen(false);
+    if (unlockFromWishlist) {
+      setWishlistOpen(true);
+      setUnlockFromWishlist(false);
+    }
+  };
+  const resolveWishDestination = id => resolveWishlistItem(id, {
+    findCountry,
+    getRegionsForCountry,
+    continentOf: countryItem => Object.entries(COUNTRIES_BY_CONTINENT).find(([, list]) => list.some(item => item.code === countryItem.code))?.[0] || '亚洲',
+  });
+  /** 已开放 → 进地图；未开放 → 先入心愿单，解锁只在心愿看板里进行 */
   const handleSeasonalDestination = card => {
-    const destination = SEASONAL_RECOMMENDATIONS.find(item => item.id === card.id);
+    const destination = resolveWishDestination(card.id) || SEASONAL_RECOMMENDATIONS.find(item => item.id === card.id);
     if (!destination) return;
-    if (isDestinationUnlocked(destination)) navigateToDestination(destination);
-    else openDestinationUnlock(destination);
+    if (isDestinationUnlocked(destination)) {
+      navigateToDestination(destination);
+      return;
+    }
+    if (!wishlist.includes(destination.id)) {
+      toggleWishlist(destination);
+      setUnlockToast(`${destination.title} 已加入心愿单 · 打开心愿看板可解锁`);
+      window.setTimeout(() => setUnlockToast(null), 2600);
+      return;
+    }
+    setUnlockToast('请在心愿看板中点击「开始解锁」');
+    window.setTimeout(() => setUnlockToast(null), 2200);
+    setWishlistOpen(true);
   };
-  const openSuggestedUnlock = () => {
-    const destination = seasonalRecommendations.find(item => !isDestinationUnlocked(item)) || SEASONAL_RECOMMENDATIONS.find(item => !isDestinationUnlocked(item));
-    if (destination) openDestinationUnlock(destination);
+  const handleWishToggle = card => {
+    const destination = resolveWishDestination(card.id) || SEASONAL_RECOMMENDATIONS.find(item => item.id === card.id);
+    if (!destination) return;
+    toggleWishlist(destination);
+  };
+  const handleMapRegionWish = regionItem => {
+    if (!activeCountry) return;
+    const destination = destinationFromRegion(activeCountry, regionItem, continent);
+    toggleWishlist(destination);
+  };
+  const toFanCard = item => {
+    const meta = getStatusForDestination(item);
+    return {
+      id: item.id,
+      imgUrl: item.image,
+      title: item.title,
+      location: item.location,
+      kicker: `${item.grade} · ${item.theme}`,
+      summary: item.reason,
+      score: item.score,
+      grade: item.grade,
+      status: fanStatusFromMeta(meta),
+      statusLabel: meta.label,
+      sourceLabel: item.sourceLabel,
+      wished: wishlist.includes(item.id),
+    };
+  };
+  const seasonalFanCards = React.useMemo(
+    () => seasonalRecommendations.map(toFanCard),
+    [seasonalRecommendations, unlockedRegions, wishlist, mastered, passportCode],
+  );
+  const wishlistDestinations = React.useMemo(
+    () => wishlist.map(id => resolveWishDestination(id)).filter(Boolean),
+    [wishlist, unlockedRegions, passportCode],
+  );
+  const wishedRegionKeys = React.useMemo(() => {
+    const keys = [];
+    wishlist.forEach(id => {
+      const key = regionKeyFromWishId(id);
+      if (key) keys.push(key);
+    });
+    return keys;
+  }, [wishlist]);
+  const openWishlistBoard = () => {
+    if (!wishlistDestinations.length) {
+      setUnlockToast('心愿单为空 · 点当季 ♡ 或地图未解锁节点收藏');
+      window.setTimeout(() => setUnlockToast(null), 2400);
+      return;
+    }
+    setWishlistIndex(0);
+    setWishlistOpen(true);
+  };
+  React.useEffect(() => {
+    if (wishlistIndex >= wishlistDestinations.length) {
+      setWishlistIndex(Math.max(0, wishlistDestinations.length - 1));
+    }
+  }, [wishlistDestinations.length, wishlistIndex]);
+  const activeWish = wishlistDestinations[wishlistIndex] || null;
+  const activeWishUnlocked = activeWish ? isDestinationUnlocked(activeWish) : false;
+  const wishlistLockedCount = wishlistDestinations.filter(item => !isDestinationUnlocked(item)).length;
+  const globeBeacons = React.useMemo(() => {
+    const all = buildDestinationBeacons({
+      seasonalIds: seasonalRecommendations.map(item => item.id),
+      unlockedKeys: unlockedRegions,
+      wishlistIds: wishlist,
+      masteredIds: mastered,
+      resolveStatus: getStatusForDestination,
+    });
+    return filterBeaconsByLayers(all, globeLayers);
+  }, [seasonalRecommendations, unlockedRegions, wishlist, mastered, globeLayers, passportCode]);
+  const toggleGlobeLayer = layerId => {
+    setGlobeLayers(current => {
+      if (current.includes(layerId)) {
+        if (current.length === 1) return current;
+        return current.filter(item => item !== layerId);
+      }
+      return [...current, layerId];
+    });
+  };
+  const handleBeaconSelect = beacon => {
+    const destination = SEASONAL_RECOMMENDATIONS.find(item => item.id === beacon.id);
+    if (!destination) return;
+    handleSeasonalDestination({ id: destination.id });
   };
   const unlockDestinationProfile = unlockTarget ? getUnlockProfile(unlockTarget) : null;
   const unlockTasks = unlockDestinationProfile?.tasks || [];
@@ -192,6 +373,8 @@ function App() {
     window.clearTimeout(handoffTimer.current);
     setWorldHandoff(null);
     setUnlockOpen(false);
+    setUnlockFromWishlist(false);
+    setWishlistOpen(false);
     setActiveCountry(null);
     setActiveRegion(null);
     setContinent(unlockTarget.continent);
@@ -215,7 +398,11 @@ function App() {
   };
   const homeCountry = findCountry(profile?.code || 'CHN') || findCountry('CHN');
   const homeContinent = profile?.continent || '亚洲';
-  const isRegionUnlocked = (countryItem, regionItem) => regionItem.visited || unlockedRegions.includes(`${countryItem.code}:${regionItem.id}`);
+  const isRegionUnlocked = (countryItem, regionItem) => (
+    regionItem.visited
+    || unlockedRegions.includes(`${countryItem.code}:${regionItem.id}`)
+    || isCountryFreeAccess(countryItem.code, passportCode)
+  );
   const getCountryProgress = countryItem => {
     const countryRegions = getRegionsForCountry(countryItem);
     const unlocked = countryRegions.filter(regionItem => isRegionUnlocked(countryItem, regionItem)).length;
@@ -232,7 +419,7 @@ function App() {
   const continentProgress = getContinentProgress(homeContinent);
   const worldProgress = Object.keys(COUNTRIES_BY_CONTINENT).map(getContinentProgress).reduce((result, item) => ({ unlocked: result.unlocked + item.unlocked, total: result.total + item.total }), { unlocked: 0, total: 0 });
   worldProgress.percent = worldProgress.total ? Math.round(worldProgress.unlocked / worldProgress.total * 100) : 0;
-  const continentNames = { '亚洲': 'ASIA', '欧洲': 'EUROPE', '大洋洲': 'OCEANIA', '北美': 'NORTH AMERICA' };
+  const continentNames = { '亚洲': 'ASIA', '欧洲': 'EUROPE', '大洋洲': 'OCEANIA', '北美': 'NORTH AMERICA', '南美': 'SOUTH AMERICA', '非洲': 'AFRICA' };
   const countryRows = getRegionsForCountry(homeCountry).map(regionItem => ({ label: regionItem.name, value: isRegionUnlocked(homeCountry, regionItem) ? '已点亮' : '待探索', unlocked: isRegionUnlocked(homeCountry, regionItem) }));
   const continentRows = [...(COUNTRIES_BY_CONTINENT[homeContinent] || [])]
     .sort((a, b) => Number(b.code === homeCountry.code) - Number(a.code === homeCountry.code) || b.score - a.score)
@@ -243,9 +430,65 @@ function App() {
     continent: { eyebrow: `${continentNames[homeContinent] || homeContinent} EXPLORE`, title: homeContinent, ...continentProgress, rows: continentRows, next: '查看世界进度' },
     world: { eyebrow: 'WORLD EXPLORE', title: '世界', ...worldProgress, rows: worldRows, next: `返回${homeCountry.name}进度` },
   }[progressScope];
-  const cycleProgressScope = () => setProgressScope(current => current === 'country' ? 'continent' : current === 'continent' ? 'world' : 'country');
+  /** progress-next 切换范围时，同步季节推荐大洲筛选与 fan 卡片数据 */
+  const cycleProgressScope = () => {
+    setProgressScope(current => {
+      const next = current === 'country' ? 'continent' : current === 'continent' ? 'world' : 'country';
+      if (next === 'world') setSeasonContinent('全球');
+      else if (next === 'continent') setSeasonContinent(homeContinent);
+      else setSeasonContinent(homeContinent);
+      return next;
+    });
+  };
+  // 护照/国籍变化导致 homeContinent 变化时，与当前进度范围对齐季节推荐
+  React.useEffect(() => {
+    if (progressScope === 'world') setSeasonContinent('全球');
+    else setSeasonContinent(homeContinent);
+  }, [homeContinent, progressScope]);
+  const [regionAttractions, setRegionAttractions] = useState([]);
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!activeCountry?.code || !activeRegion?.id || mapLevel !== 'region') {
+      setRegionAttractions([]);
+      return undefined;
+    }
+    // Show fixed cache immediately if present, then refresh via API → scrape → seed → catalog
+    try {
+      const key = `${activeCountry.code}:${activeRegion.id}`;
+      const raw = localStorage.getItem(`atlas-attractions-fixed-v1:${key}`)
+        || localStorage.getItem(`atlas-attractions-api-v1:${key}`)
+        || localStorage.getItem(`atlas-attractions-scrape-v1:${key}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed?.data) && parsed.data.length) setRegionAttractions(parsed.data);
+      }
+    } catch { /* ignore */ }
+    resolveAttractions(activeCountry.code, activeRegion.id, { zoom: attractionMapView.zoom ?? 7.4 })
+      .then(items => {
+        if (cancelled) return;
+        if (items?.length) setRegionAttractions(items);
+        else console.warn('[attractions] empty after full pipeline', activeCountry.code, activeRegion.id);
+      })
+      .catch(error => {
+        console.warn('[attractions] resolve failed', error);
+        if (!cancelled) {
+          /* keep any cached list already painted */
+        }
+      });
+    return () => { cancelled = true; };
+  }, [activeCountry?.code, activeRegion?.id, mapLevel]);
+  const rankedAttractions = React.useMemo(() => selectAttractions(regionAttractions, { zoom: attractionMapView.zoom, bbox: attractionMapView.bounds, category: attractionCategory, preference: attractionPreference, limit: 10 }), [regionAttractions, attractionMapView, attractionCategory, attractionPreference]);
+  const selectedAttraction = rankedAttractions.find(item => item.id === selectedAttractionId) || null;
+  const clearAttractionSelection = () => {
+    setSelectedAttractionId(null);
+    setAttractionMapView({ zoom: 7.4 });
+  };
   const rankedCountries = COUNTRIES_BY_CONTINENT[continent] || [];
-  const rankedRegions = React.useMemo(() => getRegionsForCountry(activeCountry), [activeCountry?.code]);
+  const rankedRegions = React.useMemo(() => {
+    const list = getRegionsForCountry(activeCountry);
+    if (!activeCountry) return list;
+    return list.map(item => ({ ...item, visited: isRegionUnlocked(activeCountry, item) }));
+  }, [activeCountry?.code, unlockedRegions, passportCode]);
   const mapBackLabel = mapLevel === 'region' ? `返回 ${activeCountry?.name}` : mapLevel === 'country' ? `返回 ${continent}` : '返回世界地球';
   return <main>
     <nav className="nav">
@@ -261,25 +504,30 @@ function App() {
       <div className="world-noise"/>
       <div className="world-topline"><span><i/> LIVE EARTH · {liveDate}</span><span>太阳正照亮东京 · 29°C</span><span>{seasonalRecommendations.length} 个当季目的地正在等待你</span></div>
       <div className="world-ribbon">{Object.entries(continents).map(([name, info]) => <button data-continent={name} disabled={Boolean(worldHandoff || routeFlight)} onClick={() => selectContinent(name)} className={continent === name && mapLevel !== 'world' ? 'ribbon-active' : ''} key={name}><b>{name}</b><span><em>推荐 {info[0]}</em><em>已探索 {info[1]}</em></span><small>{info[2]}</small></button>)}</div>
+      {mapLevel === 'world' && !worldHandoff && !routeFlight && <aside className="globe-layer-dock" aria-label="地球图层">
+        <span>LAYERS · 图层</span>
+        {GLOBE_LAYERS.map(layer => <button type="button" key={layer.id} className={globeLayers.includes(layer.id) ? 'active' : ''} onClick={() => toggleGlobeLayer(layer.id)}><b>{layer.label}</b><small>{layer.hint}</small></button>)}
+      </aside>}
       <div className="world-title"><p>FAMILY ATLAS / WORLD EXPLORATION ENGINE</p><h1>世界仍然很大，<br/><i>而我们的故事刚刚开始。</i></h1></div>
-      {mapLevel !== 'world' && <div className="map-breadcrumb"><button onClick={() => { setActiveCountry(null); setActiveRegion(null); setMapLevel('world'); }}>世界</button><i>/</i><button className={mapLevel === 'continent' ? 'current' : ''} onClick={() => { setActiveCountry(null); setActiveRegion(null); setMapLevel('continent'); }}>{continent}</button>{activeCountry && <><i>/</i><button className={mapLevel === 'country' ? 'current' : ''} onClick={() => { setActiveRegion(null); setMapLevel('country'); }}>{activeCountry.name}</button></>}{activeRegion && <><i>/</i><b>{activeRegion.name}</b></>}</div>}
+      {mapLevel !== 'world' && <div className="map-breadcrumb"><button onClick={() => { setSelectedAttractionId(null); setActiveCountry(null); setActiveRegion(null); setMapLevel('world'); }}>世界</button><i>/</i><button className={mapLevel === 'continent' ? 'current' : ''} onClick={() => { setSelectedAttractionId(null); setActiveCountry(null); setActiveRegion(null); setMapLevel('continent'); }}>{continent}</button>{activeCountry && <><i>/</i><button className={mapLevel === 'country' ? 'current' : ''} onClick={() => { setSelectedAttractionId(null); setActiveRegion(null); setMapLevel('country'); }}>{activeCountry.name}</button></>}{selectedAttraction ? <><i>/</i><b>{selectedAttraction.name}</b></> : activeRegion && <><i>/</i><b>{activeRegion.name}</b></>}</div>}
       <div className={`globe-stage ${mapLevel !== 'world' ? 'flat-stage' : ''}`} aria-label={mapLevel === 'world' ? 'Interactive 3D world globe' : 'Interactive satellite map'}>
-        {mapLevel === 'world' ? <><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="globe-shadow"/><GlobeWeather continent={continent} level="world" routeFlight={routeFlight} onRouteFlightComplete={finishRouteFlight}/><div className="globe-label north">N<br/><span>◦</span></div><div className="globe-label south">S<br/><span>◦</span></div></> : <FlatAtlasMap continent={continent} level={mapLevel} country={activeCountry} region={activeRegion} regions={rankedRegions} onCountrySelect={selectCountry} onRegionSelect={selectRegion}/>} 
+        {mapLevel === 'world' ? <><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="globe-shadow"/><GlobeWeather continent={continent} level="world" routeFlight={routeFlight} onRouteFlightComplete={finishRouteFlight} beacons={globeBeacons} onBeaconSelect={handleBeaconSelect}/><div className="globe-label north">N<br/><span>◦</span></div><div className="globe-label south">S<br/><span>◦</span></div></> : <FlatAtlasMap continent={continent} level={mapLevel} country={activeCountry} region={activeRegion} regions={rankedRegions} attractions={rankedAttractions} selectedAttraction={selectedAttraction} wishedRegionKeys={wishedRegionKeys} onCountrySelect={selectCountry} onRegionSelect={selectRegion} onRegionWish={handleMapRegionWish} onAttractionSelect={item => setSelectedAttractionId(item.id)} onMapViewChange={view => mapLevel === 'region' && setAttractionMapView(view)}/>} 
         {worldHandoff && <div className="world-map-handoff"><i/><span>ORBITAL HANDOFF</span><b>{worldHandoff}</b><small>3D 地球 → 区域卷轴地图</small></div>}
       </div>
-      {mapLevel !== 'world' && <aside className="map-level-panel"><span>YOU ARE EXPLORING</span><div className="level-path"><small>{continent}</small><b>{activeRegion?.name || activeCountry?.name || '国家地图'}</b><em>{mapLevel === 'region' ? '地区特色与户外资源' : mapLevel === 'country' ? '省州边界与地区热榜' : '国界与国家旅游热榜'}</em></div>{activeRegion && <div className="level-resources">{activeRegion.resources.map(item => <i key={item.type}>{item.type}<b>{item.score}</b></i>)}</div>}</aside>}
+      {mapLevel !== 'world' && <aside className="map-level-panel"><span>YOU ARE EXPLORING</span><div className="level-path"><small>{selectedAttraction ? `${selectedAttraction.category_l1} · ${selectedAttraction.category_l2}` : continent}</small><b>{selectedAttraction?.name || activeRegion?.name || activeCountry?.name || '国家地图'}</b><em>{selectedAttraction ? '已锁定真实 WGS-84 坐标，周边锚点仍可继续点击' : mapLevel === 'region' ? '景点锚点与精选列表双向联动' : mapLevel === 'country' ? '省州边界与地区热榜' : '国界与国家旅游热榜'}</em></div>{activeRegion && !selectedAttraction && <div className="level-resources">{activeRegion.resources.map(item => <i key={item.type}>{item.type}<b>{item.score}</b></i>)}</div>}</aside>}
       {mapLevel === 'continent' && <aside className="country-ranking">
         <button className="ranking-back" onClick={goBackMap}><span>←</span><b>{mapBackLabel}</b><small>BACK</small></button>
         <div className="ranking-head"><span>TRAVEL HOT LIST</span><b>{continent}旅行热榜</b><small>{mapLevel === 'country' ? `正在查看 ${activeCountry?.name || ''}` : '选择国家继续俯冲探索'}</small></div>
         <div className="ranking-list">{rankedCountries.map((countryItem, index) => <button data-country={countryItem.code} className={activeCountry?.code === countryItem.code ? 'selected' : ''} onClick={() => selectCountry(countryItem)} key={countryItem.code}><em>{String(index + 1).padStart(2, '0')}</em><span><b>{countryItem.name}</b><small>{countryItem.tagline}</small></span><strong>{countryItem.score}</strong></button>)}</div>
         <div className="ranking-foot"><i/><span>也可直接点击地球上的国家</span></div>
       </aside>}
-      {(mapLevel === 'country' || mapLevel === 'region') && <aside className="country-ranking region-ranking">
+      {mapLevel === 'country' && <aside className="country-ranking region-ranking">
         <button className="ranking-back" onClick={goBackMap}><span>←</span><b>{mapBackLabel}</b><small>BACK</small></button>
         <div className="ranking-head"><span>AREA RESOURCE INDEX</span><b>{activeCountry?.name}地区热榜</b><small>热度、足迹与户外资源综合排序</small></div>
         <div className="region-list">{rankedRegions.map((regionItem, index) => <button data-region={regionItem.id} className={`${regionItem.visited ? 'visited' : 'unvisited'} ${activeRegion?.id === regionItem.id ? 'selected' : ''}`} onClick={() => selectRegion(regionItem)} key={regionItem.id}><em>{String(index + 1).padStart(2, '0')}</em><span className="region-copy"><b>{regionItem.name}</b><small>{regionItem.summary}</small><span className="resource-tags">{regionItem.resources.map(resource => <i key={resource.type}>{resource.type}<strong>{resource.score}</strong></i>)}</span></span><strong className="region-heat">{regionItem.heat}</strong><span className="footprint-state">{regionItem.visited ? '● 已点亮' : '○ 无足迹'}</span></button>)}</div>
         <div className="ranking-foot"><i/><span>无足迹地区已在地球与列表中压暗</span></div>
       </aside>}
+      {mapLevel === 'region' && activeRegion && <AttractionExplorerPanel items={rankedAttractions} total={regionAttractions.length} zoom={attractionMapView.zoom} preference={attractionPreference} category={attractionCategory} selectedId={selectedAttractionId} onPreferenceChange={value => { setSelectedAttractionId(null); setAttractionPreference(value); }} onCategoryChange={value => { setSelectedAttractionId(null); setAttractionCategory(value); }} onSelect={item => setSelectedAttractionId(item.id)} onClearSelection={clearAttractionSelection} onBack={goBackMap} backLabel={`返回 ${activeCountry?.name || continent}地区`}/>} 
       <aside className="world-progress" data-progress-scope={progressScope}>
         <div className="progress-head"><span><small>{progressData.eyebrow}</small><strong>{progressData.title}解锁进程</strong></span><b>{progressData.percent}<small>%</small></b></div>
         {!profile && <button className="progress-origin" onClick={openProfileSettings}><UserRound size={12}/><span>暂以中国为起点 · 设定国籍</span></button>}
@@ -288,13 +536,20 @@ function App() {
         <div className="progress-list">{progressData.rows.slice(0, 4).map(item => <p key={item.label}><span>{item.label}</span><b className={item.unlocked ? 'is-unlocked' : ''}>{item.value}</b></p>)}</div>
         <button className="progress-next" onClick={cycleProgressScope}><span>{progressData.next}</span><ArrowUpRight size={14}/></button>
       </aside>
-      <aside className="seasonal-recommendations">
-        <header><div><span>SEASONAL PLANNER · {MONTH_NAMES[calendarNow.getMonth()]}</span><b>{TRAVEL_SEASONS.find(item => item.id === selectedSeason)?.label}旅行首推</b></div><small>当季排序，也可提前切换季节规划下一次旅程</small></header>
+      {mapLevel === 'world' && !worldHandoff && !routeFlight && <aside className="seasonal-recommendations" aria-label="当季旅行推荐">
+        <header><div><span>SEASONAL PLANNER · {MONTH_NAMES[calendarNow.getMonth()]} · {seasonContinent}</span><b>{TRAVEL_SEASONS.find(item => item.id === selectedSeason)?.label}旅行首推 · {seasonalFanCards.length} 条</b></div><small>数据源：各国官方旅游局 / 文旅部门公开指南（非 OTA）</small></header>
         <div className="seasonal-filter-dock"><nav className="season-switch" aria-label="切换旅行季节">{TRAVEL_SEASONS.map(item => <button className={selectedSeason === item.id ? 'active' : ''} onClick={() => setSelectedSeason(item.id)} key={item.id}>{item.label}</button>)}</nav><nav className="continent-switch" aria-label="筛选大洲">{SEASON_CONTINENTS.map(item => <button className={seasonContinent === item ? 'active' : ''} onClick={() => setSeasonContinent(item)} key={item}>{item}</button>)}</nav></div>
-        <CardFanCarousel cards={seasonalRecommendations.map(item => ({ id:item.id, imgUrl:item.image, title:item.title, location:item.location, kicker:item.theme, summary:item.reason, score:item.score, status:isDestinationUnlocked(item) ? 'unlocked' : 'locked' }))} onCardSelect={handleSeasonalDestination}/>
-      </aside>
-      <div className="world-dock"><a className="active"><Globe2 size={17}/>探索</a><a href="#journey"><MapPinned size={17}/>足迹</a><button onClick={openSuggestedUnlock}><TicketCheck size={17}/>解锁地区 <i>{unlockReady ? '✓' : '1'}</i></button><button onClick={openProfileSettings}><UserRound size={17}/>{profile ? '角色' : '角色设定'}</button></div>
-      {unlockToast && <div className="unlock-toast"><span>✦ REGION UNLOCKED</span><b>{unlockToast} 已写入你的旅行护照</b></div>}
+        <CardFanCarousel cards={seasonalFanCards} onCardSelect={handleSeasonalDestination} onWishToggle={handleWishToggle}/>
+      </aside>}
+      <div className="world-dock">
+        <a className="active"><Globe2 size={17}/>探索</a>
+        <a href="#journey"><MapPinned size={17}/>足迹</a>
+        <button type="button" onClick={openWishlistBoard} aria-label={`心愿单 ${wishlist.length} 项，待解锁 ${wishlistLockedCount}`}>
+          <Sparkles size={17}/>心愿 <i>{wishlist.length || '0'}</i>
+          {wishlistLockedCount > 0 && <em className="dock-unlock-dot" title={`${wishlistLockedCount} 个待解锁`}>{wishlistLockedCount}</em>}
+        </button>
+      </div>
+      {unlockToast && <div className="unlock-toast"><span>✦ ATLAS UPDATE</span><b>{unlockToast}</b></div>}
     </section>
 
     <section className="journey" id="journey">
@@ -329,14 +584,99 @@ function App() {
         <button className="button passport-save" onClick={saveProfile}><Save size={16}/>{profile ? '保存身份设定' : '生成我的旅行护照'}</button>{profile && <><small className="ceremony-note">护照动画只在首次建立角色时播放。</small><button className="passport-reset" onClick={clearProfile}>清除角色设定</button></>}
       </> : <div className="passport-ceremony"><span>IDENTITY CONFIRMED</span><h2>{selectedPassport.nationality}</h2><div className="passport-book"><div className="passport-page"><small>OUR ATLAS · TRAVELER</small><b>{selectedPassport.country}</b><i>{selectedPassport.code}</i><div className="passport-stamp">✦<strong>IDENTITY<br/>VERIFIED</strong></div></div><div className="passport-cover"><small>PASSPORT · 护照</small><i>{selectedPassport.emblem}</i><b>{selectedPassport.passportLabel}</b></div></div><p>身份已盖章，世界地图正在为你重新标定出发点。</p></div>}
     </aside></div>}
-    {unlockOpen && unlockTarget && unlockDestinationProfile && <div className="modal-backdrop" onClick={() => setUnlockOpen(false)}><aside className="unlock-modal destination-unlock" onClick={e => e.stopPropagation()}>
-      <button className="close" onClick={() => setUnlockOpen(false)}><X/></button><span className="section-kicker">REGION UNLOCK · VERIFIED SOURCES</span>
+    {wishlistOpen && <div className="modal-backdrop wishlist-backdrop" onClick={() => setWishlistOpen(false)}>
+      <aside className="wishlist-modal" onClick={e => e.stopPropagation()} aria-label="心愿单">
+        <button className="close" onClick={() => setWishlistOpen(false)} aria-label="关闭心愿单"><X/></button>
+        <header className="wishlist-head">
+          <div>
+            <span className="section-kicker">DREAM BOARD · WISHLIST</span>
+            <h2>心愿目的地 <i>{wishlistDestinations.length}</i></h2>
+            <p>已开放可进地图 · 未解锁点「开始解锁」· 当季 ♡ / 地图节点可收藏</p>
+          </div>
+          <b className="wishlist-count">{wishlistDestinations.length}</b>
+        </header>
+        <div className="wishlist-body">
+          {!wishlistDestinations.length || !activeWish ? (
+            <div className="wishlist-empty">
+              <Sparkles size={22}/>
+              <b>心愿单为空</b>
+              <p>点当季推荐 ♡，或在国家地图点击未解锁节点加入心愿。</p>
+              <button type="button" className="button ink" onClick={() => setWishlistOpen(false)}>关闭</button>
+            </div>
+          ) : (
+            <>
+              <article className="wishlist-feature">
+                <div className="wishlist-feature-media">
+                  <img src={activeWish.image} alt={activeWish.title}/>
+                  <span className="wishlist-feature-badge">{activeWishUnlocked ? getStatusForDestination(activeWish).label : '待解锁 · 心愿'}</span>
+                </div>
+                <div className="wishlist-feature-copy">
+                  <small>{activeWish.grade} · {activeWish.theme}</small>
+                  <b>{activeWish.title}</b>
+                  <em>{activeWish.location}</em>
+                  <p>{activeWish.reason}</p>
+                  <div className="wishlist-feature-meta">
+                    <span>{activeWish.bestSeasonLabel}</span>
+                    <span>适配 {activeWish.score}</span>
+                    <span>{getStatusForDestination(activeWish).label}</span>
+                  </div>
+                  <div className="wishlist-feature-actions">
+                    {activeWishUnlocked ? (
+                      <button type="button" className="button btn-enter" onClick={() => navigateToDestination(activeWish)}>进入地图</button>
+                    ) : (
+                      <button type="button" className="button btn-unlock" onClick={() => openDestinationUnlock(activeWish, { fromWishlist: true })}>
+                        <TicketCheck size={15}/> 开始解锁
+                      </button>
+                    )}
+                    <button type="button" className="button btn-remove" onClick={() => toggleWishlist(activeWish)}>移出心愿</button>
+                  </div>
+                </div>
+              </article>
+              <div className="wishlist-rail">
+                <div className="wishlist-nav">
+                  <div className="wishlist-nav-btns">
+                    <button type="button" disabled={wishlistDestinations.length < 2} onClick={() => setWishlistIndex(i => (i - 1 + wishlistDestinations.length) % wishlistDestinations.length)} aria-label="上一项">←</button>
+                    <button type="button" disabled={wishlistDestinations.length < 2} onClick={() => setWishlistIndex(i => (i + 1) % wishlistDestinations.length)} aria-label="下一项">→</button>
+                  </div>
+                  <span>{String(wishlistIndex + 1).padStart(2, '0')} / {String(wishlistDestinations.length).padStart(2, '0')} · 待解锁 {wishlistLockedCount}</span>
+                </div>
+                <div className="wishlist-thumbs" role="list">
+                  {wishlistDestinations.map((item, index) => (
+                    <button type="button" role="listitem" key={item.id} className={`wishlist-thumb ${index === wishlistIndex ? 'is-active' : ''}`} onClick={() => setWishlistIndex(index)}>
+                      <img src={item.image} alt=""/>
+                      <span>
+                        <b>{item.title.split(' · ')[0]}</b>
+                        <small>{isDestinationUnlocked(item) ? '可进入' : '待解锁'}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
+    </div>}
+    {unlockOpen && unlockTarget && unlockDestinationProfile && <div className="modal-backdrop" onClick={closeUnlockModal}><aside className="unlock-modal destination-unlock" onClick={e => e.stopPropagation()}>
+      <button className="close" onClick={closeUnlockModal} aria-label={unlockFromWishlist ? '返回心愿单' : '关闭解锁'}><X/></button><span className="section-kicker">REGION UNLOCK · VERIFIED SOURCES{unlockFromWishlist ? ' · 返回心愿单' : ''}</span>
       <div className="unlock-title"><div><h2>{unlockDestinationProfile.name}<br/><i>{unlockDestinationProfile.english}</i></h2><p>{unlockTarget.reason}。完成以下真实准备项后，这个地区会写入你的地图。</p></div><span>{unlockDestinationProfile.code}<br/><b>{Math.abs(unlockDestinationProfile.focus[0]).toFixed(0)}°{unlockDestinationProfile.focus[0] >= 0 ? 'N' : 'S'}</b></span></div>
-      {profile ? <div className="unlock-origin"><span className="mini-passport" style={{background:profile.color,color:profile.accent}}>{profile.emblem}</span><p>航线起点<b>{profile.country}</b></p><Plane size={16}/><p>目的地<b>{unlockDestinationProfile.name}</b></p></div> : <button className="unlock-origin missing" onClick={() => { setUnlockOpen(false); openProfileSettings(); }}><UserRound size={17}/><span>先完成角色国籍设定，才能确定解锁航线</span><ArrowUpRight size={15}/></button>}
+      {profile ? <div className="unlock-origin"><span className="mini-passport" style={{background:profile.color,color:profile.accent}}>{profile.emblem}</span><p>航线起点<b>{profile.country}</b></p><Plane size={16}/><p>目的地<b>{unlockDestinationProfile.name}</b></p></div> : <button className="unlock-origin missing" onClick={() => { setUnlockFromWishlist(false); setUnlockOpen(false); openProfileSettings(); }}><UserRound size={17}/><span>先完成角色国籍设定，才能确定解锁航线</span><ArrowUpRight size={15}/></button>}
       <div className="unlock-score"><b>{unlockProgress}<small>%</small></b><span>地区解锁准备度</span><i><em style={{width:`${unlockProgress}%`}}/></i></div>
       <div className="unlock-list">{unlockTasks.map(task => <label className={unlockDraft[task.id] ? 'checked' : ''} key={task.id}><input type="checkbox" checked={Boolean(unlockDraft[task.id])} onChange={() => toggleUnlockTask(task.id)}/><span className="task-check">{unlockDraft[task.id] && <Check/>}</span><span className="task-copy"><b>{task.label}</b><small>{task.detail}</small><a href={task.sourceUrl} target="_blank" rel="noreferrer" onClick={event => event.stopPropagation()}>{task.sourceLabel} ↗</a></span><em>{unlockDraft[task.id] ? '已确认' : '待核验'}</em></label>)}</div>
+      <div className="unlock-actions-row">
+        <button type="button" className={`button wish-inline ${wishlist.includes(unlockTarget.id) ? 'is-on' : ''}`} onClick={() => toggleWishlist(unlockTarget)}>
+          {wishlist.includes(unlockTarget.id) ? '♥ 已在心愿单' : '♡ 加入心愿单'}
+        </button>
+        {isDestinationUnlocked(unlockTarget) && <button type="button" className="button ink" onClick={() => { markMastered(unlockTarget); setUnlockToast(`${unlockTarget.title} 已标记深度探索`); window.setTimeout(() => setUnlockToast(null), 2200); }}>标记深度探索</button>}
+      </div>
       {unlockReady ? <button className="button unlock-region-button" onClick={launchUnlockedRegion}><Plane size={16}/>解锁{unlockDestinationProfile.name}并播放航线</button> : <button className="button ink unlock-save" disabled={unlockProgress === 0} onClick={saveUnlockProgress}><Save size={16}/>{unlockComplete ? '保存并验证全部准备' : '保存准备进度'}</button>}
-      <small className="unlock-help">官方资料核对日期 {unlockDestinationProfile.verifiedAt}；出发前请再次打开来源确认。<button onClick={resetUnlockProgress}>重置清单</button></small>
+      <small className="unlock-help">
+        状态：{getStatusForDestination(unlockTarget).label}
+        {unlockTarget.sourceLabel ? ` · 来源 ${unlockTarget.sourceLabel}` : ''}
+        {unlockTarget.sourceUrl ? <> · <a href={unlockTarget.sourceUrl} target="_blank" rel="noreferrer">打开权威来源 ↗</a></> : null}
+        ；核对日期 {unlockDestinationProfile.verifiedAt}。
+        <button type="button" onClick={resetUnlockProgress}>重置清单</button>
+      </small>
     </aside></div>}
   </main>
 }

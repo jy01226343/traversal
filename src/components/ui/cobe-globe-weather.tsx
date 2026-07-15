@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import * as THREE from "three"
+import type { DestinationBeacon } from "@/data/beacons"
 import type { DestinationCountry, DestinationRegion } from "@/data/destinations"
 
 export type MapLevel = "world" | "continent" | "country" | "region"
@@ -35,6 +36,9 @@ interface GlobeWeatherProps {
   onCountrySelect?: (country: PickedCountry) => void
   routeFlight?: GlobeRouteFlight | null
   onRouteFlightComplete?: () => void
+  /** Destination beacons projected on the globe (world level) */
+  beacons?: DestinationBeacon[]
+  onBeaconSelect?: (beacon: DestinationBeacon) => void
 }
 
 interface GeoFeature {
@@ -43,6 +47,9 @@ interface GeoFeature {
 }
 
 interface GeoCollection { features: GeoFeature[] }
+
+/** World globe default front: China geographic center, north-up. */
+const WORLD_FRONT_FOCUS: [number, number] = [35.8, 104.2]
 
 const continentConfig: Record<string, { focus: [number, number]; markers: TerrainMarker[] }> = {
   亚洲: {
@@ -77,6 +84,22 @@ const continentConfig: Record<string, { focus: [number, number]; markers: Terrai
       { id: "america-aurora", location: [65.1, -120.2], symbol: "✦", label: "极光走廊" },
     ],
   },
+  南美: {
+    focus: [-15, -60],
+    markers: [
+      { id: "sa-andes", location: [-13.2, -72.5], symbol: "▲", label: "安第斯山脉" },
+      { id: "sa-amazon", location: [-3.1, -60.0], symbol: "♣", label: "亚马孙雨林" },
+      { id: "sa-patagonia", location: [-50.1, -73.0], symbol: "❄", label: "巴塔哥尼亚" },
+    ],
+  },
+  非洲: {
+    focus: [2, 20],
+    markers: [
+      { id: "af-sahara", location: [23.4, 12.0], symbol: "✧", label: "撒哈拉沙漠" },
+      { id: "af-serengeti", location: [-2.3, 34.8], symbol: "✦", label: "塞伦盖蒂" },
+      { id: "af-cape", location: [-33.9, 18.4], symbol: "≈", label: "好望角" },
+    ],
+  },
 }
 
 function latLonToVector(lat: number, lon: number, radius = 1) {
@@ -97,10 +120,15 @@ function vectorToLatLon(point: THREE.Vector3): [number, number] {
   ]
 }
 
-function focusQuaternion([lat, lon]: [number, number]) {
-  return new THREE.Quaternion().setFromUnitVectors(
-    latLonToVector(lat, lon).normalize(),
-    new THREE.Vector3(0, 0, 1),
+/**
+ * Classic globe pose: north pole screen-up, south pole screen-down.
+ * Only yaw around the polar axis so `lon` faces the camera (+Z).
+ * Identity mesh has roughly lon=-90° on the front face.
+ */
+function focusQuaternion([_lat, lon]: [number, number]) {
+  return new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    THREE.MathUtils.degToRad(-(lon + 90)),
   )
 }
 
@@ -196,10 +224,14 @@ export function GlobeWeather({
   onCountrySelect,
   routeFlight = null,
   onRouteFlightComplete,
+  beacons = [],
+  onBeaconSelect,
 }: GlobeWeatherProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const shellRef = useRef<HTMLDivElement>(null)
   const labelsRef = useRef<Array<HTMLSpanElement | null>>([])
+  const beaconElsRef = useRef<Array<HTMLButtonElement | null>>([])
+  const beaconsRef = useRef(beacons)
   const focusLabelRef = useRef<HTMLSpanElement | null>(null)
   const flightPlaneRef = useRef<HTMLSpanElement | null>(null)
   const levelRef = useRef(level)
@@ -208,9 +240,10 @@ export function GlobeWeather({
   const regionsRef = useRef(regions)
   const configRef = useRef(continentConfig[continent])
   const onCountrySelectRef = useRef(onCountrySelect)
+  const onBeaconSelectRef = useRef(onBeaconSelect)
   const routeFlightRef = useRef(routeFlight)
   const onRouteFlightCompleteRef = useRef(onRouteFlightComplete)
-  const targetQuaternion = useRef(focusQuaternion(continentConfig[continent].focus))
+  const targetQuaternion = useRef(focusQuaternion(WORLD_FRONT_FOCUS))
   const drag = useRef<{ x: number; y: number; quaternion: THREE.Quaternion; moved: boolean } | null>(null)
   const [transitioning, setTransitioning] = useState(false)
   const [boundariesReady, setBoundariesReady] = useState(false)
@@ -242,15 +275,22 @@ export function GlobeWeather({
   countryRef.current = country
   regionRef.current = region
   regionsRef.current = regions
+  beaconsRef.current = beacons
   onCountrySelectRef.current = onCountrySelect
+  onBeaconSelectRef.current = onBeaconSelect
   routeFlightRef.current = routeFlight
   onRouteFlightCompleteRef.current = onRouteFlightComplete
 
   useEffect(() => {
     configRef.current = continentConfig[continent]
-    const point = level === "region" && region
-      ? region.focus
-      : level === "country" && country ? country.focus : configRef.current.focus
+    // World layer always fronts China; lower levels use region / country / continent focus.
+    const point: [number, number] = level === "world"
+      ? WORLD_FRONT_FOCUS
+      : level === "region" && region
+        ? region.focus
+        : level === "country" && country
+          ? country.focus
+          : configRef.current.focus
     const endQuaternion = focusQuaternion(point)
     targetQuaternion.current.copy(endQuaternion)
     const api = apiRef.current
@@ -628,9 +668,10 @@ export function GlobeWeather({
             }
           } else transitionFinished = false
         } else {
+          // Spin on Earth's polar axis (local Y) so China-front / north-up orientation stays stable.
           if (levelRef.current === "world" && !drag.current) {
             autoTurn.setFromAxisAngle(axis, speed * delta)
-            targetQuaternion.current.premultiply(autoTurn)
+            targetQuaternion.current.multiply(autoTurn)
           }
           globe.quaternion.slerp(targetQuaternion.current, 0.055)
         }
@@ -656,6 +697,20 @@ export function GlobeWeather({
         const visible = levelRef.current === "continent" && !transitionRef.current && worldPoint.z > 0.1
         label.style.opacity = visible ? "1" : "0"
         label.style.transform = `translate3d(${(projected.x * .5 + .5) * width}px, ${(-projected.y * .5 + .5) * height}px, 0) translate(-50%, -105%)`
+      })
+      // Destination Beacons — HTML nodes projected from lat/lon (world level)
+      beaconsRef.current.forEach((beacon, index) => {
+        const el = beaconElsRef.current[index]
+        if (!el) return
+        worldPoint.copy(latLonToVector(beacon.focus[0], beacon.focus[1], 1.52)).applyQuaternion(globe.quaternion)
+        projected.copy(worldPoint).project(camera)
+        const onFront = worldPoint.z > 0.12
+        const inView = projected.x > -1.15 && projected.x < 1.15 && projected.y > -1.15 && projected.y < 1.15
+        const visible = levelRef.current === "world" && !transitionRef.current && !routeAnimation && onFront && inView
+        el.style.opacity = visible ? "1" : "0"
+        el.style.pointerEvents = visible ? "auto" : "none"
+        el.style.zIndex = String(20 + Math.round(worldPoint.z * 40))
+        el.style.transform = `translate3d(${(projected.x * .5 + .5) * width}px, ${(-projected.y * .5 + .5) * height}px, 0) translate(-50%, -100%)`
       })
       if (focusLabelRef.current) {
         const focus = levelRef.current === "region" && regionRef.current
@@ -731,6 +786,34 @@ export function GlobeWeather({
         <span ref={focusLabelRef} className="region-anchor">
           <i /><b>{focusName}</b><small>{focus[0]}° · {focus[1]}°</small>
         </span>
+      </div>
+      <div className="beacon-layer" aria-label="Destination beacons">
+        {beacons.map((beacon, index) => (
+          <button
+            type="button"
+            key={beacon.id}
+            ref={element => { beaconElsRef.current[index] = element }}
+            className={`dest-beacon visual-${beacon.visual} grade-${beacon.grade} status-${beacon.status.toLowerCase()}`}
+            style={{ opacity: 0, pointerEvents: "none" }}
+            onClick={event => {
+              event.stopPropagation()
+              onBeaconSelectRef.current?.(beacon)
+            }}
+            aria-label={`${beacon.title}，${beacon.grade}级，${beacon.status}`}
+          >
+            <span className="beacon-fx" aria-hidden="true">
+              <i className="beacon-core">{beacon.symbol}</i>
+              <i className="beacon-ring r1" />
+              <i className="beacon-ring r2" />
+              <i className="beacon-pillar" />
+              <i className="beacon-spark s1" /><i className="beacon-spark s2" /><i className="beacon-spark s3" />
+            </span>
+            <span className="beacon-label">
+              <small>{beacon.grade} · {beacon.status === "WISHLIST" ? "心愿" : beacon.status === "VISITED" || beacon.status === "MASTERED" ? "足迹" : "推荐"}</small>
+              <b>{beacon.title.split(" · ")[0]}</b>
+            </span>
+          </button>
+        ))}
       </div>
       {level !== "world" && <div className="boundary-legend">
         <i className={boundariesReady ? "ready" : ""}/>
