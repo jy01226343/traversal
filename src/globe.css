@@ -1,0 +1,20 @@
+.cobe-globe{position:relative;width:500px;height:500px;transition:transform .9s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 28px 42px #001317)}
+.cobe-globe.is-focused{transform:scale(1.17)}
+.cobe-globe canvas{width:100%;height:100%;display:block;opacity:0;transition:opacity 1.1s ease;cursor:grab;border-radius:50%;touch-action:none}
+.cobe-globe canvas:active{cursor:grabbing}
+.atmosphere-ring{position:absolute;pointer-events:none;inset:1%;border-radius:50%;box-shadow:inset 14px 0 26px #a9e9cf49,inset -40px 0 65px #020b12d9,0 0 0 1px #b3f5df45,0 0 34px #65c6b83d}
+.day-night-terminator{position:absolute;pointer-events:none;inset:3%;border-radius:50%;overflow:hidden;background:linear-gradient(102deg,#ffd99b0d 8%,transparent 42%,#020914a8 70%,#01050be8 100%);box-shadow:inset 30px -7px 45px #0a1c23b5}
+.day-night-terminator span{position:absolute;font:7px 'DM Mono';letter-spacing:1.5px;color:#f6d49b99;top:15%}.day-night-terminator span:first-child{left:19%}.day-night-terminator span:last-child{right:15%;color:#b3cae084}
+.sun-source{position:absolute;z-index:4;left:-42px;top:33px;pointer-events:none;display:flex;align-items:center;gap:10px;color:#f2c98d;font:7px 'DM Mono';letter-spacing:1px}
+.sun-source i{display:block;width:24px;height:24px;border-radius:50%;background:#fff0ba;box-shadow:0 0 12px #fff2bd,0 0 42px #eeaf63,0 0 85px #dc875e}
+.solar-ray{position:absolute;pointer-events:none;left:-10%;top:9%;width:62%;height:55%;transform:rotate(-28deg);transform-origin:left top;background:linear-gradient(90deg,#ffe5a52e,transparent 72%);clip-path:polygon(0 43%,100% 0,100% 100%,0 58%);mix-blend-mode:screen;filter:blur(5px)}
+.terrain-legend{position:absolute;pointer-events:none;inset:0}
+.terrain-pin{position:absolute;display:flex;align-items:center;gap:5px;padding:5px 7px 5px 5px;border:1px solid #ddf3e1a1;background:#173b3aa8;color:#f7ead2;backdrop-filter:blur(7px);box-shadow:0 7px 14px #00191b80;transition:.5s}
+.terrain-pin i{display:grid;place-items:center;width:22px;height:22px;background:#d77b52;color:white;border-radius:7px 7px 5px 5px;font:13px 'DM Serif Display';font-style:normal;box-shadow:inset 0 -4px 0 #93432e55}
+.terrain-pin b{font:8px 'Noto Serif SC';white-space:nowrap}
+.pin-1{left:57%;top:31%}.pin-2{left:24%;top:49%}.pin-3{left:55%;top:67%}
+.is-focused .terrain-pin{transform:translateY(-7px);box-shadow:0 13px 19px #00191ba6}.is-focused .pin-1{left:60%;top:27%}.is-focused .pin-2{left:19%;top:45%}.is-focused .pin-3{left:58%;top:69%}
+.drag-hint{position:absolute;pointer-events:none;bottom:7%;left:50%;transform:translateX(-50%);padding:6px 9px;background:#071e20a6;border:1px solid #a7c7bd41;color:#b9cbc4;font:7px 'DM Mono';white-space:nowrap;opacity:.8}
+.continent-focus .orbit{opacity:.25;transition:.6s}.focus-mode{position:absolute;z-index:6;right:-35px;bottom:39px;width:162px;padding:12px;background:#eceddf;color:#173635;box-shadow:8px 10px 0 #c4714d;animation:focus-in .6s ease both}.focus-mode span{font:7px 'DM Mono';letter-spacing:.8px;color:#b25f43}.focus-mode b{font:13px 'Noto Serif SC';display:block;margin:5px 0 10px}.focus-mode button{width:100%;font-size:8px;padding:7px;background:#193b3b;color:#f0eddf}.globe-stage.continent-focus{z-index:4}
+@keyframes focus-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media(max-width:760px){.cobe-globe{width:330px;height:330px}.cobe-globe.is-focused{transform:scale(1.08)}.sun-source{left:4px;top:17px}.sun-source span{display:none}.focus-mode{right:5px;bottom:2px}.terrain-pin b{display:none}.terrain-pin{padding:3px}.terrain-pin i{width:19px;height:19px;font-size:11px}.drag-hint{bottom:5%}}

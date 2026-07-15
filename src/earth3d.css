@@ -1,0 +1,18 @@
+.terrain-globe{overflow:visible;transform:none!important}
+.terrain-globe canvas{position:absolute;inset:0;opacity:1!important;border-radius:50%;filter:saturate(1.14) contrast(1.04)}
+.terrain-globe .solar-ray{z-index:2;opacity:.58;mix-blend-mode:screen;pointer-events:none}
+.terrain-globe .sun-source{z-index:6}
+.terrain-globe .terrain-legend{position:absolute;z-index:7;inset:0;pointer-events:none}
+.terrain-globe .terrain-pin{left:0!important;top:0!important;opacity:0;will-change:transform,opacity;transition:opacity .22s ease;padding:5px 8px 5px 5px;background:#102f2cbd;border:1px solid #e2f7deb8;box-shadow:0 8px 18px #001317bf,0 0 16px #74d2af38;transform-origin:center bottom}
+.terrain-globe.is-focused .terrain-pin{box-shadow:0 10px 24px #001317df,0 0 20px #74d2af52}
+.terrain-globe .terrain-pin:after{content:'';position:absolute;width:1px;height:18px;background:linear-gradient(#ffe0a7,#d06e49);left:50%;top:100%;box-shadow:0 0 5px #ffe0a7}
+.terrain-globe .terrain-pin i{border-radius:50% 50% 45% 45%;background:linear-gradient(145deg,#f09b69,#b85139);box-shadow:inset 0 -4px 0 #7732265c,0 0 0 2px #ffe9bd33}
+.terrain-globe .terrain-pin b{font-weight:600;letter-spacing:.1px}
+.region-anchor{position:absolute;left:0;top:0;opacity:0;display:grid;grid-template-columns:auto auto;align-items:center;gap:0 7px;padding:7px 10px 7px 8px;border:1px solid #fff0bd;background:#e8eee0;color:#193b39;box-shadow:0 0 0 7px #ffe8a927,0 12px 28px #001214c7;will-change:transform,opacity;transition:opacity .25s;white-space:nowrap}
+.region-anchor>i{grid-row:span 2;width:13px;height:13px;border-radius:50%;background:#db704b;box-shadow:0 0 0 4px #db704b30,0 0 13px #ffb06f}
+.region-anchor b{font:12px 'Noto Serif SC'}.region-anchor small{font:6px 'DM Mono';color:#6d7b73}
+.light-status{position:absolute;z-index:6;left:8%;right:8%;top:12%;display:flex;justify-content:space-between;pointer-events:none;color:#f7dc9b;font:7px 'DM Mono';letter-spacing:1.1px;text-shadow:0 1px 8px #001}
+.light-status span:last-child{color:#91b7cd}
+.geo-coordinate{position:absolute;z-index:6;right:8%;bottom:12%;color:#d0e4da99;font:7px 'DM Mono';letter-spacing:.8px;pointer-events:none}
+.terrain-globe .drag-hint{z-index:8}
+@media(max-width:760px){.terrain-globe .terrain-pin{padding:3px!important}.terrain-globe .terrain-pin:after{height:10px}.light-status{top:9%}.geo-coordinate{bottom:11%;right:10%;font-size:6px}}
