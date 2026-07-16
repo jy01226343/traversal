@@ -24,11 +24,10 @@ database_name = "family-atlas"
 database_id = "c77530e2-9384-490d-8c8b-59aa5cb5f16c"
 migrations_dir = "db/migrations"
 
-# R2 对象存储
-# 需先在 Cloudflare Dashboard 激活 R2（免费），再取消注释
-# 激活地址：https://dash.cloudflare.com -> R2
-# [[r2_buckets]]
-# binding = "MEDIA"
-# bucket_name = "family-atlas-media"
+# R2 对象存储（媒体：照片/视频原文件 + 缩略图）
+# 已创建：wrangler r2 bucket create family-atlas-media
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "family-atlas-media"
 
 # NOTE: 队列（Queues）M3 数据同步阶段才需要。
