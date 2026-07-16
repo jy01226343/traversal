@@ -621,70 +621,80 @@ export function FlatAtlasMap({
       : Promise.resolve<GeoJSON.FeatureCollection | null>(null)
 
     const geometryComplete = Promise.all([loadGeoJson(continentUrl), adminPromise, countriesPromise]).then(([data, adminData, countriesData]) => {
-      if (cancelled || requestId !== requestIdRef.current) return
+      if (cancelled || requestId !== requestIdRef.current) return null
+      // NOTE: borders are NOT drawn here. They are drawn in the Promise.all().then()
+      // below, AFTER tiles are ready, so borders and tiles reveal together (no flash).
+      return { data, adminData, countriesData }
+    })
+
+    // Draw borders from loaded geo data. Called only after tiles + flight are ready.
+    // Refs are guaranteed non-null (checked at top of useEffect); alias them here.
+    function drawBoundaries(geo: { data: GeoJSON.FeatureCollection; adminData: GeoJSON.FeatureCollection | null; countriesData: GeoJSON.FeatureCollection | null } | null) {
+      if (!geo) return
+      const br = boundaryRenderer!
+      const bl = boundaries!
+      const fl = fogLayer!
+      const sol = sectorOverlayLayer!
+      const sor = sectorOverlayRenderer!
+      const fr = fogRenderer!
+      const rl = resources!
+      const { data, adminData } = geo
       if (level === "continent") {
         L.geoJSON(data, {
           interactive: false,
-          style: () => ({ renderer: boundaryRenderer, color: "#061718", weight: 3.1, opacity: 0.76, fill: false, lineCap: "round", lineJoin: "round" }),
-        }).addTo(boundaries)
+          style: () => ({ renderer: br, color: "#061718", weight: 3.1, opacity: 0.76, fill: false, lineCap: "round", lineJoin: "round" }),
+        }).addTo(bl)
         L.geoJSON(data, {
-          style: () => ({ renderer: boundaryRenderer, color: "#f7dfaa", weight: 1.15, opacity: 0.96, fillColor: "#173e3d", fillOpacity: 0.055, lineCap: "round", lineJoin: "round" }),
+          style: () => ({ renderer: br, color: "#f7dfaa", weight: 1.15, opacity: 0.96, fillColor: "#173e3d", fillOpacity: 0.055, lineCap: "round", lineJoin: "round" }),
           onEachFeature: (feature, layer) => {
             layer.on({ click: () => onCountrySelectRef.current(countryFromFeature(feature)) })
             const picked = countryFromFeature(feature)
             layer.bindTooltip(picked.name, { className: "atlas-country-tooltip", sticky: true, direction: "top" })
           },
-        }).addTo(boundaries)
+        }).addTo(bl)
       } else if (country) {
         const selected = data.features.filter((feature: GeoJSON.Feature) => feature.properties?.ADM0_A3 === country.code)
         L.geoJSON({ type: "FeatureCollection", features: selected } as GeoJSON.FeatureCollection, {
           interactive: false,
-          style: () => ({ renderer: boundaryRenderer, color: "#07191a", weight: 4.1, opacity: 0.84, fill: false, lineCap: "round", lineJoin: "round" }),
-        }).addTo(boundaries)
+          style: () => ({ renderer: br, color: "#07191a", weight: 4.1, opacity: 0.84, fill: false, lineCap: "round", lineJoin: "round" }),
+        }).addTo(bl)
         L.geoJSON({ type: "FeatureCollection", features: selected } as GeoJSON.FeatureCollection, {
-          style: () => ({ renderer: boundaryRenderer, color: "#ef8c66", weight: 1.75, opacity: 1, fill: false, lineCap: "round", lineJoin: "round" }),
-        }).addTo(boundaries)
+          style: () => ({ renderer: br, color: "#ef8c66", weight: 1.75, opacity: 1, fill: false, lineCap: "round", lineJoin: "round" }),
+        }).addTo(bl)
       }
 
       if (level !== "continent" && country && adminData) {
-        // Boundary strokes first (same geometry the fog mask will copy)
         L.geoJSON(adminData, {
           interactive: false,
-          style: () => ({ renderer: boundaryRenderer, color: "#061718", weight: 2.5, opacity: 0.68, fill: false, lineCap: "round", lineJoin: "round" }),
-        }).addTo(boundaries)
+          style: () => ({ renderer: br, color: "#061718", weight: 2.5, opacity: 0.68, fill: false, lineCap: "round", lineJoin: "round" }),
+        }).addTo(bl)
         L.geoJSON(adminData, {
-          style: () => ({ renderer: boundaryRenderer, color: "#fff1ca", weight: level === "region" ? 1.2 : 1, opacity: 0.93, fillColor: "#071f22", fillOpacity: 0.035, dashArray: level === "region" ? undefined : "5 3", lineCap: "round", lineJoin: "round" }),
+          style: () => ({ renderer: br, color: "#fff1ca", weight: level === "region" ? 1.2 : 1, opacity: 0.93, fillColor: "#071f22", fillOpacity: 0.035, dashArray: level === "region" ? undefined : "5 3", lineCap: "round", lineJoin: "round" }),
           onEachFeature: (feature, layer) => {
             const name = feature.properties?.name_zh || feature.properties?.name || feature.properties?.name_en
             if (name) layer.bindTooltip(String(name), { className: "atlas-province-tooltip", sticky: true })
           },
-        }).addTo(boundaries)
+        }).addTo(bl)
 
-        // Bug 1 fix: at region level, skip the colorful tourism-sector overlay.
-        // Instead, darken all regions except the active one so the user focuses
-        // on the selected region. Colorful sectors only show at country level.
         const hasSectorMap = level === "country" && paintSectorOverlay(
           adminData.features as GeoJSON.Feature[],
           country.code,
-          sectorOverlayLayer,
-          sectorOverlayRenderer,
+          sol,
+          sor,
           { activeRegionId: region?.id },
         ) > 0
 
         if (level === "region" && region) {
-          // Region-level focus mask: darken other countries (all continents) + same-country
-          // provinces outside the active region so user focuses on one region.
           paintFocusMask(
-            countriesData?.features as GeoJSON.Feature[] || [],
+            data.features as GeoJSON.Feature[],
             adminData.features as GeoJSON.Feature[],
             country.code,
             region.id,
-            fogLayer,
-            fogRenderer,
+            fl,
+            fr,
           )
         } else {
-          // Country-level: original fog of war for locked regions
-          paintFogOfWar(adminData.features as GeoJSON.Feature[], regions, fogLayer, fogRenderer, {
+          paintFogOfWar(adminData.features as GeoJSON.Feature[], regions, fl, fr, {
             activeRegionId: region?.id,
             ownerOf: hasSectorMap
               ? (feature) => resolveProvinceSector(country.code, feature)
@@ -699,14 +709,13 @@ export function FlatAtlasMap({
               if (item.visited) onRegionSelectRef.current(item)
               else onRegionWishRef.current?.(item)
             }
-            resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(resources)
+            resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(rl)
           })
         }
       } else if (level === "country" && country && regions.length) {
-        // No admin1 geometry: soft dark discs as fallback mask slices
         regions.filter(item => !item.visited).forEach(item => {
           L.circle(item.focus, {
-            renderer: fogRenderer,
+            renderer: fr,
             radius: 150000,
             stroke: true,
             color: "#061014",
@@ -716,7 +725,7 @@ export function FlatAtlasMap({
             opacity: 0.35,
             interactive: false,
             className: "atlas-fog-mask",
-          }).addTo(fogLayer)
+          }).addTo(fl)
         })
         regions.forEach(item => {
           const isWished = wishedRegionKeysRef.current.includes(`${country.code}:${item.id}`)
@@ -724,14 +733,16 @@ export function FlatAtlasMap({
             if (item.visited) onRegionSelectRef.current(item)
             else onRegionWishRef.current?.(item)
           }
-          resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(resources)
+          resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(rl)
         })
       }
       setDetailReady(level === "continent" || Boolean(adminData))
-    })
+    }
 
-    Promise.all([flightComplete, terrainComplete, geometryComplete]).then(() => {
+    Promise.all([flightComplete, terrainComplete, geometryComplete]).then(([, , geoData]) => {
       if (cancelled || requestId !== requestIdRef.current) return
+      // Draw borders NOW (after tiles are ready) so they reveal together with tiles
+      drawBoundaries(geoData ?? null)
       map.invalidateSize({ animate: false, pan: false })
       map.fire("viewreset")
       requestAnimationFrame(() => {
