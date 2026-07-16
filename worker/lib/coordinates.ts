@@ -33,3 +33,9 @@ export function wgs84ToGcj02(lat: number, lng: number): [number, number] {
   dLng = dLng * 180 / (AXIS / sqrtMagic * Math.cos(radLat) * PI)
   return [lat + dLat, lng + dLng]
 }
+
+export function gcj02ToWgs84(lat: number, lng: number): [number, number] {
+  if (outsideChina(lat, lng)) return [lat, lng]
+  const [gcjLat, gcjLng] = wgs84ToGcj02(lat, lng)
+  return [lat * 2 - gcjLat, lng * 2 - gcjLng]
+}

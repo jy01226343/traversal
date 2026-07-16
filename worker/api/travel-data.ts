@@ -1,6 +1,6 @@
 import type { Env } from "../index"
 import { officialSourcesFor } from "../data-sources/hokkaido"
-import { wgs84ToGcj02 } from "../lib/coordinates"
+import { gcj02ToWgs84, wgs84ToGcj02 } from "../lib/coordinates"
 import { canUseProvider, fetchJsonWithTimeout, providerFailure, safeProviderError, staleWhileRevalidate, type ProviderResult, type SourceMeta } from "../lib/gateway"
 
 type TravelMode = "driving" | "walking" | "cycling" | "transit"
@@ -38,7 +38,16 @@ function normalizeTomTom(payload: any) {
 function normalizeAmap(payload: any) {
   const path = payload?.route?.paths?.[0]
   if (payload?.status !== "1" || !path) throw new Error("AMap route payload invalid")
-  return { distanceMeters: Number(path.distance), durationSeconds: Number(path.duration), geometry: Array.isArray(path.steps) ? path.steps.map((step: { polyline?: string }) => step.polyline).filter(Boolean).join(";") : undefined, provider: "amap" as const }
+  const durationSeconds = Number(path.duration ?? path.cost?.duration)
+  if (!Number.isFinite(path.distance) || !Number.isFinite(durationSeconds)) throw new Error("AMap route payload missing distance or duration")
+  const geometry = Array.isArray(path.steps)
+    ? path.steps.map((step: { polyline?: string }) => step.polyline).filter(Boolean).join(";").split(";").map((pair: string) => {
+      const [lng, lat] = pair.split(",").map(Number)
+      const [wgsLat, wgsLng] = gcj02ToWgs84(lat, lng)
+      return `${wgsLng},${wgsLat}`
+    }).join(";")
+    : undefined
+  return { distanceMeters: Number(path.distance), durationSeconds, geometry, provider: "amap" as const }
 }
 
 async function amapRoute(input: RouteRequest, env: Env): Promise<ProviderResult<ReturnType<typeof normalizeAmap>>> {
