@@ -1,34 +1,34 @@
-# Cloudflare Pages（静态前端）+ Pages Functions（API）+ D1/R2 绑定
-# 部署模式：Pages Functions（functions/ 目录约定），非独立 Worker。
+# Cloudflare Workers + Static Assets（前端 SPA）+ Pages Functions（API）
+# 部署模式：GitHub Git 集成自动部署
 # 详见 docs/cloudflare-setup.md
-# 本地开发：npm run dev:pages  （wrangler pages dev ./dist）
-# 部署：npm run deploy  （wrangler pages deploy ./dist）
+#
+# M0 阶段：D1/R2 binding 暂未激活（线上资源未创建）。
+# 前端 SPA + scrape-proxy 正常工作；health 端点在 binding 激活前会返回 503。
+# 创建 D1/R2 后取消下方注释并填入真实 database_id。
 
 name = "traversal"
 compatibility_date = "2025-07-01"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
 
 [vars]
 ENV = "production"
 APP_VERSION = "0.1.0"
 
-# D1 数据库绑定（本地开发用 --local，生产创建后填 database_id）
-# 创建：wrangler d1 create family-atlas  （输出 database_id 填到下方）
-# 本地开发：database_id 可留占位值，wrangler 用本地 SQLite 文件（.wrangler/state/v3/d1）
-[[d1_databases]]
-binding = "DB"
-database_name = "family-atlas"
-database_id = "local-placeholder"
-migrations_dir = "db/migrations"
+# D1 数据库绑定（待创建后取消注释，填入真实 database_id）
+# 创建：npx wrangler d1 create family-atlas
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "family-atlas"
+# database_id = "填入真实id"
+# migrations_dir = "db/migrations"
 
-# R2 对象存储（媒体：照片/视频原文件 + 缩略图）
-# 创建：wrangler r2 bucket create family-atlas-media
-[[r2_buckets]]
-binding = "MEDIA"
-bucket_name = "family-atlas-media"
+# R2 对象存储（待创建后取消注释）
+# 创建：npx wrangler r2 bucket create family-atlas-media
+# [[r2_buckets]]
+# binding = "MEDIA"
+# bucket_name = "family-atlas-media"
 
-# NOTE: 队列（Queues）在 Pages Functions 模式下的配置语法不同，
-# 且 M3 数据同步阶段才需要。M0 暂不配置，避免 wrangler 警告。
-# M3 启用时参考 docs/cloudflare-setup.md 的队列配置说明。
-# [[queues_producers]]
-# binding = "SYNC_QUEUE"
-# queue = "sync-jobs"
+# NOTE: 队列（Queues）M3 数据同步阶段才需要。

@@ -7,28 +7,32 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types"
 
 interface Env {
-  DB: D1Database
-  MEDIA: R2Bucket
-  ENV: string
-  APP_VERSION: string
+  DB?: D1Database
+  MEDIA?: R2Bucket
+  ENV?: string
+  APP_VERSION?: string
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env } = context
   const checks: Record<string, { ok: boolean; detail?: string }> = {}
 
-  // D1 连通检查
-  try {
-    const result = await env.DB.prepare("SELECT value FROM kv WHERE key = ?")
-      .bind("seed")
-      .first<{ value: string }>()
-    checks.d1 = { ok: Boolean(result), detail: result?.value }
-  } catch (e) {
-    checks.d1 = { ok: false, detail: e instanceof Error ? e.message : String(e) }
+  // D1 连通检查（binding 可能未激活）
+  if (env.DB) {
+    try {
+      const result = await env.DB.prepare("SELECT value FROM kv WHERE key = ?")
+        .bind("seed")
+        .first<{ value: string }>()
+      checks.d1 = { ok: Boolean(result), detail: result?.value }
+    } catch (e) {
+      checks.d1 = { ok: false, detail: e instanceof Error ? e.message : String(e) }
+    }
+  } else {
+    checks.d1 = { ok: false, detail: "binding not activated (see wrangler.toml)" }
   }
 
-  // R2 绑定检查（不实际读写，仅验证 binding 存在）
-  checks.r2 = { ok: Boolean(env.MEDIA), detail: env.MEDIA ? "bound" : "missing" }
+  // R2 绑定检查
+  checks.r2 = { ok: Boolean(env.MEDIA), detail: env.MEDIA ? "bound" : "not activated" }
 
   const allOk = Object.values(checks).every((c) => c.ok)
 
