@@ -1,0 +1,6 @@
+# Copy to worker/.dev.vars for local Worker development. Never commit real values.
+AMAP_WEB_SERVICE_KEY=
+TOMTOM_API_KEY=
+AMAP_DAILY_SOFT_LIMIT=
+TOMTOM_DAILY_SOFT_LIMIT=
+UPSTREAM_TIMEOUT_MS=8000

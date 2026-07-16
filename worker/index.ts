@@ -11,6 +11,7 @@ import { handleHealth } from "./api/health"
 import { handleDestinationLive } from "./api/destination-live"
 import { handleCreateJourney, handleHomeContext, handleHomePreference, handleJourneyStops, handleUpdateJourney } from "./api/home"
 import { handleScrapeProxy } from "./api/scrape-proxy"
+import { handleAdvisories, handlePlaceSearch, handleRoute } from "./api/travel-data"
 
 export interface Env {
   DB?: D1Database
@@ -18,6 +19,11 @@ export interface Env {
   ASSETS: Fetcher
   ENV?: string
   APP_VERSION?: string
+  AMAP_WEB_SERVICE_KEY?: string
+  TOMTOM_API_KEY?: string
+  AMAP_DAILY_SOFT_LIMIT?: string
+  TOMTOM_DAILY_SOFT_LIMIT?: string
+  UPSTREAM_TIMEOUT_MS?: string
 }
 
 export default {
@@ -39,6 +45,15 @@ export default {
         }
         if (path === "/api/v1/destinations/live" && request.method === "GET") {
           return await handleDestinationLive(request, env)
+        }
+        if (path === "/api/v1/route" && request.method === "POST") {
+          return await handleRoute(request, env)
+        }
+        if (path === "/api/v1/places/search" && request.method === "GET") {
+          return await handlePlaceSearch(request, env)
+        }
+        if (path === "/api/v1/advisories" && request.method === "GET") {
+          return await handleAdvisories(request)
         }
         if (path === "/api/v1/journeys" && request.method === "POST") {
           return await handleCreateJourney(request, env)
