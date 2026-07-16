@@ -109,6 +109,24 @@ function nearestRegion(lat: number, lng: number, regions: DestinationRegion[]) {
   return best
 }
 
+/** Find the item (by id) whose point is nearest to (lat, lng). */
+function nearestPoint(lat: number, lng: number, items: { id: string; point: [number, number] }[]) {
+  if (!items.length) return null
+  let best = items[0]
+  let bestDist = Number.POSITIVE_INFINITY
+  for (const item of items) {
+    const [iLat, iLng] = item.point
+    const dLat = lat - iLat
+    const dLng = (lng - iLng) * Math.cos((lat * Math.PI) / 180)
+    const dist = dLat * dLat + dLng * dLng
+    if (dist < bestDist) {
+      bestDist = dist
+      best = item
+    }
+  }
+  return best
+}
+
 /**
  * China tourism-sector overlay — fill each admin1 province by its explicit
  * tourism sector (CHINA_PROVINCE_TO_REGION) using a per-sector color, so the
@@ -444,6 +462,20 @@ export function FlatAtlasMap({
       if (currentLevel === "country" && zoom < 4.5 && !flyingRef.current) {
         onExitToContinentRef.current?.()
       }
+      // Zoom-in transitions: auto-enter deeper level when zoom crosses threshold
+      if (!flyingRef.current) {
+        if (currentLevel === "country" && zoom >= 6.2 && regions.length) {
+          const center = map.getCenter()
+          const nearest = nearestPoint(center.lat, center.lng, regions.map(r => ({ id: r.id, point: r.focus })))
+          if (nearest) onRegionSelectRef.current(regions.find(r => r.id === nearest.id)!)
+        }
+        if (currentLevel === "region" && zoom >= 8.2 && attractions.length) {
+          const center = map.getCenter()
+          const nearest = nearestPoint(center.lat, center.lng, attractions.map(a => ({ id: a.id, point: [a.lat_wgs84, a.lng_wgs84] as [number, number] })))
+          if (nearest) onAttractionSelectRef.current(attractions.find(a => a.id === nearest.id)!)
+        }
+      }
+      computeScaleBar()
       // Bug 3: when at region level with a selected attraction, zooming out
       // below the detail threshold clears the selection so the list returns
       // to the attraction explorer panel (not the detail view)
