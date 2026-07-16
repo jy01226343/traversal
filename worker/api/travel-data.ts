@@ -38,8 +38,9 @@ function normalizeTomTom(payload: any) {
 function normalizeAmap(payload: any) {
   const path = payload?.route?.paths?.[0]
   if (payload?.status !== "1" || !path) throw new Error("AMap route payload invalid")
+  const distanceMeters = Number(path.distance)
   const durationSeconds = Number(path.duration ?? path.cost?.duration)
-  if (!Number.isFinite(path.distance) || !Number.isFinite(durationSeconds)) throw new Error("AMap route payload missing distance or duration")
+  if (!Number.isFinite(distanceMeters)) throw new Error("AMap route payload missing distance")
   const geometry = Array.isArray(path.steps)
     ? path.steps.map((step: { polyline?: string }) => step.polyline).filter(Boolean).join(";").split(";").map((pair: string) => {
       const [lng, lat] = pair.split(",").map(Number)
@@ -47,7 +48,7 @@ function normalizeAmap(payload: any) {
       return `${wgsLng},${wgsLat}`
     }).join(";")
     : undefined
-  return { distanceMeters: Number(path.distance), durationSeconds, geometry, provider: "amap" as const }
+  return { distanceMeters, ...(Number.isFinite(durationSeconds) ? { durationSeconds } : {}), geometry, provider: "amap" as const }
 }
 
 async function amapRoute(input: RouteRequest, env: Env): Promise<ProviderResult<ReturnType<typeof normalizeAmap>>> {
@@ -61,7 +62,12 @@ async function amapRoute(input: RouteRequest, env: Env): Promise<ProviderResult<
       const params = new URLSearchParams({ key: env.AMAP_WEB_SERVICE_KEY!, origin: `${originLng.toFixed(6)},${originLat.toFixed(6)}`, destination: `${destinationLng.toFixed(6)},${destinationLat.toFixed(6)}`, extensions: "all", show_fields: "cost,polyline", strategy: "10" })
       return fetchJsonWithTimeout(`https://restapi.amap.com/v5/direction/driving?${params}`, {}, timeoutMs(env))
     })
-    return { ok: true, data: normalizeAmap(cached.value), source: source("amap", "高德 Web 服务 · 路线规划", "https://lbs.amap.com/api/webservice/guide/api/newroute", cached.fromCache, cached.stale), warnings: cached.stale ? ["上游暂不可用，正在显示最后成功路线"] : undefined }
+    const data = normalizeAmap(cached.value)
+    const warnings = [
+      ...(cached.stale ? ["上游暂不可用，正在显示最后成功路线"] : []),
+      ...(data.durationSeconds === undefined ? ["高德当前响应未提供预计时长"] : []),
+    ]
+    return { ok: true, data, source: source("amap", "高德 Web 服务 · 路线规划", "https://lbs.amap.com/api/webservice/guide/api/newroute", cached.fromCache, cached.stale), warnings: warnings.length ? warnings : undefined }
   } catch (error) {
     const safe = safeProviderError(error)
     return providerFailure("amap", safe.code, safe.message, true)
