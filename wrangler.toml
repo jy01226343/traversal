@@ -16,16 +16,17 @@ not_found_handling = "single-page-application"
 ENV = "production"
 APP_VERSION = "0.1.0"
 
-# D1 数据库绑定（待创建后取消注释，填入真实 database_id）
-# 创建：npx wrangler d1 create family-atlas
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "family-atlas"
-# database_id = "填入真实id"
-# migrations_dir = "db/migrations"
+# D1 数据库绑定
+# 已创建：wrangler d1 create family-atlas
+[[d1_databases]]
+binding = "DB"
+database_name = "family-atlas"
+database_id = "c77530e2-9384-490d-8c8b-59aa5cb5f16c"
+migrations_dir = "db/migrations"
 
-# R2 对象存储（待创建后取消注释）
-# 创建：npx wrangler r2 bucket create family-atlas-media
+# R2 对象存储
+# 需先在 Cloudflare Dashboard 激活 R2（免费），再取消注释
+# 激活地址：https://dash.cloudflare.com -> R2
 # [[r2_buckets]]
 # binding = "MEDIA"
 # bucket_name = "family-atlas-media"
