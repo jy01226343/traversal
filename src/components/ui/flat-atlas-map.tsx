@@ -673,6 +673,15 @@ export function FlatAtlasMap({
           onEachFeature: (feature, layer) => {
             const name = feature.properties?.name_zh || feature.properties?.name || feature.properties?.name_en
             if (name) layer.bindTooltip(String(name), { className: "atlas-province-tooltip", sticky: true })
+            // Click province to enter its region (same as clicking hotlist item)
+            if (level === "country") {
+              layer.on("click", () => {
+                const sectorId = resolveProvinceSector(country.code, feature)
+                if (!sectorId) return
+                const target = regions.find(r => r.id === sectorId)
+                if (target) onRegionSelectRef.current(target)
+              })
+            }
           },
         }).addTo(bl)
 
