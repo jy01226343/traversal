@@ -31,6 +31,8 @@ interface FlatAtlasMapProps {
   onExitToCountry?: () => void
   /** Fired when user zooms out from attraction detail to region list (zoom drops below detail threshold) */
   onExitToRegionList?: () => void
+  /** Fired when user zooms out from country to continent level (zoom drops below threshold) */
+  onExitToContinent?: () => void
 }
 
 const continentConfig: Record<string, { file: string; focus: [number, number]; zoom: number }> = {
@@ -308,6 +310,7 @@ export function FlatAtlasMap({
   onMapViewChange,
   onExitToCountry,
   onExitToRegionList,
+  onExitToContinent,
 }: FlatAtlasMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -334,6 +337,7 @@ export function FlatAtlasMap({
   const onMapViewChangeRef = useRef(onMapViewChange)
   const onExitToCountryRef = useRef(onExitToCountry)
   const onExitToRegionListRef = useRef(onExitToRegionList)
+  const onExitToContinentRef = useRef(onExitToContinent)
   const levelRef = useRef(level)
   levelRef.current = level
   const wishedRegionKeysRef = useRef(wishedRegionKeys)
@@ -348,6 +352,7 @@ export function FlatAtlasMap({
   onMapViewChangeRef.current = onMapViewChange
   onExitToCountryRef.current = onExitToCountry
   onExitToRegionListRef.current = onExitToRegionList
+  onExitToContinentRef.current = onExitToContinent
   wishedRegionKeysRef.current = wishedRegionKeys
 
   useEffect(() => {
@@ -433,6 +438,11 @@ export function FlatAtlasMap({
       // threshold, exit back to country level (restore sectors + region hotlist)
       if (currentLevel === "region" && zoom < 5.5 && !flyingRef.current) {
         onExitToCountryRef.current?.()
+      }
+      // Country -> continent: when at country level and user zooms out below
+      // continent threshold, exit back to continent view
+      if (currentLevel === "country" && zoom < 4.5 && !flyingRef.current) {
+        onExitToContinentRef.current?.()
       }
       // Bug 3: when at region level with a selected attraction, zooming out
       // below the detail threshold clears the selection so the list returns
