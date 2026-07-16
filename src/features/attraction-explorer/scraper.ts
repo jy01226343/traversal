@@ -37,18 +37,40 @@ function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-").replace(/^-|-$/g, "").slice(0, 48)
 }
 
+/** OSM tag 值 → 中文翻译表 */
+const OSM_TAG_ZH: Record<string, string> = {
+  // tourism
+  attraction: "景点", museum: "博物馆", gallery: "美术馆", viewpoint: "观景点",
+  theme_park: "主题乐园", zoo: "动物园", aquarium: "水族馆", artwork: "艺术品",
+  camp_site: "露营地",
+  // historic
+  castle: "城堡", monument: "纪念碑", ruins: "遗址", archaeological_site: "考古遗址",
+  memorial: "纪念馆",
+  // natural
+  peak: "山峰", volcano: "火山", hot_spring: "温泉", beach: "海滩", cliff: "悬崖",
+  // leisure
+  picnic_table: "野餐区", park: "公园",
+  // sport
+  skiing: "滑雪",
+}
+
+/** 将 OSM 英文 tag 值翻译为中文 */
+function zhTag(value: string): string {
+  return OSM_TAG_ZH[value] || value
+}
+
 function mapCategory(tags: Record<string, string> = {}): { l1: AttractionCategoryL1; l2: string } {
   const tourism = tags.tourism || ""
   const historic = tags.historic || ""
   const natural = tags.natural || ""
   const leisure = tags.leisure || ""
-  if (historic || tourism === "museum" || tourism === "gallery") return { l1: "人文历史", l2: historic || tourism || "文化" }
-  if (natural === "peak" || tags.sport === "skiing" || tags.highway === "path") return { l1: "户外极限", l2: natural || tags.sport || "徒步" }
-  if (tourism === "theme_park" || tourism === "zoo" || tourism === "aquarium") return { l1: "超级工程", l2: tourism }
-  if (tourism === "viewpoint" || natural === "hot_spring") return { l1: "网红奇观", l2: tourism || natural }
-  if (leisure === "picnic_table" || leisure === "park" || tourism === "camp_site") return { l1: "休闲露营", l2: leisure || tourism }
-  if (natural || tourism === "attraction") return { l1: "自然风光", l2: natural || "景点" }
-  return { l1: "自然风光", l2: tourism || "景点" }
+  if (historic || tourism === "museum" || tourism === "gallery") return { l1: "人文历史", l2: zhTag(historic || tourism || "文化") }
+  if (natural === "peak" || tags.sport === "skiing" || tags.highway === "path") return { l1: "户外极限", l2: zhTag(natural || tags.sport || "徒步") }
+  if (tourism === "theme_park" || tourism === "zoo" || tourism === "aquarium") return { l1: "超级工程", l2: zhTag(tourism) }
+  if (tourism === "viewpoint" || natural === "hot_spring") return { l1: "网红奇观", l2: zhTag(tourism || natural) }
+  if (leisure === "picnic_table" || leisure === "park" || tourism === "camp_site") return { l1: "休闲露营", l2: zhTag(leisure || tourism) }
+  if (natural || tourism === "attraction") return { l1: "自然风光", l2: zhTag(natural || "景点") }
+  return { l1: "自然风光", l2: zhTag(tourism || "景点") }
 }
 
 function deriveScores(tags: Record<string, string> = {}, wikiBoost = 0) {
@@ -179,7 +201,7 @@ function overpassToAttraction(
     category_l2: l2,
     popularity_score: scores.popularity_score,
     niche_score: scores.niche_score,
-    tags: [tags.tourism, tags.historic, tags.natural, tags.leisure].filter(Boolean).slice(0, 4) as string[],
+    tags: [tags.tourism, tags.historic, tags.natural, tags.leisure].filter(Boolean).slice(0, 4).map(zhTag),
     best_season: "以当地官方公告为准",
     address: [tags["addr:city"], tags["addr:suburb"], tags["addr:street"]].filter(Boolean).join(" · ") || `${countryCode} / ${regionId}`,
     rating: null,
@@ -327,7 +349,7 @@ async function scrapeRegion(target: RegionScrapeTarget, query: AttractionQuery, 
   }
 
   return merged
-    .sort((a, b) => (query.preference === "niche" ? b.niche_score - a.niche_score : b.popularity_score - a.popularity_score))
+    .sort((a, b) => Date.parse(b.last_updated) - Date.parse(a.last_updated) || a.name.localeCompare(b.name, "zh-CN"))
     .slice(0, limit)
 }
 

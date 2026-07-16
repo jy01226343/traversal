@@ -10,9 +10,7 @@ export interface FanCardItem {
   location: string
   kicker: string
   summary: string
-  score: number
   status?: "locked" | "unlocked" | "wishlist" | "preparing" | "mastered"
-  grade?: "S" | "A" | "B"
   statusLabel?: string
   sourceLabel?: string
   /** Explicit wishlist membership (survives free-access / visited status) */
@@ -25,6 +23,7 @@ interface CardFanCarouselProps {
   onWishToggle?: (card: FanCardItem) => void
   /** auto: PC portals controls to #top; inline: keep controls under the fan (modals) */
   controlsMode?: "auto" | "inline"
+  reducedMotion?: boolean
 }
 
 function circularOffset(index: number, activeIndex: number, length: number) {
@@ -35,14 +34,14 @@ function circularOffset(index: number, activeIndex: number, length: number) {
 }
 
 const STATUS_COPY: Record<string, string> = {
-  unlocked: "已点亮 · 进入地图",
-  mastered: "深度探索 · 进入地图",
-  wishlist: "心愿单 · 查看准备",
+  unlocked: "准备完成 · 查看详情",
+  mastered: "已到访 · 查看回忆",
+  wishlist: "心愿中 · 开始准备",
   preparing: "准备中 · 继续清单",
-  locked: "未解锁 · 查看条件",
+  locked: "待探索 · 查看详情",
 }
 
-export function CardFanCarousel({ cards, onCardSelect, onWishToggle, controlsMode = "auto" }: CardFanCarouselProps) {
+export function CardFanCarousel({ cards, onCardSelect, onWishToggle, controlsMode = "auto", reducedMotion = false }: CardFanCarouselProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [compact, setCompact] = useState(() => typeof window !== "undefined" && window.innerWidth < 760)
@@ -69,6 +68,18 @@ export function CardFanCarousel({ cards, onCardSelect, onWishToggle, controlsMod
   useLayoutEffect(() => {
     if (!rootRef.current || !visibleCards.length) return
     const nodes = Array.from(rootRef.current.querySelectorAll<HTMLElement>(".fan-card"))
+    if (reducedMotion) {
+      nodes.forEach((node, index) => {
+        const offset = circularOffset(index, activeIndex, visibleCards.length)
+        Object.assign(node.style, {
+          zIndex: String(30 - Math.abs(offset)),
+          opacity: offset === 0 ? "1" : "0.56",
+          transform: `translateX(calc(-50% + ${offset * 64}px))`,
+          transition: "none",
+        })
+      })
+      return
+    }
     // Cover-flow spacing ≈ ~58–68% of card width so neighbors peek past the active card
     const spacing = compact ? 78 : 102
     const fanLift = compact ? 10 : 14
@@ -98,14 +109,13 @@ export function CardFanCarousel({ cards, onCardSelect, onWishToggle, controlsMod
       })
     }, rootRef)
     return () => ctx.revert()
-  }, [activeIndex, compact, visibleCards])
+  }, [activeIndex, compact, reducedMotion, visibleCards])
 
   const move = (direction: number) => setActiveIndex(current => (current + direction + visibleCards.length) % visibleCards.length)
 
   const controls = (
     <div className="fan-controls">
       <button type="button" onClick={() => move(-1)} aria-label="上一项推荐">←</button>
-      <span>{String(activeIndex + 1).padStart(2, "0")} / {String(Math.max(visibleCards.length, 1)).padStart(2, "0")}</span>
       <button type="button" onClick={() => move(1)} aria-label="下一项推荐">→</button>
     </div>
   )
@@ -122,14 +132,12 @@ export function CardFanCarousel({ cards, onCardSelect, onWishToggle, controlsMod
             <button
               type="button"
               className="fan-card-main"
-              aria-label={`${card.title}，推荐指数 ${card.score}`}
+              aria-label={`${card.title}，${card.statusLabel || STATUS_COPY[status] || STATUS_COPY.locked}`}
               aria-current={active ? "true" : undefined}
               onClick={() => onCardSelect?.(card)}
             >
               <img src={card.imgUrl} alt={card.alt || card.title}/>
               <span className="fan-shade"/>
-              {card.grade && <span className={`fan-grade grade-${card.grade}`} aria-label={`${card.grade}级推荐`}><em>{card.grade}</em><small>级</small></span>}
-              <span className="fan-score"><small>SEASON FIT</small><b>{card.score}</b></span>
               <span className={`fan-access ${status}`}>{card.statusLabel || STATUS_COPY[status] || STATUS_COPY.locked}</span>
               <span className="fan-copy">
                 <small>{card.kicker}</small>

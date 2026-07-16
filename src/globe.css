@@ -82,10 +82,6 @@
 /* route default */
 .dest-beacon.visual-route .beacon-core{background:linear-gradient(145deg,#f4efe0,#c56b4a);color:#2a1410}
 
-/* grade accents */
-.dest-beacon.grade-S .beacon-label{border-color:#f0d48a;box-shadow:3px 3px 0 #c4923e88}
-.dest-beacon.grade-S .beacon-core{box-shadow:0 0 0 2px #f0d48a99,0 0 16px #e8c35a77}
-.dest-beacon.grade-A .beacon-label{border-color:#c5d0d8}
 .dest-beacon.status-wishlist .beacon-label{border-style:dashed;border-color:#e8a8e0;background:#2a1830ee}
 .dest-beacon.status-wishlist .beacon-core{background:linear-gradient(145deg,#f7d8f3,#9a4a8a);color:#2a1024}
 .dest-beacon.status-visited .beacon-label small,.dest-beacon.status-mastered .beacon-label small{color:#9fd6a8}

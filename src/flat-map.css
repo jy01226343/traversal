@@ -2,11 +2,8 @@
 .flat-atlas-map{position:relative;width:100%;height:100%;overflow:hidden;background:#102d2e;border:1px solid #d9c69b;box-shadow:0 28px 70px #001013b5,0 0 0 7px #0c2729,0 0 0 8px #8fa59b55;clip-path:polygon(2% 0,98% 0,100% 3%,100% 97%,98% 100%,2% 100%,0 97%,0 3%);isolation:isolate}
 .leaflet-canvas{position:absolute;inset:0;background:#0d2a2b}.leaflet-container{font-family:Manrope,'Noto Serif SC',sans-serif}.leaflet-tile-pane{filter:saturate(1.18) contrast(1.08) brightness(.93)}
 .flat-atlas-map:after{content:'';position:absolute;pointer-events:none;inset:0;z-index:400;background:linear-gradient(90deg,#05181a8f 0,transparent 9%,transparent 91%,#05181a8f 100%),linear-gradient(0deg,#0717195e 0,transparent 13%,transparent 87%,#0717195e 100%);mix-blend-mode:multiply}
-.map-unroll-curtain{position:absolute;z-index:825;top:0;bottom:0;width:52%;pointer-events:none;background:linear-gradient(90deg,#102c2c 0,#d8c99f 93%,#5b533f 97%,#171d1c 100%);box-shadow:0 0 32px #000b;animation:map-curtain-left .78s cubic-bezier(.56,.02,.18,1) both}.map-unroll-curtain.left{left:0;transform-origin:left center}.map-unroll-curtain.right{right:0;transform:scaleX(-1);transform-origin:right center;animation-name:map-curtain-right}
-.map-paper-edge{position:absolute;z-index:600;pointer-events:none;top:9px;bottom:9px;width:14px;background:linear-gradient(90deg,#453e31,#e2d4ae 38%,#776c52 76%,#2a2924);box-shadow:0 0 15px #0008}.map-paper-edge.left{left:2px;border-radius:50% 20% 20% 50%}.map-paper-edge.right{right:2px;transform:scaleX(-1);border-radius:50% 20% 20% 50%}
-.map-scanline{position:absolute;z-index:650;pointer-events:none;left:2%;right:2%;height:1px;top:0;background:#f8df9e;box-shadow:0 0 18px 3px #f1b86b88;opacity:.6;animation:map-scan 4.5s linear both}
+/* Decorative edges — static, no animation cost */
 .flat-map-hud{position:absolute;z-index:700;left:29px;right:29px;top:18px;display:flex;justify-content:space-between;pointer-events:none}.flat-map-hud span,.flat-map-hud b{padding:7px 10px;background:#071d20d9;border:1px solid #8ea9a250;color:#d6e3dc;font:9px 'DM Mono';letter-spacing:.6px}.flat-map-hud span{display:flex;align-items:center;gap:6px}.flat-map-hud i{width:7px;height:7px;border-radius:50%;background:#7b8d87}.flat-map-hud i.ready{background:#e68055;box-shadow:0 0 8px #e68055}.flat-map-hud b{color:#f2d89f;font-weight:400}
-.flat-map-flight{position:absolute;z-index:850;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;color:#f1ead5;background:radial-gradient(circle,transparent 0 18%,#07191c7a 55%,#031012da 100%);animation:flat-flight 1.6s ease both}.flat-map-flight>i{width:86px;height:86px;margin:auto;border:1px dashed #f3dca1;border-radius:50%;box-shadow:0 0 0 18px #e9825740,0 0 0 19px #f4dca148;animation:target-pulse .65s ease-in-out infinite alternate}.flat-map-flight>span{margin-top:33px;font:9px 'DM Mono';letter-spacing:2px;color:#e68a63}.flat-map-flight>b{font:32px 'Noto Serif SC';margin:6px}.flat-map-flight>small{font:9px 'DM Mono';color:#a9bbb5}
 .map-level-panel{position:absolute;z-index:6;left:5.3vw;top:258px;width:210px;padding:20px;background:#e7e3d4;color:#173738;box-shadow:9px 10px 0 #c66c49}.map-level-panel>span{font:9px 'DM Mono';letter-spacing:1.2px;color:#ad5e42}.level-path{padding:18px 0;border-top:1px solid #aeb4a8;border-bottom:1px solid #aeb4a8;margin-top:12px}.level-path small{font:12px 'DM Mono';color:#758079}.level-path>b{display:block;font:27px 'Noto Serif SC';margin:5px 0}.level-path em{font:11px 'Noto Serif SC';font-style:normal;color:#69766f}.level-resources{display:flex;gap:5px;flex-wrap:wrap;padding:14px 0 0}.level-resources i{padding:5px 7px;background:#173b3a;color:#edf0e3;font:9px 'DM Mono';font-style:normal}.level-resources i b{color:#ed966d;margin-left:5px}.map-back-button{width:100%;margin-top:17px;padding:13px 12px;background:#173a3a;color:#f2eee1;display:flex;align-items:center;gap:10px;text-align:left}.map-back-button>span{width:29px;height:29px;border-radius:50%;background:#e17b55;display:grid;place-items:center;font-size:18px}.map-back-button>b{font-size:13px;font-weight:600}
 .regional-mode .country-ranking{top:188px;right:3.4vw;width:350px;max-height:610px}.ranking-head{padding:20px 20px 17px}.ranking-head>span{font-size:9px}.ranking-head>b{font-size:25px;margin:8px 0 5px}.ranking-head>small{font-size:10px}.ranking-list{padding:8px;max-height:480px;overflow-y:auto;overflow-x:hidden}.ranking-list button{grid-template-columns:32px 1fr 38px;padding:13px 12px}.ranking-list em{font-size:10px}.ranking-list span b{font-size:15px}.ranking-list span small{font-size:9px;line-height:1.45;margin-top:3px}.ranking-list strong{font-size:24px}.ranking-foot{padding:13px 18px;font-size:9px}
 .region-list{padding:8px;max-height:475px;overflow-y:auto;overflow-x:hidden}.region-list>button{grid-template-columns:30px 1fr 39px;padding:13px 11px;gap:9px}.region-list em{font-size:10px}.region-copy>b{font-size:15px}.region-copy>small{font-size:9px;line-height:1.5;margin:3px 0 8px}.region-heat{font-size:25px}.resource-tags{gap:5px}.resource-tags i{padding:4px 6px;font-size:8px}.footprint-state{font-size:8px;margin-top:1px}
@@ -17,7 +14,7 @@
 .map-scale-bar span{font:9px 'DM Mono';color:#f2d89f;text-shadow:0 1px 3px #000d;letter-spacing:.4px}
 .atlas-country-tooltip,.atlas-province-tooltip{background:#eee9d7!important;color:#173738!important;border:1px solid #d07450!important;border-radius:0!important;box-shadow:5px 5px 0 #173738!important;font:13px 'Noto Serif SC'!important;padding:7px 10px!important}.atlas-country-tooltip:before,.atlas-province-tooltip:before{display:none}
 .leaflet-control-zoom{border:0!important;margin:0 0 26px 29px!important;box-shadow:4px 5px 0 #c66d4a!important}.leaflet-control-zoom a{width:38px!important;height:38px!important;line-height:38px!important;background:#ece8d8!important;color:#173738!important;border:0!important;border-bottom:1px solid #acb1a6!important;font-size:21px!important}.leaflet-control-attribution{background:#071a1cd1!important;color:#aebdb7!important;font-size:8px!important}.leaflet-control-attribution a{color:#e6c68f!important}
-@keyframes map-curtain-left{0%{opacity:1;transform:translateX(0)}82%{opacity:1}100%{opacity:0;transform:translateX(-104%)}}@keyframes map-curtain-right{0%{opacity:1;transform:scaleX(-1) translateX(0)}82%{opacity:1}100%{opacity:0;transform:scaleX(-1) translateX(-104%)}}@keyframes map-scan{0%{opacity:.6;transform:translateY(0)}85%{opacity:.6}100%{opacity:0;transform:translateY(585px)}}@keyframes flat-flight{0%{opacity:0}10%,75%{opacity:1}100%{opacity:0}}@keyframes target-pulse{to{transform:scale(1.14);box-shadow:0 0 0 28px #e9825712,0 0 0 29px #f4dca126}}
+@keyframes target-pulse{to{transform:scale(1.14);box-shadow:0 0 0 28px #e9825712,0 0 0 29px #f4dca126}}
 @media(max-width:1180px) and (min-width:761px){.map-level-panel{left:2vw;width:180px}.regional-mode .flat-stage{left:44%;width:50vw}.regional-mode .country-ranking{right:2vw;width:300px}.ranking-list span b,.region-copy>b{font-size:13px}.ranking-list span small,.region-copy>small{font-size:8px}}
 @media(max-width:760px){
   .world-hero.regional-mode{height:920px}
@@ -71,10 +68,17 @@
   .ranking-foot{display:none}
 }
 
-/* Boundary geometry is staged off-screen and revealed only after the new camera and tiles settle. */
-.leaflet-atlas-boundary-pane-pane,.leaflet-atlas-fog-pane-pane,.leaflet-atlas-sector-pane-pane,.leaflet-atlas-resource-pane-pane,.leaflet-atlas-attraction-pane-pane{opacity:0;filter:blur(3px);transition:opacity .34s ease,filter .34s ease;will-change:opacity,filter}
-.leaflet-atlas-boundary-pane-pane.is-switching,.leaflet-atlas-fog-pane-pane.is-switching,.leaflet-atlas-sector-pane-pane.is-switching,.leaflet-atlas-resource-pane-pane.is-switching,.leaflet-atlas-attraction-pane-pane.is-switching{opacity:0;filter:blur(3px);transition:none}
-.leaflet-atlas-boundary-pane-pane.is-ready,.leaflet-atlas-fog-pane-pane.is-ready,.leaflet-atlas-sector-pane-pane.is-ready,.leaflet-atlas-resource-pane-pane.is-ready,.leaflet-atlas-attraction-pane-pane.is-ready{opacity:1;filter:none}
+/* Boundary geometry: opacity-only reveal with staggered fade-in.
+   No blur (GPU-cheap), each pane fades up as its data loads. */
+.leaflet-atlas-boundary-pane-pane,.leaflet-atlas-fog-pane-pane,.leaflet-atlas-sector-pane-pane,.leaflet-atlas-resource-pane-pane,.leaflet-atlas-attraction-pane-pane{opacity:0;transition:opacity .28s cubic-bezier(.2,.8,.2,1);will-change:opacity}
+.leaflet-atlas-boundary-pane-pane.is-switching,.leaflet-atlas-fog-pane-pane.is-switching,.leaflet-atlas-sector-pane-pane.is-switching,.leaflet-atlas-resource-pane-pane.is-switching,.leaflet-atlas-attraction-pane-pane.is-switching{opacity:0;transition:none}
+.leaflet-atlas-boundary-pane-pane.is-ready,.leaflet-atlas-fog-pane-pane.is-ready,.leaflet-atlas-sector-pane-pane.is-ready,.leaflet-atlas-resource-pane-pane.is-ready,.leaflet-atlas-attraction-pane-pane.is-ready{opacity:1}
+/* Staggered reveal delays — boundaries first, then fog, then resources */
+.leaflet-atlas-boundary-pane-pane.is-ready{transition-delay:0s}
+.leaflet-atlas-fog-pane-pane.is-ready{transition-delay:.06s}
+.leaflet-atlas-sector-pane-pane.is-ready{transition-delay:.06s}
+.leaflet-atlas-resource-pane-pane.is-ready{transition-delay:.12s}
+.leaflet-atlas-attraction-pane-pane.is-ready{transition-delay:.12s}
 
 /* Locked-region dark mask slices (canvas only, no animated mist) */
 .leaflet-atlas-fog-pane-pane.atlas-fog-pane,
@@ -98,8 +102,17 @@
 @media(max-width:760px){.atlas-sector-legend{right:14px;bottom:46px;max-width:170px;padding:7px 9px}.atlas-sector-legend ul{grid-template-columns:1fr 1fr;gap:3px 9px}.atlas-sector-legend li{font-size:8px}}
 
 .atlas-fog-mask,.atlas-fog-veil{pointer-events:none}
-.flat-map-flight{background:linear-gradient(115deg,#061719ed,#0a2527dc 48%,#07191cee);backdrop-filter:blur(11px) saturate(.5);animation:atlas-sync-in .28s ease both;overflow:hidden}
-.flat-map-flight:after{content:'';position:absolute;inset:-20% auto -20% -30%;width:28%;background:linear-gradient(90deg,transparent,#f2d89f2b,transparent);transform:skewX(-12deg);animation:atlas-sync-sweep 1.25s ease-in-out infinite}
+/* —— Zoom-punch transition overlay: a fast radial pulse that masks the tile/geometry swap.
+   Uses only opacity + transform (GPU-composited), no blur on the map canvas itself. —— */
+.flat-map-flight{position:absolute;z-index:850;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;color:#f1ead5;opacity:0;transition:opacity .18s ease}
+.flat-map-flight.is-active{opacity:1}
+.flat-map-flight>i{width:86px;height:86px;margin:auto;border:1px dashed #f3dca1;border-radius:50%;box-shadow:0 0 0 18px #e9825740,0 0 0 19px #f4dca148;animation:target-pulse .65s ease-in-out infinite alternate}
+.flat-map-flight>span{margin-top:33px;font:9px 'DM Mono';letter-spacing:2px;color:#e68a63}
+.flat-map-flight>b{font:32px 'Noto Serif SC';margin:6px}
+.flat-map-flight>small{font:9px 'DM Mono';color:#a9bbb5}
+/* Vignette pulse — a soft radial darkening that breathes during the fly, masking tile pop-in */
+.flat-map-flight:after{content:'';position:absolute;inset:0;background:radial-gradient(circle,transparent 0 30%,#03101299 78%,#031012da 100%);opacity:0;transition:opacity .22s ease}
+.flat-map-flight.is-active:after{opacity:1}
 
 /* Local Playbook now lives on the map as contextual cartographic information. */
 .map-local-playbook{position:absolute;z-index:760;top:61px;right:24px;width:244px;padding:10px;background:linear-gradient(145deg,#eee9d9f2,#dbe0d1ed);color:#173939;border:1px solid #fff0c4;box-shadow:7px 8px 0 #b96244,0 16px 32px #00101370;backdrop-filter:blur(10px);animation:playbook-arrive .38s .14s ease both}
@@ -109,7 +122,7 @@
 .map-local-playbook.is-city-focused{width:auto;min-width:224px;padding:8px 9px;box-shadow:5px 6px 0 #b96244}.map-local-playbook.is-city-focused header{padding:0;margin:0;border:0}.map-local-playbook.is-city-focused header>span{display:none}
 .atlas-city-icon{background:none!important;border:0!important}.city-location-pin{position:relative;width:226px;padding:6px;background:#f0ead8;color:#173839;border:1px solid #f7dba2;box-shadow:7px 8px 0 #bd6346,0 16px 34px #001013b5;overflow:visible}.city-location-pin>img{display:block;width:100%;height:91px;object-fit:cover;filter:saturate(.9) contrast(1.05)}.city-location-pin>div{display:flex;align-items:center;gap:7px;padding:7px 5px 4px}.city-location-pin>div>span{flex:0 0 25px;width:25px;height:25px;display:grid;place-items:center;border-radius:50% 50% 50% 8px;background:#173d3d;font-size:15px}.city-location-pin p{margin:0;min-width:0}.city-location-pin b{display:block;font:13px 'Noto Serif SC'}.city-location-pin small{display:block;margin-top:2px;font:6px 'DM Mono';color:#7b8178}.city-location-pin>a{display:block;padding:0 5px 4px;color:#a6573e;font:6px 'DM Mono';text-decoration:none}.city-location-pin:after{content:'';position:absolute;left:112px;top:100%;width:2px;height:16px;background:#f5d28e;box-shadow:0 0 8px #fff0b5}
 .city-focus-status{position:absolute;z-index:745;left:84px;bottom:24px;padding:8px 11px;background:#071d20d9;color:#edf0e4;border:1px solid #8da49d70;box-shadow:4px 5px 0 #bd6346;pointer-events:none}.city-focus-status>span{display:block;font:6px 'DM Mono';letter-spacing:1px;color:#ec906a}.city-focus-status>b{display:block;font:13px 'Noto Serif SC';margin:3px 0}.city-focus-status>small{font:6px 'DM Mono';color:#a9b9b3}
-@keyframes atlas-sync-in{from{opacity:0}to{opacity:1}}@keyframes atlas-sync-sweep{0%{left:-35%}80%,100%{left:125%}}@keyframes playbook-arrive{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes playbook-arrive{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 
 @media(max-width:760px){
   .map-local-playbook{left:12px;right:12px;top:56px;width:auto;padding:8px;box-shadow:4px 5px 0 #b96244}

@@ -82,30 +82,27 @@ describe("resolveDestinationStatus", () => {
     expect(meta.id).toBe("DEEP_EXPLORED")
   })
 
-  it("本国护照 + 本国目的地 -> UNLOCKED（本国开放）", () => {
+  it("本国护照不会自动将目的地标为准备完成", () => {
     const meta = resolveDestinationStatus(
       baseInput({
         destination: makeDest({ countryCode: "CHN", regionId: "northwest" }),
         passportCode: "CHN",
       }),
     )
-    expect(meta.id).toBe("UNLOCKED")
-    expect(meta.label).toBe("本国开放")
+    expect(meta.id).toBe("UNEXPLORED")
   })
 
-  it("免签目的地 -> UNLOCKED（免签可达）", () => {
-    // JPN 对 JPN 护照是本国；用 THA 测免签：CHN 护照去 THA 免签
+  it("免签条件不会自动将目的地标为准备完成", () => {
     const meta = resolveDestinationStatus(
       baseInput({
         destination: makeDest({ countryCode: "THA", regionId: "south-th", id: "thai-south" }),
         passportCode: "CHN",
       }),
     )
-    expect(meta.id).toBe("UNLOCKED")
-    expect(meta.short).toBe("免签")
+    expect(meta.id).toBe("UNEXPLORED")
   })
 
-  it("需解锁且在 unlockedKeys 中 -> UNLOCKED", () => {
+  it("用户确认准备完成后 -> UNLOCKED", () => {
     const meta = resolveDestinationStatus(
       baseInput({
         destination: makeDest({ countryCode: "USA", regionId: "west", id: "usa-west" }),
@@ -151,12 +148,13 @@ describe("resolveDestinationStatus", () => {
     expect(meta.id).toBe("UNEXPLORED")
   })
 
-  it("优先级：DEEP_EXPLORED 压过免签", () => {
+  it("优先级：DEEP_EXPLORED 压过准备完成", () => {
     const meta = resolveDestinationStatus(
       baseInput({
         destination: makeDest({ countryCode: "THA", regionId: "south-th", id: "thai-south" }),
         passportCode: "CHN",
         masteredIds: ["thai-south"],
+        unlockedKeys: ["THA:south-th"],
       }),
     )
     expect(meta.id).toBe("DEEP_EXPLORED")

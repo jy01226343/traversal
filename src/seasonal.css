@@ -10,51 +10,6 @@
 .season-switch::-webkit-scrollbar-thumb:hover,.continent-switch::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,#d06a48,#ef9a72)}
 .continent-switch button{flex:0 0 59px}
 .seasonal-fan{position:absolute;inset:34px 0 0;pointer-events:none;overflow:visible}.fan-stack{position:absolute;left:0;right:0;bottom:30px;height:244px;display:grid;place-items:end center;perspective:1100px;isolation:isolate;overflow:visible}.fan-card{position:absolute;left:50%;bottom:8px;width:158px;height:214px;padding:0;overflow:hidden;text-align:left;color:#fff8e8;background:#153b3b;border:1px solid #f7dfaa;box-shadow:0 15px 32px #001012bd;transform-origin:50% 100%;pointer-events:auto;will-change:transform,opacity;isolation:isolate;backface-visibility:hidden}.fan-card:before{content:'';position:absolute;z-index:3;inset:7px;border:1px solid #fff6d34d;pointer-events:none}.fan-card-main{position:absolute;inset:0;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}.fan-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.82) contrast(1.04);transition:transform .55s ease,filter .4s ease}.fan-card:hover img,.fan-card.is-active img{transform:scale(1.06);filter:saturate(1.08) contrast(1.04)}.fan-shade{position:absolute;z-index:1;inset:0;background:linear-gradient(180deg,#03171812 20%,#03171940 47%,#031719f2 100%),linear-gradient(90deg,#e67d5128,transparent 45%)}
-/* Rank medal: high-contrast metal plaque, not a tiny chip */
-.fan-grade{
-  position:absolute;z-index:7;left:10px;top:38px;
-  display:flex;align-items:baseline;gap:1px;
-  min-width:46px;height:34px;padding:4px 8px 5px;
-  border-radius:2px 10px 2px 2px;
-  line-height:1;font-weight:700;
-  box-shadow:3px 4px 0 #061012cc,0 0 0 1px #ffffff33 inset;
-  pointer-events:none;
-}
-.fan-grade>em{font:700 20px/1 'DM Serif Display',Georgia,serif;font-style:normal;letter-spacing:.5px}
-.fan-grade>small{font:8px/1 'Noto Serif SC',serif;opacity:.92;transform:translateY(-1px)}
-.fan-grade.grade-S{
-  color:#3d2808;
-  background:
-    linear-gradient(145deg,#fff6c8 0%,#f0d06a 28%,#d4a017 55%,#a67c00 78%,#f5e6a3 100%);
-  border:1px solid #ffe9a8;
-  text-shadow:0 1px 0 #fff3c8;
-  box-shadow:
-    3px 4px 0 #6b4a0ecc,
-    0 0 0 1px #fff8d455 inset,
-    0 0 14px #e8c35a66;
-}
-.fan-grade.grade-S>em{filter:drop-shadow(0 1px 0 #fff6c8)}
-.fan-grade.grade-A{
-  color:#1a242c;
-  background:
-    linear-gradient(145deg,#ffffff 0%,#e8eef2 26%,#b8c4ce 52%,#8e9eab 76%,#f2f5f7 100%);
-  border:1px solid #eef3f6;
-  text-shadow:0 1px 0 #ffffff;
-  box-shadow:
-    3px 4px 0 #3d4a55cc,
-    0 0 0 1px #ffffff66 inset,
-    0 0 12px #c5d0d866;
-}
-.fan-grade.grade-A>em{filter:drop-shadow(0 1px 0 #fff)}
-.fan-grade.grade-B{
-  color:#f0e6d2;
-  background:linear-gradient(145deg,#3a4a3f 0%,#24352e 55%,#1a2822 100%);
-  border:1px solid #8fa99a88;
-  box-shadow:3px 4px 0 #0a1412cc,0 0 0 1px #ffffff18 inset;
-}
-.fan-card.is-active .fan-grade.grade-S{box-shadow:3px 4px 0 #6b4a0ecc,0 0 0 1px #fff8d455 inset,0 0 20px #f0c94a99}
-.fan-card.is-active .fan-grade.grade-A{box-shadow:3px 4px 0 #3d4a55cc,0 0 0 1px #ffffff66 inset,0 0 16px #d7e0e699}
-.fan-score{position:absolute;z-index:4;right:11px;top:11px;width:39px;height:42px;display:grid;place-content:center;text-align:center;background:#e8e2d3;color:#153a39;box-shadow:3px 3px 0 #c76949}.fan-score small{font:4px 'DM Mono';letter-spacing:.5px}.fan-score b{font:22px 'DM Serif Display';font-weight:400;line-height:.9}
 .fan-access{position:absolute;z-index:4;left:11px;top:12px;max-width:calc(100% - 60px);padding:5px 6px;background:#071e20e8;color:#f0d89d;border:1px solid #e0c48661;font:5px 'DM Mono';letter-spacing:.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fan-access.unlocked,.fan-access.mastered{background:#e9e5d7;color:#17403d;border-color:#fff1c2;box-shadow:2px 2px 0 #c76b4b}.fan-access.wishlist{background:#3a2140e8;color:#f3c9ef;border-color:#e8a8e055}.fan-access.preparing{background:#2a3a18e8;color:#d8ef9a;border-color:#b7d46a55}
 .fan-wish{position:absolute;z-index:6;right:10px;bottom:10px;width:28px;height:28px;display:grid;place-items:center;background:#0b292be8;color:#f0d89d;border:1px solid #e0c48661;font-size:14px;line-height:1;transition:.2s}.fan-wish:hover,.fan-wish.is-on{background:#e9e5d7;color:#b23a5a;border-color:#fff1c2;box-shadow:2px 2px 0 #c76b4b}
 .fan-copy{position:absolute;z-index:4;left:13px;right:40px;bottom:11px}.fan-copy>small{display:block;color:#ef936b;font:5px 'DM Mono';letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fan-copy>b{display:block;margin:4px 0 1px;font:14px 'Noto Serif SC';font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fan-copy>em{display:block;color:#d9e1d8;font:6px 'DM Mono';font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fan-copy>i{display:block;max-height:2.8em;margin-top:4px;overflow:hidden;color:#b9cbc4;font:6px 'Noto Serif SC';font-style:normal;line-height:1.45;opacity:.95}.fan-card.is-active .fan-copy>i{max-height:4.2em}.fan-copy>u.fan-source{display:block;margin-top:4px;color:#e8c98a;font:5px 'DM Mono';font-style:normal;text-decoration:none;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -112,6 +67,6 @@
   .seasonal-recommendations{left:14px;right:14px;bottom:71px;width:auto;height:380px}
   .seasonal-recommendations>header{top:0;width:174px;padding:8px 10px;box-shadow:4px 5px 0 #bf6749}.seasonal-recommendations>header>div b{font-size:14px}.seasonal-recommendations>header>small{display:none}
   .seasonal-filter-dock{top:73px;left:0;right:0;width:auto;padding:6px}.seasonal-filter-dock button{padding:5px 4px}.continent-switch button{flex:0 0 56px}
-  .seasonal-fan{inset:158px 0 0;overflow:visible}.fan-stack{bottom:28px;height:200px;overflow:visible}.fan-card{width:118px;height:160px;bottom:6px}.fan-card:before{inset:5px}.fan-grade{left:7px;top:32px;min-width:40px;height:28px;padding:3px 6px}.fan-grade>em{font-size:16px}.fan-grade>small{font-size:7px}.fan-score{right:7px;top:7px;width:31px;height:34px}.fan-score b{font-size:18px}.fan-access{left:7px;top:8px;padding:4px;font-size:4px}.fan-copy{left:9px;right:8px;bottom:9px}.fan-copy>b{font-size:12px}.fan-copy>i{display:none}.fan-controls{left:0;right:auto;bottom:0}.fan-controls button{width:27px;height:22px}
+  .seasonal-fan{inset:158px 0 0;overflow:visible}.fan-stack{bottom:28px;height:200px;overflow:visible}.fan-card{width:118px;height:160px;bottom:6px}.fan-card:before{inset:5px}.fan-access{left:7px;top:8px;padding:4px;font-size:4px}.fan-copy{left:9px;right:8px;bottom:9px}.fan-copy>b{font-size:12px}.fan-copy>i{display:none}.fan-controls{left:0;right:auto;bottom:0}.fan-controls button{width:27px;height:22px}
 }
 @media(prefers-reduced-motion:reduce){.fan-card,.fan-card img,.map-unroll-curtain{transition:none!important;animation:none!important}.map-unroll-curtain{display:none}}

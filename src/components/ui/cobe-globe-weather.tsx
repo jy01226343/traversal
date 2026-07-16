@@ -33,6 +33,8 @@ interface GlobeWeatherProps {
   regions?: DestinationRegion[]
   className?: string
   speed?: number
+  quality?: "high" | "standard" | "low"
+  reducedMotion?: boolean
   onCountrySelect?: (country: PickedCountry) => void
   routeFlight?: GlobeRouteFlight | null
   onRouteFlightComplete?: () => void
@@ -139,6 +141,11 @@ function easeInOutExpo(value: number) {
     : (2 - Math.pow(2, -20 * value + 10)) / 2
 }
 
+/** Deeper-out easing for camera dive — fast start, gentle settle. */
+function easeOutQuint(value: number) {
+  return 1 - Math.pow(1 - value, 5)
+}
+
 function ringsFromFeature(feature: GeoFeature): number[][][] {
   if (feature.geometry.type === "Polygon") return feature.geometry.coordinates as number[][][]
   return (feature.geometry.coordinates as number[][][][]).flatMap(polygon => polygon)
@@ -221,6 +228,8 @@ export function GlobeWeather({
   regions = [],
   className = "",
   speed = 0.0014,
+  quality = "standard",
+  reducedMotion = false,
   onCountrySelect,
   routeFlight = null,
   onRouteFlightComplete,
@@ -298,11 +307,13 @@ export function GlobeWeather({
       const endZ = level === "world" ? 5.2 : level === "continent" ? 3.55 : level === "country" ? 2.42 : 2.08
       transitionRef.current = {
         start: performance.now(),
-        duration: level === "region" ? 1450 : level === "country" ? 1650 : 1850,
+        // Snappier: region 850ms, country 950ms, continent/world 1100ms
+        duration: level === "region" ? 850 : level === "country" ? 950 : 1100,
         startQuaternion: api.globe.quaternion.clone(),
         endQuaternion,
         startZ: api.camera.position.z,
-        pullZ: Math.max(api.camera.position.z + 0.65, 5.65),
+        // Smaller pull-back (0.35 vs 0.65) — less wasted motion
+        pullZ: Math.max(api.camera.position.z + 0.35, 5.4),
         endZ,
       }
       setTransitioning(true)
@@ -346,8 +357,8 @@ export function GlobeWeather({
     const shell = shellRef.current
     if (!canvas || !shell) return
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality !== "low", alpha: true, powerPreference: quality === "high" ? "high-performance" : "default" })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === "high" ? 2 : quality === "standard" ? 1.35 : 1))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.16
@@ -650,12 +661,14 @@ export function GlobeWeather({
         const flight = transitionRef.current
         if (flight) {
           const progress = Math.min((time - flight.start) / flight.duration, 1)
-          const rotateProgress = easeInOutExpo(Math.max(0, Math.min(1, (progress - 0.12) / 0.7)))
+          // Rotation starts immediately (no 0.12 delay), uses expo for weighty feel
+          const rotateProgress = easeInOutExpo(Math.max(0, Math.min(1, (progress - 0.05) / 0.85)))
           globe.quaternion.copy(flight.startQuaternion).slerp(flight.endQuaternion, rotateProgress)
-          if (progress < 0.2) {
-            camera.position.z = THREE.MathUtils.lerp(flight.startZ, flight.pullZ, progress / 0.2)
+          // Camera: brief pull-back (first 15%), then dive with easeOutQuint
+          if (progress < 0.15) {
+            camera.position.z = THREE.MathUtils.lerp(flight.startZ, flight.pullZ, progress / 0.15)
           } else {
-            camera.position.z = THREE.MathUtils.lerp(flight.pullZ, flight.endZ, easeInOutExpo((progress - 0.2) / 0.8))
+            camera.position.z = THREE.MathUtils.lerp(flight.pullZ, flight.endZ, easeOutQuint((progress - 0.15) / 0.85))
           }
           if (progress >= 1) {
             globe.quaternion.copy(flight.endQuaternion)
@@ -669,7 +682,7 @@ export function GlobeWeather({
           } else transitionFinished = false
         } else {
           // Spin on Earth's polar axis (local Y) so China-front / north-up orientation stays stable.
-          if (levelRef.current === "world" && !drag.current) {
+          if (!reducedMotion && quality !== "low" && levelRef.current === "world" && !drag.current) {
             autoTurn.setFromAxisAngle(axis, speed * delta)
             targetQuaternion.current.multiply(autoTurn)
           }
@@ -678,7 +691,7 @@ export function GlobeWeather({
       }
       // Cloud layer rotates ~1.2x faster than its previous rate, independent
       // from the globe surface so clouds visibly drift against terrain.
-      clouds.rotation.y += 0.000384 * delta
+      if (!reducedMotion && quality !== "low") clouds.rotation.y += 0.000384 * delta
 
       const { width, height } = shell.getBoundingClientRect()
       if (flightPlaneRef.current) {
@@ -749,7 +762,7 @@ export function GlobeWeather({
       ;[colorMap, highResMap, normalMap, oceanMask, lightsMap, cloudsMap].forEach(texture => texture.dispose())
       renderer.dispose()
     }
-  }, [speed])
+  }, [speed, quality, reducedMotion])
 
   const config = continentConfig[continent]
   const focus = level === "region" && region
@@ -758,10 +771,10 @@ export function GlobeWeather({
   const focusName = level === "region" && region
     ? region.name
     : level === "country" && country ? country.name : continent
-  const flightStageLabel = routeFlightStage === "departing" ? "PASSPORT ORIGIN LOCKED"
+  const flightStageLabel = routeFlightStage === "departing" ? "DEPARTING FROM HOME"
     : routeFlightStage === "enroute" ? "FOLLOWING GREAT-CIRCLE ROUTE"
-      : routeFlightStage === "arriving" ? "DESCENDING TO UNLOCKED REGION"
-        : "REGION UNLOCKED"
+    : routeFlightStage === "arriving" ? "DESCENDING TO DESTINATION"
+        : "DESTINATION READY"
   return (
     <div ref={shellRef} className={`cobe-globe terrain-globe level-${level} ${transitioning ? "is-travelling" : ""} ${className}`}>
       <div className="sun-source"><i /><span>SUNLIGHT<br />DIRECTIONAL</span></div>
@@ -795,13 +808,13 @@ export function GlobeWeather({
             type="button"
             key={beacon.id}
             ref={element => { beaconElsRef.current[index] = element }}
-            className={`dest-beacon visual-${beacon.visual} grade-${beacon.grade} status-${beacon.status.toLowerCase()}`}
+            className={`dest-beacon visual-${beacon.visual} status-${beacon.status.toLowerCase()}`}
             style={{ opacity: 0, pointerEvents: "none" }}
             onClick={event => {
               event.stopPropagation()
               onBeaconSelectRef.current?.(beacon)
             }}
-            aria-label={`${beacon.title}，${beacon.grade}级，${beacon.status}`}
+            aria-label={`${beacon.title}，${beacon.status}`}
           >
             <span className="beacon-fx" aria-hidden="true">
               <i className="beacon-core">{beacon.symbol}</i>
@@ -811,7 +824,7 @@ export function GlobeWeather({
               <i className="beacon-spark s1" /><i className="beacon-spark s2" /><i className="beacon-spark s3" />
             </span>
             <span className="beacon-label">
-              <small>{beacon.grade} · {beacon.status === "WISHLIST" ? "心愿" : beacon.status === "EXPLORED" || beacon.status === "DEEP_EXPLORED" ? "足迹" : beacon.status === "UNLOCKED" ? "可达" : beacon.status === "PREPARING" ? "准备" : "推荐"}</small>
+              <small>{beacon.status === "WISHLIST" ? "心愿中" : beacon.status === "EXPLORED" || beacon.status === "DEEP_EXPLORED" ? "已到访" : beacon.status === "UNLOCKED" ? "准备完成" : beacon.status === "PREPARING" ? "准备中" : "待探索"}</small>
               <b>{beacon.title.split(" · ")[0]}</b>
             </span>
           </button>

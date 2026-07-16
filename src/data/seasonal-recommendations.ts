@@ -1,6 +1,6 @@
 /**
  * 当季推荐数据：文案与窗口参考各国/地区官方旅游局及权威地理媒体的公开指南。
- * 评分用于产品排序，非 OTA 评分。图片优先官方旅游站，其次权威媒体图库。
+ * 每项保留来源和核验时间；展示顺序不使用静态评分。图片优先官方旅游站，其次权威媒体图库。
  */
 export type TravelSeasonId = "spring" | "summer" | "autumn" | "winter"
 
@@ -317,7 +317,7 @@ export function getSeasonalRecommendations(season: TravelSeasonId, continent: st
   return SEASONAL_RECOMMENDATIONS
     .filter(item => item.months.some(month => months.includes(month)))
     .filter(item => continent === "全球" || item.continent === continent)
-    .sort((a, b) => b.priority - a.priority || b.score - a.score)
+    .sort((a, b) => Date.parse(b.verifiedAt) - Date.parse(a.verifiedAt) || a.title.localeCompare(b.title, "zh-CN"))
 }
 
 export function getDestinationKey(item: Pick<SeasonalRecommendation, "countryCode" | "regionId">) {

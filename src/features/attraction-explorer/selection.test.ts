@@ -75,24 +75,23 @@ describe("selectAttractions", () => {
     expect(result).toHaveLength(2)
   })
 
-  it("popular 偏好：主选 4 个按 popularity_score 排序", () => {
+  it("浏览偏好只使用明确标签和更新时间，不使用静态分数", () => {
     const items = [
-      makeAttraction({ id: "a", popularity_score: 90, niche_score: 10 }),
-      makeAttraction({ id: "b", popularity_score: 80, niche_score: 10 }),
-      makeAttraction({ id: "c", popularity_score: 70, niche_score: 10 }),
-      makeAttraction({ id: "d", popularity_score: 60, niche_score: 10 }),
-      makeAttraction({ id: "e", popularity_score: 50, niche_score: 10 }),
+      makeAttraction({ id: "recent", popularity_score: 1, niche_score: 99, last_updated: "2026-07-15", lat_wgs84: 42.2, lng_wgs84: 141.2 }),
+      makeAttraction({ id: "landmark", popularity_score: 1, niche_score: 99, tags: ["地标"], last_updated: "2026-01-01", lat_wgs84: 42.6, lng_wgs84: 141.2 }),
+      makeAttraction({ id: "hidden", popularity_score: 100, niche_score: 1, tags: ["秘境"], lat_wgs84: 43.1, lng_wgs84: 141.6 }),
     ]
     const result = selectAttractions(items, { bbox: BOUNDS, zoom: 8, preference: "popular", limit: 10 })
-    // 5 个点散布在 3x3 网格，主选最多 4 + 次选 2 = 最多 6，但只有 5 个
-    expect(result.length).toBeLessThanOrEqual(6)
+    expect(result.map(item => item.id)).toEqual(["landmark", "recent", "hidden"])
     expect(result[0].selection_kind).toBe("must")
-    // rank 从 1 开始递增
     expect(result[0].selection_rank).toBe(1)
+
+    const niche = selectAttractions(items, { bbox: BOUNDS, zoom: 8, preference: "niche", limit: 10 })
+    expect(niche.map(item => item.id)).toEqual(["hidden", "recent", "landmark"])
   })
 
-  it("zoom >= 12 时加入彩蛋；zoom < 12 无彩蛋", () => {
-    // 12 个点分散到 3x3 网格的不同格，确保主选/次选/彩蛋都有候选
+  it("点位类型不随缩放级别改变", () => {
+    // 12 个点分散到 3x3 网格的不同格，缩放只影响视图，不能改变地点语义。
     const items = Array.from({ length: 12 }, (_, i) => {
       const row = Math.floor(i / 4)
       const col = i % 4 >= 3 ? 2 : i % 4
@@ -104,12 +103,9 @@ describe("selectAttractions", () => {
         lng_wgs84: 141.2 + col * 0.3,
       })
     })
-    const noEgg = selectAttractions(items, { bbox: BOUNDS, zoom: 10, limit: 20 })
-    const withEgg = selectAttractions(items, { bbox: BOUNDS, zoom: 15, limit: 20 })
-    const eggKinds = withEgg.filter(r => r.selection_kind === "easter-egg")
-    expect(noEgg.some(r => r.selection_kind === "easter-egg")).toBe(false)
-    expect(eggKinds.length).toBeGreaterThan(0)
-    expect(eggKinds.length).toBeLessThanOrEqual(4)
+    const zoomedOut = selectAttractions(items, { bbox: BOUNDS, zoom: 10, limit: 20 })
+    const zoomedIn = selectAttractions(items, { bbox: BOUNDS, zoom: 15, limit: 20 })
+    expect(zoomedIn.map(item => [item.id, item.selection_kind])).toEqual(zoomedOut.map(item => [item.id, item.selection_kind]))
   })
 
   it("limit 截断结果数量", () => {

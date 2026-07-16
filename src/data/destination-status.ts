@@ -14,7 +14,6 @@
  */
 import type { SeasonalRecommendation } from "./seasonal-recommendations"
 import { getDestinationKey } from "./seasonal-recommendations"
-import { resolveTravelAccess } from "./travel-access"
 
 export type DestinationStatusId =
   | "UNEXPLORED"
@@ -36,7 +35,7 @@ export const DESTINATION_STATUS: Record<DestinationStatusId, DestinationStatusMe
   UNEXPLORED: { id: "UNEXPLORED", label: "未探索", short: "未探索", tone: "locked" },
   WISHLIST: { id: "WISHLIST", label: "心愿收藏", short: "心愿", tone: "wish" },
   PREPARING: { id: "PREPARING", label: "准备中", short: "准备", tone: "prep" },
-  UNLOCKED: { id: "UNLOCKED", label: "已解锁", short: "已解锁", tone: "recommend" },
+  UNLOCKED: { id: "UNLOCKED", label: "准备完成", short: "准备好", tone: "recommend" },
   EXPLORED: { id: "EXPLORED", label: "已探索", short: "已去", tone: "visited" },
   DEEP_EXPLORED: { id: "DEEP_EXPLORED", label: "深度探索", short: "精通", tone: "mastered" },
 }
@@ -105,7 +104,7 @@ export interface ResolveStatusInput {
   masteredIds: string[]
   /** 是否出现在当前当季推荐列表中 */
   isInSeasonalList?: boolean
-  /** 护照国籍 ISO 代码，用于本国 / 免签直达 */
+  /** 保留字段兼容调用方；目的地状态不再由护照访问权决定。 */
   passportCode?: string | null
 }
 
@@ -113,33 +112,20 @@ export interface ResolveStatusInput {
  * 解析目的地足迹态。优先级（高 -> 低）：
  *   DEEP_EXPLORED > EXPLORED > UNLOCKED > PREPARING > WISHLIST > UNEXPLORED
  *
- * UNLOCKED 的判定（§9.2）：用户确认准备完成（unlockedKeys 含此目的地），
- * 或本国/免签可直接前往（视作"已解锁可达"）。与 EXPLORED 区别在于无真实 Journey 足迹。
+ * UNLOCKED 的判定（§9.2）：用户确认准备完成（unlockedKeys 含此目的地）。
+ * 它不表示地图访问权，也不会因为本国或免签条件自动成立。
  */
 export function resolveDestinationStatus(input: ResolveStatusInput): DestinationStatusMeta {
   const key = getDestinationKey(input.destination)
   const id = input.destination.id
-  const access = resolveTravelAccess({
-    destinationCountryCode: input.destination.countryCode,
-    destinationKey: key,
-    passportCode: input.passportCode,
-    unlockedKeys: input.unlockedKeys,
-  })
 
   // 深度探索：用户显式标记为 mastered（多次完整旅行）
   if (input.masteredIds.includes(id) || input.masteredIds.includes(key)) {
     return DESTINATION_STATUS.DEEP_EXPLORED
   }
 
-  // 已探索 / 已解锁：免签或本国可达
-  if (access.free) {
-    if (access.tier === "domestic") {
-      return { ...DESTINATION_STATUS.UNLOCKED, label: "本国开放", short: "本国" }
-    }
-    if (access.tier === "visa_free") {
-      return { ...DESTINATION_STATUS.UNLOCKED, label: "免签可达", short: "免签" }
-    }
-    // 用户主动解锁的也归入 UNLOCKED（准备完成，尚未出行）
+  // 用户主动确认准备完成；这与公开浏览和已到访均无关。
+  if (input.unlockedKeys.includes(key) || input.unlockedKeys.includes(id)) {
     return DESTINATION_STATUS.UNLOCKED
   }
 

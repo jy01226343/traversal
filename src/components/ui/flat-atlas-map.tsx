@@ -3,6 +3,9 @@ import L from "leaflet"
 import { RESOURCE_ICONS, type DestinationCountry, type DestinationRegion } from "@/data/destinations"
 import { getSectorPalette, PROVINCE_TO_REGION, resolveProvinceSector } from "@/data/province-sectors"
 import type { AttractionMapView, RankedAttraction } from "@/features/attraction-explorer"
+import { categoryIcon, renderIconSvg } from "@/features/attraction-explorer/icons"
+import { getAttractionMarkerMode } from "@/features/attraction-explorer/focus-state"
+import { resolveMarkerPresentations } from "@/features/attraction-explorer/marker-layout"
 
 interface PickedCountry {
   code: string
@@ -19,6 +22,9 @@ interface FlatAtlasMapProps {
   regions: DestinationRegion[]
   attractions: RankedAttraction[]
   selectedAttraction: RankedAttraction | null
+  hoveredAttractionId?: string | null
+  comparedAttractionIds?: string[]
+  journeyStops?: Array<{ id: string; label: string; latitude: number; longitude: number; order: number }>
   /** Set of `countryCode:regionId` currently on wishlist */
   wishedRegionKeys?: string[]
   onCountrySelect: (country: PickedCountry) => void
@@ -26,6 +32,8 @@ interface FlatAtlasMapProps {
   /** Unlocked / free regions open map; locked pins toggle wishlist */
   onRegionWish?: (region: DestinationRegion) => void
   onAttractionSelect: (attraction: RankedAttraction) => void
+  onAttractionHover?: (id: string | null) => void
+  onMapBlankClick?: () => void
   onMapViewChange: (view: AttractionMapView) => void
   /** Fired when user zooms out from region to country level (zoom drops below threshold) */
   onExitToCountry?: () => void
@@ -33,6 +41,10 @@ interface FlatAtlasMapProps {
   onExitToRegionList?: () => void
   /** Fired when user zooms out from country to continent level (zoom drops below threshold) */
   onExitToContinent?: () => void
+  /** Commands from the mobile overlay; map stays mounted and owns its Leaflet instance. */
+  mapCommand?: { id: number; type: "locate" | "zoom_in" | "zoom_out" } | null
+  /** Space reserved beneath a selected marker for a mobile bottom sheet. */
+  cameraBottomPadding?: number
 }
 
 const continentConfig: Record<string, { file: string; focus: [number, number]; zoom: number }> = {
@@ -62,15 +74,14 @@ function resourceMarker(
 ) {
   const primary = region.resources[0]
   const icon = RESOURCE_ICONS[primary?.type] || "✦"
-  const locked = !region.visited
-  const hint = locked
-    ? (wished ? "心愿中 · 再点可移出" : "未解锁 · 点击加入心愿单")
-    : "已点亮 · 进入地区"
+  const unvisited = !region.visited
+  const hint = unvisited
+    ? (wished ? "心愿中 · 点击查看地区" : "待探索 · 点击查看地区")
+    : "已到访 · 进入地区"
   const html = `<div class="map-resource-pin ${region.visited ? "is-visited" : "is-unvisited"} ${selected ? "is-selected" : ""} ${wished ? "is-wished" : ""}" title="${hint}">
     <span>${icon}</span>
     <b>${region.name}</b>
-    <small>${locked ? (wished ? "♥ 心愿" : "♡ 加入心愿") : `${primary?.type || "旅行"} ${primary?.score || region.heat}`}</small>
-    ${locked ? `<i class="pin-wish ${wished ? "on" : ""}">${wished ? "♥" : "♡"}</i>` : ""}
+    <small>${unvisited ? (wished ? "♥ 心愿中" : "待探索 · 仍可查看") : `${primary?.type || "旅行"}`}</small>
   </div>`
   const marker = L.marker(region.focus, {
     icon: L.divIcon({ html, className: "atlas-div-icon", iconSize: [124, 58], iconAnchor: [62, 52] }),
@@ -308,8 +319,13 @@ function paintFocusMask(
   }).addTo(fogLayer)
 }
 
-const ATTRACTION_ICONS: Record<string, string> = { 自然风光: "◉", 人文历史: "🏯", 户外极限: "🥾", 超级工程: "⌁", 网红奇观: "✦", 休闲露营: "⛺" }
-const KIND_LABELS = { must: "必玩", alternative: "高替", "easter-egg": "彩蛋" }
+const KIND_LABELS = { must: "值得专程", alternative: "适合顺路发现", "easter-egg": "小众发现" }
+/** 为景点生成 Lucide SVG 图标（根据 category_l2 精准匹配）。当前选中景点用金白色调。 */
+function attractionPinIcon(item: RankedAttraction, selected: boolean): string {
+  const Icon = categoryIcon(item)
+  const color = selected ? "#fdf6e3" : "#e8e0c8"
+  return `<span style="display:grid;place-items:center;width:100%;height:100%;color:${color}">${renderIconSvg(Icon, 17, color)}</span>`
+}
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, character => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[character] || character)
 
 export function FlatAtlasMap({
@@ -320,15 +336,22 @@ export function FlatAtlasMap({
   regions,
   attractions,
   selectedAttraction,
+  hoveredAttractionId = null,
+  comparedAttractionIds = [],
+  journeyStops = [],
   wishedRegionKeys = [],
   onCountrySelect,
   onRegionSelect,
   onRegionWish,
   onAttractionSelect,
+  onAttractionHover,
+  onMapBlankClick,
   onMapViewChange,
   onExitToCountry,
   onExitToRegionList,
   onExitToContinent,
+  mapCommand,
+  cameraBottomPadding = 0,
 }: FlatAtlasMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -337,6 +360,7 @@ export function FlatAtlasMap({
   const sectorOverlayLayerRef = useRef<L.LayerGroup | null>(null)
   const resourceLayerRef = useRef<L.LayerGroup | null>(null)
   const spotLayerRef = useRef<L.LayerGroup | null>(null)
+  const journeyRouteLayerRef = useRef<L.LayerGroup | null>(null)
   const boundaryRendererRef = useRef<L.Canvas | null>(null)
   const fogRendererRef = useRef<L.Canvas | null>(null)
   const sectorOverlayRendererRef = useRef<L.Canvas | null>(null)
@@ -353,6 +377,7 @@ export function FlatAtlasMap({
   const onRegionWishRef = useRef(onRegionWish)
   const onAttractionSelectRef = useRef(onAttractionSelect)
   const onMapViewChangeRef = useRef(onMapViewChange)
+  const onMapBlankClickRef = useRef(onMapBlankClick)
   const onExitToCountryRef = useRef(onExitToCountry)
   const onExitToRegionListRef = useRef(onExitToRegionList)
   const onExitToContinentRef = useRef(onExitToContinent)
@@ -368,6 +393,7 @@ export function FlatAtlasMap({
   onRegionWishRef.current = onRegionWish
   onAttractionSelectRef.current = onAttractionSelect
   onMapViewChangeRef.current = onMapViewChange
+  onMapBlankClickRef.current = onMapBlankClick
   onExitToCountryRef.current = onExitToCountry
   onExitToRegionListRef.current = onExitToRegionList
   onExitToContinentRef.current = onExitToContinent
@@ -411,6 +437,7 @@ export function FlatAtlasMap({
     sectorOverlayLayerRef.current = L.layerGroup().addTo(map)
     resourceLayerRef.current = L.layerGroup().addTo(map)
     spotLayerRef.current = L.layerGroup().addTo(map)
+    journeyRouteLayerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
     const redraw = () => requestAnimationFrame(() => map.invalidateSize({ animate: false, pan: false }))
 
@@ -503,6 +530,7 @@ export function FlatAtlasMap({
     window.addEventListener("orientationchange", redraw)
     map.on("zoomstart", onUserZoomStart)
     map.on("touchstart", onUserTouch)
+    map.on("click", () => onMapBlankClickRef.current?.())
     map.on("zoomend", syncMapView)
     map.on("moveend", syncMapView)
     const settleTimers = [80, 320, 720].map(delay => window.setTimeout(redraw, delay))
@@ -511,7 +539,8 @@ export function FlatAtlasMap({
       resizeObserver.disconnect()
       window.removeEventListener("orientationchange", redraw)
       map.off("zoomstart", onUserZoomStart)
-      map.off("touchstart", onUserTouch)
+    map.off("touchstart", onUserTouch)
+      map.off("click")
       map.off("zoomend", syncMapView)
       map.off("moveend", syncMapView)
       settleTimers.forEach(timer => window.clearTimeout(timer))
@@ -523,10 +552,30 @@ export function FlatAtlasMap({
       resourceRendererRef.current = null
       imageryLayerRef.current = null
       spotLayerRef.current = null
+      journeyRouteLayerRef.current = null
       fogLayerRef.current = null
       sectorOverlayLayerRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapCommand) return
+    if (mapCommand.type === "zoom_in") {
+      map.zoomIn(1, { animate: true })
+      return
+    }
+    if (mapCommand.type === "zoom_out") {
+      map.zoomOut(1, { animate: true })
+      return
+    }
+    const target = level === "region" && region
+      ? region.focus
+      : level === "country" && country
+        ? country.focus
+        : continentConfig[continent].focus
+    map.flyTo(target, Math.max(map.getZoom(), level === "region" ? 7.4 : level === "country" ? 5.4 : continentConfig[continent].zoom), { animate: true, duration: 0.45 })
+  }, [mapCommand, continent, country, level, region])
 
   useEffect(() => {
     const map = mapRef.current
@@ -572,8 +621,10 @@ export function FlatAtlasMap({
     const config = continentConfig[continent]
     const target = level === "region" && region ? region.focus : level === "country" && country ? country.focus : config.focus
     const zoom = level === "region" ? 7.4 : level === "country" ? 5.4 : config.zoom
-    const flightDuration = level === "continent" ? 1.75 : 1.45
+    // Snappier flights: continent needs a bit more distance, country/region are quick dives
+    const flightDuration = level === "continent" ? 1.05 : level === "country" ? 0.85 : 0.75
 
+    // Track flight completion for overlay sync
     const flightComplete = new Promise<void>(resolve => {
       let finished = false
       onMoveEnd = () => {
@@ -584,9 +635,10 @@ export function FlatAtlasMap({
         resolve()
       }
       map.once("moveend", onMoveEnd)
-      flightTimer = window.setTimeout(onMoveEnd, flightDuration * 1000 + 650)
+      flightTimer = window.setTimeout(onMoveEnd, flightDuration * 1000 + 300)
     })
 
+    // Tiles-loading gate — very generous fallback so it never blocks reveal indefinitely
     const terrainComplete = new Promise<void>(resolve => {
       let finished = false
       onTilesReady = () => {
@@ -597,13 +649,12 @@ export function FlatAtlasMap({
         resolve()
       }
       imagery.once("load", onTilesReady)
-      tileTimer = window.setTimeout(onTilesReady, flightDuration * 1000 + 1100)
+      tileTimer = window.setTimeout(onTilesReady, flightDuration * 1000 + 800)
     })
 
     flyingRef.current = true
     userZoomedRef.current = false
-    map.flyTo(target, zoom, { animate: true, duration: flightDuration, easeLinearity: 0.16 })
-    // Clear flying flag when the flight completes
+    map.flyTo(target, zoom, { animate: true, duration: flightDuration, easeLinearity: 0.28 })
     flightComplete.then(() => { flyingRef.current = false })
 
     const continentUrl = `/geo/continents/${config.file}.geojson`
@@ -715,8 +766,7 @@ export function FlatAtlasMap({
           regions.forEach(item => {
             const isWished = wishedRegionKeysRef.current.includes(`${country.code}:${item.id}`)
             const handlePin = () => {
-              if (item.visited) onRegionSelectRef.current(item)
-              else onRegionWishRef.current?.(item)
+              onRegionSelectRef.current(item)
             }
             resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(rl)
           })
@@ -739,8 +789,7 @@ export function FlatAtlasMap({
         regions.forEach(item => {
           const isWished = wishedRegionKeysRef.current.includes(`${country.code}:${item.id}`)
           const handlePin = () => {
-            if (item.visited) onRegionSelectRef.current(item)
-            else onRegionWishRef.current?.(item)
+            onRegionSelectRef.current(item)
           }
           resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(rl)
         })
@@ -748,25 +797,31 @@ export function FlatAtlasMap({
       setDetailReady(level === "continent" || Boolean(adminData))
     }
 
-    Promise.all([flightComplete, terrainComplete, geometryComplete]).then(([, , geoData]) => {
-      if (cancelled || requestId !== requestIdRef.current) return
-      // Draw borders NOW (after tiles are ready) so they reveal together with tiles
-      drawBoundaries(geoData ?? null)
+    // Progressive reveal: draw + reveal boundaries as soon as geometry loads,
+    // without waiting for tiles. This cuts perceived latency by 300-600ms.
+    geometryComplete.then((geoData) => {
+      if (cancelled || requestId !== requestIdRef.current || !geoData) return
+      drawBoundaries(geoData)
       map.invalidateSize({ animate: false, pan: false })
       map.fire("viewreset")
+      // Reveal panes with stagger — boundaries first, then fog/sector, then resources
       requestAnimationFrame(() => {
         if (cancelled || requestId !== requestIdRef.current) return
         transitionPanes.forEach(pane => {
           pane.classList.remove("is-switching")
           pane.classList.add("is-ready")
         })
-        revealTimer = window.setTimeout(() => setTravelling(false), 190)
       })
     }).catch(error => {
       if (cancelled || controller.signal.aborted) return
       console.warn(error)
       transitionPanes.forEach(pane => pane.classList.remove("is-switching"))
-      setTravelling(false)
+    })
+
+    // Hide the flight overlay once both flight and tiles are settled
+    Promise.all([flightComplete, terrainComplete]).then(() => {
+      if (cancelled || requestId !== requestIdRef.current) return
+      revealTimer = window.setTimeout(() => setTravelling(false), 120)
     })
 
     return () => {
@@ -789,8 +844,7 @@ export function FlatAtlasMap({
     regions.forEach(item => {
       const isWished = wishedRegionKeys.includes(`${countryItem.code}:${item.id}`)
       const handlePin = () => {
-        if (item.visited) onRegionSelectRef.current(item)
-        else onRegionWishRef.current?.(item)
+        onRegionSelectRef.current(item)
       }
       resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(resources)
     })
@@ -802,21 +856,36 @@ export function FlatAtlasMap({
     if (!map || !spotLayer) return
     spotLayer.clearLayers()
     if (level !== "region") return
+    const presentations = resolveMarkerPresentations(attractions.map(attraction => {
+      const point = map.latLngToContainerPoint([attraction.lat_wgs84, attraction.lng_wgs84])
+      const priority = attraction.selection_kind === "must" ? 3 : attraction.selection_kind === "alternative" ? 2 : 1
+      return { id: attraction.id, x: point.x, y: point.y, priority, selected: attraction.id === selectedAttraction?.id }
+    }))
     attractions.forEach(attraction => {
-      const isSelected = attraction.id === selectedAttraction?.id
+      const markerMode = getAttractionMarkerMode(attraction.id, selectedAttraction?.id, hoveredAttractionId)
+      const presentation = presentations.get(attraction.id) || "compact"
+      const isSelected = presentation === "selected"
       const coordinate = `${attraction.lat_wgs84.toFixed(3)}° · ${attraction.lng_wgs84.toFixed(3)}°`
-      const icon = ATTRACTION_ICONS[attraction.category_l1] || "✦"
       const html = isSelected
-        ? `<div class="attraction-map-pin is-selected kind-${attraction.selection_kind}"><img src="${escapeHtml(attraction.image_url)}" alt=""/><div><span>📍</span><p><b>${escapeHtml(attraction.name)}</b><small>${coordinate} · ${KIND_LABELS[attraction.selection_kind]}</small></p></div></div>`
-        : `<div class="attraction-map-pin kind-${attraction.selection_kind}"><span>${icon}</span><b>${escapeHtml(attraction.name)}</b><small>${KIND_LABELS[attraction.selection_kind]} · ${attraction.category_l2}</small></div>`
+        ? `<div class="attraction-map-pin is-selected kind-${attraction.selection_kind}"><img src="${escapeHtml(attraction.image_url)}" alt=""/><div><span>${attractionPinIcon(attraction, true)}</span><p><b>${escapeHtml(attraction.name)}</b><small>${coordinate} · ${KIND_LABELS[attraction.selection_kind]}</small></p></div></div>`
+        : presentation === "compact"
+          ? `<div class="attraction-map-dot kind-${attraction.selection_kind}" aria-label="${escapeHtml(attraction.name)}"><span>${attractionPinIcon(attraction, false)}</span></div>`
+          : `<div class="attraction-map-pin kind-${attraction.selection_kind}"><span>${attractionPinIcon(attraction, false)}</span><b>${escapeHtml(attraction.name)}</b><small>${KIND_LABELS[attraction.selection_kind]} · ${attraction.category_l2}</small></div>`
       const marker = L.marker([attraction.lat_wgs84, attraction.lng_wgs84], {
         pane: "atlas-attraction-pane",
         keyboard: true,
         title: `${attraction.name} · ${coordinate}`,
-        icon: L.divIcon({ className: `atlas-div-icon ${isSelected ? "selected-attraction-icon" : ""}`, iconSize: isSelected ? [184, 132] : [112, 55], iconAnchor: isSelected ? [92, 128] : [16, 52], html }),
+        icon: L.divIcon({ className: `atlas-div-icon marker-${markerMode} marker-${presentation} ${comparedAttractionIds.includes(attraction.id) ? "marker-compared" : ""} ${isSelected ? "selected-attraction-icon" : ""}`, iconSize: isSelected ? [184, 132] : presentation === "compact" ? [30, 30] : [112, 55], iconAnchor: isSelected ? [92, 128] : presentation === "compact" ? [15, 15] : [16, 52], html }),
         zIndexOffset: isSelected ? 600 : 0,
       })
-      marker.on("click", () => onAttractionSelectRef.current(attraction))
+      marker.on("click", event => {
+        L.DomEvent.stopPropagation(event.originalEvent)
+        onAttractionSelectRef.current(attraction)
+      })
+      marker.on("mouseover", () => onAttractionHover?.(attraction.id))
+      marker.on("mouseout", () => onAttractionHover?.(null))
+      marker.on("focus", () => onAttractionHover?.(attraction.id))
+      marker.on("blur", () => onAttractionHover?.(null))
       marker.on("add", () => {
         const pin = marker.getElement()?.querySelector<HTMLElement>(".attraction-map-pin")
         if (!pin) return
@@ -827,7 +896,17 @@ export function FlatAtlasMap({
       })
       marker.addTo(spotLayer)
     })
-  }, [attractions, level, selectedAttraction?.id])
+  }, [attractions, level, selectedAttraction?.id, hoveredAttractionId, comparedAttractionIds, onAttractionHover])
+
+  useEffect(() => {
+    const routeLayer = journeyRouteLayerRef.current
+    if (!routeLayer) return
+    routeLayer.clearLayers()
+    if (level !== "region" || !journeyStops.length) return
+    const sorted = [...journeyStops].sort((a, b) => a.order - b.order)
+    if (sorted.length > 1) L.polyline(sorted.map(stop => [stop.latitude, stop.longitude] as L.LatLngExpression), { color: "#e8833b", weight: 3, opacity: 0.9, dashArray: "7 6" }).addTo(routeLayer)
+    sorted.forEach(stop => L.marker([stop.latitude, stop.longitude], { pane: "atlas-attraction-pane", keyboard: true, title: `${stop.order}. ${stop.label}`, icon: L.divIcon({ className: "atlas-journey-stop-icon", iconSize: [28, 28], iconAnchor: [14, 14], html: `<span class="journey-route-stop">${stop.order}</span>` }), zIndexOffset: 500 }).addTo(routeLayer))
+  }, [level, journeyStops])
 
   useEffect(() => {
     const map = mapRef.current
@@ -837,23 +916,23 @@ export function FlatAtlasMap({
       // Bug 2 fix: don't auto-fly if user is actively zooming/panning
       if (userZoomedRef.current) return
       flyingRef.current = true
-      map.flyTo([selectedAttraction.lat_wgs84, selectedAttraction.lng_wgs84], 8.75, { animate: true, duration: 1.15, easeLinearity: 0.18 })
-        .once("moveend", () => { flyingRef.current = false })
+      map.flyTo([selectedAttraction.lat_wgs84, selectedAttraction.lng_wgs84], 8.75, { animate: true, duration: 0.7, easeLinearity: 0.3 })
+        .once("moveend", () => {
+          if (cameraBottomPadding) map.panBy([0, Math.round(cameraBottomPadding / 2)], { animate: true, duration: 0.22 })
+          flyingRef.current = false
+        })
     } else if (previousId && region) {
       if (userZoomedRef.current) return
       flyingRef.current = true
-      map.flyTo(region.focus, 7.4, { animate: true, duration: 1.05, easeLinearity: 0.2 })
+      map.flyTo(region.focus, 7.4, { animate: true, duration: 0.6, easeLinearity: 0.32 })
         .once("moveend", () => { flyingRef.current = false })
     }
     previousSelectedAttractionRef.current = selectedAttraction?.id || null
-  }, [level, region?.id, selectedAttraction?.id])
+  }, [level, region?.id, selectedAttraction?.id, cameraBottomPadding])
 
   return (
     <div className={`flat-atlas-map level-${level} ${travelling ? "is-flying" : ""} ${cityDetailMode ? "city-detail-mode" : ""}`}>
       <div ref={containerRef} className="leaflet-canvas" />
-      <div className="map-unroll-curtain left" aria-hidden="true"/><div className="map-unroll-curtain right" aria-hidden="true"/>
-      <div className="map-paper-edge left"/><div className="map-paper-edge right"/>
-      <div className="map-scanline" />
       <div className="flat-map-hud"><span><i className={detailReady || level === "continent" ? "ready" : ""}/>{level === "continent" ? "10M COUNTRY BORDERS" : "FOG OF WAR · BORDER MASK"}</span><b>SATELLITE DETAIL · Z{level === "region" ? "7.4+" : level === "country" ? "5.4" : continentConfig[continent].zoom}</b></div>
       <div className="map-scale-bar" aria-label="地图比例尺"><div className="scale-line" style={{ width: `${scaleBar.widthPx}px` }} /><span>{scaleBar.text}</span></div>
       {level === "country" && country && PROVINCE_TO_REGION[country.code] && (
@@ -879,8 +958,8 @@ export function FlatAtlasMap({
           </ul>
         </div>
       )}
-      {selectedAttraction && <div className="city-focus-status"><span>📍 POSITION LOCKED</span><b>{selectedAttraction.name}</b><small>LAT {selectedAttraction.lat_wgs84.toFixed(4)}° · LNG {selectedAttraction.lng_wgs84.toFixed(4)}°</small></div>}
-      {travelling && <div className="flat-map-flight"><i/><span>ATLAS SYNC</span><b>{region?.name || country?.name || continent}</b><small>同步新地形、卫星瓦片与边界…</small></div>}
+      {selectedAttraction && <div className="city-focus-status"><span>已定位</span><b>{selectedAttraction.name}</b><small>LAT {selectedAttraction.lat_wgs84.toFixed(4)}° · LNG {selectedAttraction.lng_wgs84.toFixed(4)}°</small></div>}
+      <div className={`flat-map-flight ${travelling ? "is-active" : ""}`}><i/><span>ATLAS SYNC</span><b>{region?.name || country?.name || continent}</b><small>同步新地形、卫星瓦片与边界…</small></div>
     </div>
   )
 }

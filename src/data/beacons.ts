@@ -1,6 +1,6 @@
 import { findCountry, getRegionsForCountry } from "./destinations"
 import type { DestinationStatusId } from "./destination-status"
-import type { RecommendationGrade, SeasonalRecommendation } from "./seasonal-recommendations"
+import type { SeasonalRecommendation } from "./seasonal-recommendations"
 import { SEASONAL_RECOMMENDATIONS, getDestinationKey } from "./seasonal-recommendations"
 
 export type GlobeLayerId = "recommend" | "footprint" | "dream" | "status"
@@ -13,7 +13,6 @@ export interface DestinationBeacon {
   title: string
   location: string
   focus: [number, number]
-  grade: RecommendationGrade
   visual: BeaconVisualType
   status: DestinationStatusId
   layers: GlobeLayerId[]
@@ -21,7 +20,7 @@ export interface DestinationBeacon {
 }
 
 export const GLOBE_LAYERS: Array<{ id: GlobeLayerId; label: string; hint: string }> = [
-  { id: "recommend", label: "推荐", hint: "当季/热门目的地" },
+  { id: "recommend", label: "本季精选", hint: "当季适合的目的地" },
   { id: "footprint", label: "足迹", hint: "已点亮地区" },
   { id: "dream", label: "心愿", hint: "收藏未完成" },
   { id: "status", label: "状态", hint: "全量状态着色" },
@@ -78,7 +77,6 @@ export function buildDestinationBeacons(input: {
       title: item.title,
       location: item.location,
       focus: getDestinationFocus(item),
-      grade: item.grade,
       visual: TYPE_MAP[item.destinationType] || "route",
       status,
       layers,

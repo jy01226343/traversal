@@ -102,7 +102,7 @@ export function buildAttractionsFromRegion(countryCode: string, region: Destinat
     })
   }
 
-  return items.sort((a, b) => b.popularity_score - a.popularity_score)
+  return items.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))
 }
 
 export function getCatalogAttractions(countryCode?: string, regionId?: string): Attraction[] {

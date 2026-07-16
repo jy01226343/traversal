@@ -8,6 +8,8 @@
  * 等价于 Pages Functions 的 functions/api/ 目录，但用显式 Worker 入口。
  */
 import { handleHealth } from "./api/health"
+import { handleDestinationLive } from "./api/destination-live"
+import { handleCreateJourney, handleHomeContext, handleHomePreference, handleJourneyStops, handleUpdateJourney } from "./api/home"
 import { handleScrapeProxy } from "./api/scrape-proxy"
 
 export interface Env {
@@ -28,6 +30,26 @@ export default {
       try {
         if (path === "/api/v1/health") {
           return await handleHealth(request, env)
+        }
+        if (path === "/api/v1/home/context" && request.method === "GET") {
+          return await handleHomeContext(request, env)
+        }
+        if (path === "/api/v1/home/preference" && request.method === "PUT") {
+          return await handleHomePreference(request, env)
+        }
+        if (path === "/api/v1/destinations/live" && request.method === "GET") {
+          return await handleDestinationLive(request, env)
+        }
+        if (path === "/api/v1/journeys" && request.method === "POST") {
+          return await handleCreateJourney(request, env)
+        }
+        const journeyMatch = path.match(/^\/api\/v1\/journeys\/([^/]+)$/)
+        if (journeyMatch && request.method === "PATCH") {
+          return await handleUpdateJourney(request, env, decodeURIComponent(journeyMatch[1]))
+        }
+        const journeyStopsMatch = path.match(/^\/api\/v1\/journeys\/([^/]+)\/stops$/)
+        if (journeyStopsMatch && (request.method === "GET" || request.method === "POST")) {
+          return await handleJourneyStops(request, env, decodeURIComponent(journeyStopsMatch[1]))
         }
         if (path === "/api/scrape-proxy") {
           return await handleScrapeProxy(request, url)
