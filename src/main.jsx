@@ -163,6 +163,13 @@ function App() {
       setMapLevel('world');
     }
   };
+  // Bug 1 fix: when user zooms out from region to below country threshold,
+  // exit back to country level (restore sectors + region hotlist)
+  const exitToCountry = () => {
+    setSelectedAttractionId(null);
+    setActiveRegion(null);
+    setMapLevel('country');
+  };
   React.useEffect(() => () => window.clearTimeout(handoffTimer.current), []);
   const selectedPassport = PASSPORT_OPTIONS.find(item => item.code === profileDraft) || PASSPORT_OPTIONS[0];
   const openProfileSettings = () => {
@@ -572,7 +579,7 @@ function App() {
       <div className="world-title"><p>FAMILY ATLAS / WORLD EXPLORATION ENGINE</p><h1>世界仍然很大，<br/><i>而我们的故事刚刚开始。</i></h1></div>
       {mapLevel !== 'world' && <div className="map-breadcrumb"><button onClick={() => { setSelectedAttractionId(null); setActiveCountry(null); setActiveRegion(null); setMapLevel('world'); }}>世界</button><i>/</i><button className={mapLevel === 'continent' ? 'current' : ''} onClick={() => { setSelectedAttractionId(null); setActiveCountry(null); setActiveRegion(null); setMapLevel('continent'); }}>{continent}</button>{activeCountry && <><i>/</i><button className={mapLevel === 'country' ? 'current' : ''} onClick={() => { setSelectedAttractionId(null); setActiveRegion(null); setMapLevel('country'); }}>{activeCountry.name}</button></>}{selectedAttraction ? <><i>/</i><b>{selectedAttraction.name}</b></> : activeRegion && <><i>/</i><b>{activeRegion.name}</b></>}</div>}
       <div className={`globe-stage ${mapLevel !== 'world' ? 'flat-stage' : ''}`} aria-label={mapLevel === 'world' ? 'Interactive 3D world globe' : 'Interactive satellite map'}>
-        {mapLevel === 'world' ? <><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="globe-shadow"/><GlobeWeather continent={continent} level="world" routeFlight={routeFlight} onRouteFlightComplete={finishRouteFlight} beacons={globeBeacons} onBeaconSelect={handleBeaconSelect}/><div className="globe-label north">N<br/><span>◦</span></div><div className="globe-label south">S<br/><span>◦</span></div></> : <FlatAtlasMap continent={continent} level={mapLevel} country={activeCountry} region={activeRegion} regions={rankedRegions} attractions={rankedAttractions} selectedAttraction={selectedAttraction} wishedRegionKeys={wishedRegionKeys} onCountrySelect={selectCountry} onRegionSelect={selectRegion} onRegionWish={handleMapRegionWish} onAttractionSelect={item => setSelectedAttractionId(item.id)} onMapViewChange={view => mapLevel === 'region' && setAttractionMapView(view)}/>} 
+        {mapLevel === 'world' ? <><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="globe-shadow"/><GlobeWeather continent={continent} level="world" routeFlight={routeFlight} onRouteFlightComplete={finishRouteFlight} beacons={globeBeacons} onBeaconSelect={handleBeaconSelect}/><div className="globe-label north">N<br/><span>◦</span></div><div className="globe-label south">S<br/><span>◦</span></div></> : <FlatAtlasMap continent={continent} level={mapLevel} country={activeCountry} region={activeRegion} regions={rankedRegions} attractions={rankedAttractions} selectedAttraction={selectedAttraction} wishedRegionKeys={wishedRegionKeys} onCountrySelect={selectCountry} onRegionSelect={selectRegion} onRegionWish={handleMapRegionWish} onAttractionSelect={item => setSelectedAttractionId(item.id)} onMapViewChange={view => mapLevel === 'region' && setAttractionMapView(view)} onExitToCountry={exitToCountry}/>} 
         {worldHandoff && <div className="world-map-handoff"><i/><span>ORBITAL HANDOFF</span><b>{worldHandoff}</b><small>3D 地球 → 区域卷轴地图</small></div>}
       </div>
       {mapLevel !== 'world' && <aside className="map-level-panel"><span>YOU ARE EXPLORING</span><div className="level-path"><small>{selectedAttraction ? `${selectedAttraction.category_l1} · ${selectedAttraction.category_l2}` : continent}</small><b>{selectedAttraction?.name || activeRegion?.name || activeCountry?.name || '国家地图'}</b><em>{selectedAttraction ? '已锁定真实 WGS-84 坐标，周边锚点仍可继续点击' : mapLevel === 'region' ? '景点锚点与精选列表双向联动' : mapLevel === 'country' ? '省州边界与地区热榜' : '国界与国家旅游热榜'}</em></div>{activeRegion && !selectedAttraction && <div className="level-resources">{activeRegion.resources.map(item => <i key={item.type}>{item.type}<b>{item.score}</b></i>)}</div>}</aside>}

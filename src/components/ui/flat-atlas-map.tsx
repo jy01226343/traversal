@@ -27,6 +27,8 @@ interface FlatAtlasMapProps {
   onRegionWish?: (region: DestinationRegion) => void
   onAttractionSelect: (attraction: RankedAttraction) => void
   onMapViewChange: (view: AttractionMapView) => void
+  /** Fired when user zooms out from region to country level (zoom drops below threshold) */
+  onExitToCountry?: () => void
 }
 
 const continentConfig: Record<string, { file: string; focus: [number, number]; zoom: number }> = {
@@ -225,6 +227,46 @@ function paintFogOfWar(
   }).addTo(fogLayer)
 }
 
+/**
+ * Region-level focus mask: darken all admin1 provinces that do NOT belong
+ * to the active region's tourism sector, leaving the active region's
+ * provinces at full satellite clarity. This replaces the colorful sector
+ * overlay at region level so the user focuses on one region at a time.
+ */
+function paintFocusMask(
+  features: GeoJSON.Feature[],
+  countryCode: string,
+  activeRegionId: string,
+  fogLayer: L.LayerGroup,
+  darkRenderer: L.Canvas,
+) {
+  if (!features.length) return
+  const fogFeatures = features.filter(feature => {
+    const sectorId = resolveProvinceSector(countryCode, feature)
+    return sectorId !== activeRegionId
+  })
+  if (!fogFeatures.length) return
+
+  const collection = { type: "FeatureCollection", features: fogFeatures } as GeoJSON.FeatureCollection
+
+  L.geoJSON(collection, {
+    interactive: false,
+    style: () => ({
+      renderer: darkRenderer,
+      stroke: true,
+      color: "#03090b",
+      weight: 1,
+      opacity: 0.4,
+      fill: true,
+      fillColor: "#010507",
+      fillOpacity: 0.68,
+      lineCap: "round",
+      lineJoin: "round",
+      className: "atlas-focus-mask",
+    }),
+  }).addTo(fogLayer)
+}
+
 const ATTRACTION_ICONS: Record<string, string> = { 自然风光: "◉", 人文历史: "🏯", 户外极限: "🥾", 超级工程: "⌁", 网红奇观: "✦", 休闲露营: "⛺" }
 const KIND_LABELS = { must: "必玩", alternative: "高替", "easter-egg": "彩蛋" }
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, character => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[character] || character)
@@ -243,6 +285,7 @@ export function FlatAtlasMap({
   onRegionWish,
   onAttractionSelect,
   onMapViewChange,
+  onExitToCountry,
 }: FlatAtlasMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -258,11 +301,16 @@ export function FlatAtlasMap({
   const imageryLayerRef = useRef<L.TileLayer | null>(null)
   const requestIdRef = useRef(0)
   const previousSelectedAttractionRef = useRef<string | null>(null)
+  /** Tracks programmatic flyTo to distinguish from user-initiated zoom/pan */
+  const flyingRef = useRef(false)
+  /** Tracks whether user has manually zoomed (to suppress auto-flyTo after) */
+  const userZoomedRef = useRef(false)
   const onCountrySelectRef = useRef(onCountrySelect)
   const onRegionSelectRef = useRef(onRegionSelect)
   const onRegionWishRef = useRef(onRegionWish)
   const onAttractionSelectRef = useRef(onAttractionSelect)
   const onMapViewChangeRef = useRef(onMapViewChange)
+  const onExitToCountryRef = useRef(onExitToCountry)
   const wishedRegionKeysRef = useRef(wishedRegionKeys)
   const [travelling, setTravelling] = useState(true)
   const [detailReady, setDetailReady] = useState(false)
@@ -272,6 +320,7 @@ export function FlatAtlasMap({
   onRegionWishRef.current = onRegionWish
   onAttractionSelectRef.current = onAttractionSelect
   onMapViewChangeRef.current = onMapViewChange
+  onExitToCountryRef.current = onExitToCountry
   wishedRegionKeysRef.current = wishedRegionKeys
 
   useEffect(() => {
@@ -315,13 +364,39 @@ export function FlatAtlasMap({
     mapRef.current = map
     const redraw = () => requestAnimationFrame(() => map.invalidateSize({ animate: false, pan: false }))
     const syncMapView = () => {
-      setCityDetailMode(map.getZoom() >= 9.2)
-      const bounds = map.getBounds()
-      onMapViewChangeRef.current({ zoom: map.getZoom(), bounds: { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest() } })
+      const zoom = map.getZoom()
+      setCityDetailMode(zoom >= 9.2)
+      // Bug 2 fix: skip state feedback during programmatic flyTo to prevent
+      // zoom-reset feedback loop on mobile pinch-zoom
+      if (!flyingRef.current) {
+        const bounds = map.getBounds()
+        onMapViewChangeRef.current({ zoom, bounds: { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest() } })
+      }
+      // Bug 1 part 2: when at region level and user zooms out below country
+      // threshold, exit back to country mode (restore sectors + region hotlist)
+      if (level === "region" && zoom < 5.5 && !flyingRef.current) {
+        onExitToCountryRef.current?.()
+      }
+    }
+    // Bug 2 fix: cancel any pending programmatic flyTo when user manually interacts
+    const onUserZoomStart = () => {
+      if (flyingRef.current) {
+        map.stop()
+        flyingRef.current = false
+      }
+      userZoomedRef.current = true
+    }
+    const onUserTouch = () => {
+      if (flyingRef.current) {
+        map.stop()
+        flyingRef.current = false
+      }
     }
     const resizeObserver = new ResizeObserver(redraw)
     resizeObserver.observe(containerRef.current)
     window.addEventListener("orientationchange", redraw)
+    map.on("zoomstart", onUserZoomStart)
+    map.on("touchstart", onUserTouch)
     map.on("zoomend", syncMapView)
     map.on("moveend", syncMapView)
     const settleTimers = [80, 320, 720].map(delay => window.setTimeout(redraw, delay))
@@ -329,6 +404,8 @@ export function FlatAtlasMap({
     return () => {
       resizeObserver.disconnect()
       window.removeEventListener("orientationchange", redraw)
+      map.off("zoomstart", onUserZoomStart)
+      map.off("touchstart", onUserTouch)
       map.off("zoomend", syncMapView)
       map.off("moveend", syncMapView)
       settleTimers.forEach(timer => window.clearTimeout(timer))
@@ -417,7 +494,11 @@ export function FlatAtlasMap({
       tileTimer = window.setTimeout(onTilesReady, flightDuration * 1000 + 1100)
     })
 
+    flyingRef.current = true
+    userZoomedRef.current = false
     map.flyTo(target, zoom, { animate: true, duration: flightDuration, easeLinearity: 0.16 })
+    // Clear flying flag when the flight completes
+    flightComplete.then(() => { flyingRef.current = false })
 
     const continentUrl = `/geo/continents/${config.file}.geojson`
     const loadGeoJson = async (url: string) => {
@@ -469,28 +550,35 @@ export function FlatAtlasMap({
           },
         }).addTo(boundaries)
 
-        // Tourism-sector color overlay: fill each province by its explicit sector so
-        // the country's tourism regions (华东/华南, Kyushu/Okinawa, …) read at a glance.
-        // Sectors without an explicit mapping fall back to nearest, so we only paint
-        // when at least one province resolved to a sector (keeps unmapped countries clean).
-        const painted = paintSectorOverlay(
+        // Bug 1 fix: at region level, skip the colorful tourism-sector overlay.
+        // Instead, darken all regions except the active one so the user focuses
+        // on the selected region. Colorful sectors only show at country level.
+        const hasSectorMap = level === "country" && paintSectorOverlay(
           adminData.features as GeoJSON.Feature[],
           country.code,
           sectorOverlayLayer,
           sectorOverlayRenderer,
           { activeRegionId: region?.id },
-        )
-        const hasSectorMap = painted > 0
+        ) > 0
 
-        // Dark mask slices matching admin boundary polygons.
-        // Use explicit tourism-sector ownership where available so a locked sector
-        // (e.g. 华东/西南) darkens as a whole instead of by mis-assigned nearest provinces.
-        paintFogOfWar(adminData.features as GeoJSON.Feature[], regions, fogLayer, fogRenderer, {
-          activeRegionId: region?.id,
-          ownerOf: hasSectorMap
-            ? (feature) => resolveProvinceSector(country.code, feature)
-            : undefined,
-        })
+        if (level === "region" && region) {
+          // Region-level focus mask: darken everything except the active region's provinces
+          paintFocusMask(
+            adminData.features as GeoJSON.Feature[],
+            country.code,
+            region.id,
+            fogLayer,
+            fogRenderer,
+          )
+        } else {
+          // Country-level: original fog of war for locked regions
+          paintFogOfWar(adminData.features as GeoJSON.Feature[], regions, fogLayer, fogRenderer, {
+            activeRegionId: region?.id,
+            ownerOf: hasSectorMap
+              ? (feature) => resolveProvinceSector(country.code, feature)
+              : undefined,
+          })
+        }
 
         if (level === "country") {
           regions.forEach(item => {
@@ -614,9 +702,16 @@ export function FlatAtlasMap({
     if (!map || level !== "region") return
     const previousId = previousSelectedAttractionRef.current
     if (selectedAttraction) {
+      // Bug 2 fix: don't auto-fly if user is actively zooming/panning
+      if (userZoomedRef.current) return
+      flyingRef.current = true
       map.flyTo([selectedAttraction.lat_wgs84, selectedAttraction.lng_wgs84], 8.75, { animate: true, duration: 1.15, easeLinearity: 0.18 })
+        .once("moveend", () => { flyingRef.current = false })
     } else if (previousId && region) {
+      if (userZoomedRef.current) return
+      flyingRef.current = true
       map.flyTo(region.focus, 7.4, { animate: true, duration: 1.05, easeLinearity: 0.2 })
+        .once("moveend", () => { flyingRef.current = false })
     }
     previousSelectedAttractionRef.current = selectedAttraction?.id || null
   }, [level, region?.id, selectedAttraction?.id])
