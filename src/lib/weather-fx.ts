@@ -1,3 +1,6 @@
+// TODO(M2): 接通到 globe 粒子系统。当前已实现完整 three.js 天气粒子（雨/雪/雾/热/雷），
+// 但未被任何组件导入。M2 将 cobe-globe-weather.tsx 的天气层从静态纹理升级为粒子时启用。
+// 配合 src/lib/weather-sync.ts 的 ActiveWeatherCell 数据驱动。
 import * as THREE from "three"
 import type { ActiveWeatherCell, WeatherKind } from "@/data/climate"
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import L from "leaflet"
 import { RESOURCE_ICONS, type DestinationCountry, type DestinationRegion } from "@/data/destinations"
+import { getSectorPalette, PROVINCE_TO_REGION, resolveProvinceSector } from "@/data/province-sectors"
 import type { AttractionMapView, RankedAttraction } from "@/features/attraction-explorer"
 
 interface PickedCountry {
@@ -103,15 +104,64 @@ function nearestRegion(lat: number, lng: number, regions: DestinationRegion[]) {
 }
 
 /**
+ * China tourism-sector overlay — fill each admin1 province by its explicit
+ * tourism sector (CHINA_PROVINCE_TO_REGION) using a per-sector color, so the
+ * boundaries of 华东 / 华南 / 华北 … are unambiguous at a glance.
+ * Each sector gets a soft translucent fill + a colored outline; the active
+ * (hovered/selected) sector is brightened.
+ */
+/**
+ * Tourism-sector overlay — fill each admin1 province by its explicit sector
+ * (province-sectors mapping) using a per-sector color, so the boundaries of
+ * each country's tourism regions (华东/华南, Kyushu/Okinawa, …) are unambiguous.
+ * The active (hovered/selected) sector is brightened.
+ */
+function paintSectorOverlay(
+  features: GeoJSON.Feature[],
+  countryCode: string,
+  overlayLayer: L.LayerGroup,
+  renderer: L.Canvas,
+  options: { activeRegionId?: string | null } = {},
+) {
+  if (!features.length) return 0
+  let painted = 0
+  features.forEach(feature => {
+    const sectorId = resolveProvinceSector(countryCode, feature)
+    if (!sectorId) return
+    const palette = getSectorPalette(countryCode, sectorId)
+    const active = options.activeRegionId === sectorId
+    L.geoJSON(feature as GeoJSON.GeoJsonObject, {
+      interactive: false,
+      style: () => ({
+        renderer,
+        stroke: true,
+        color: palette.stroke,
+        weight: active ? 1.8 : 0.7,
+        opacity: active ? 0.98 : 0.62,
+        fill: true,
+        fillColor: palette.fill,
+        fillOpacity: active ? 0.55 : 0.3,
+        lineJoin: "round",
+        className: `atlas-sector-fill sector-${sectorId}`,
+      }),
+    }).addTo(overlayLayer)
+    painted += 1
+  })
+  return painted
+}
+
+/**
  * Fog of war for locked regions — lightweight canvas mask slices only
  * (no SVG turbulence / mist wisps; those were freezing on complex admin geometry).
+ * Province→region ownership prefers an explicit owner map when provided
+ * (e.g. China's tourism sectors); otherwise it falls back to centroid nearest.
  */
 function paintFogOfWar(
   features: GeoJSON.Feature[],
   regions: DestinationRegion[],
   fogLayer: L.LayerGroup,
   darkRenderer: L.Canvas,
-  options: { activeRegionId?: string | null } = {},
+  options: { activeRegionId?: string | null; ownerOf?: (feature: GeoJSON.Feature) => string | null } = {},
 ) {
   if (!features.length || !regions.length) return
   const lockedIds = new Set(
@@ -125,6 +175,10 @@ function paintFogOfWar(
   if (!lockedIds.size) return
 
   const fogFeatures = features.filter(feature => {
+    if (options.ownerOf) {
+      const owner = options.ownerOf(feature)
+      if (owner) return lockedIds.has(owner)
+    }
     const center = featureCentroid(feature)
     if (!center) return false
     const owner = nearestRegion(center[0], center[1], regions)
@@ -194,10 +248,12 @@ export function FlatAtlasMap({
   const mapRef = useRef<L.Map | null>(null)
   const boundaryLayerRef = useRef<L.LayerGroup | null>(null)
   const fogLayerRef = useRef<L.LayerGroup | null>(null)
+  const sectorOverlayLayerRef = useRef<L.LayerGroup | null>(null)
   const resourceLayerRef = useRef<L.LayerGroup | null>(null)
   const spotLayerRef = useRef<L.LayerGroup | null>(null)
   const boundaryRendererRef = useRef<L.Canvas | null>(null)
   const fogRendererRef = useRef<L.Canvas | null>(null)
+  const sectorOverlayRendererRef = useRef<L.Canvas | null>(null)
   const resourceRendererRef = useRef<L.Canvas | null>(null)
   const imageryLayerRef = useRef<L.TileLayer | null>(null)
   const requestIdRef = useRef(0)
@@ -233,15 +289,18 @@ export function FlatAtlasMap({
     })
     const boundaryPane = map.createPane("atlas-boundary-pane")
     const fogPane = map.createPane("atlas-fog-pane")
+    const sectorOverlayPane = map.createPane("atlas-sector-pane")
     const resourcePane = map.createPane("atlas-resource-pane")
     const attractionPane = map.createPane("atlas-attraction-pane")
     boundaryPane.style.zIndex = "430"
     fogPane.style.zIndex = "434"
     fogPane.classList.add("atlas-fog-pane")
+    sectorOverlayPane.style.zIndex = "436"
     resourcePane.style.zIndex = "440"
     attractionPane.style.zIndex = "460"
     boundaryRendererRef.current = L.canvas({ pane: "atlas-boundary-pane", padding: 0.8, tolerance: 8 })
     fogRendererRef.current = L.canvas({ pane: "atlas-fog-pane", padding: 0.8, tolerance: 8 })
+    sectorOverlayRendererRef.current = L.canvas({ pane: "atlas-sector-pane", padding: 0.8, tolerance: 8 })
     resourceRendererRef.current = L.canvas({ pane: "atlas-resource-pane", padding: 0.8, tolerance: 8 })
     imageryLayerRef.current = L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
       maxZoom: 18,
@@ -250,6 +309,7 @@ export function FlatAtlasMap({
     L.control.zoom({ position: "bottomleft" }).addTo(map)
     boundaryLayerRef.current = L.layerGroup().addTo(map)
     fogLayerRef.current = L.layerGroup().addTo(map)
+    sectorOverlayLayerRef.current = L.layerGroup().addTo(map)
     resourceLayerRef.current = L.layerGroup().addTo(map)
     spotLayerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
@@ -276,10 +336,12 @@ export function FlatAtlasMap({
       mapRef.current = null
       boundaryRendererRef.current = null
       fogRendererRef.current = null
+      sectorOverlayRendererRef.current = null
       resourceRendererRef.current = null
       imageryLayerRef.current = null
       spotLayerRef.current = null
       fogLayerRef.current = null
+      sectorOverlayLayerRef.current = null
     }
   }, [])
 
@@ -287,13 +349,15 @@ export function FlatAtlasMap({
     const map = mapRef.current
     const boundaries = boundaryLayerRef.current
     const fogLayer = fogLayerRef.current
+    const sectorOverlayLayer = sectorOverlayLayerRef.current
     const resources = resourceLayerRef.current
     const spots = spotLayerRef.current
     const boundaryRenderer = boundaryRendererRef.current
     const fogRenderer = fogRendererRef.current
     const resourceRenderer = resourceRendererRef.current
+    const sectorOverlayRenderer = sectorOverlayRendererRef.current
     const imagery = imageryLayerRef.current
-    if (!map || !boundaries || !fogLayer || !resources || !spots || !boundaryRenderer || !fogRenderer || !resourceRenderer || !imagery) return
+    if (!map || !boundaries || !fogLayer || !sectorOverlayLayer || !resources || !spots || !boundaryRenderer || !fogRenderer || !sectorOverlayRenderer || !resourceRenderer || !imagery) return
     const requestId = ++requestIdRef.current
     const controller = new AbortController()
     let cancelled = false
@@ -304,9 +368,10 @@ export function FlatAtlasMap({
     let onTilesReady = () => {}
     const boundaryPane = map.getPane("atlas-boundary-pane")
     const fogPane = map.getPane("atlas-fog-pane")
+    const sectorPane = map.getPane("atlas-sector-pane")
     const resourcePane = map.getPane("atlas-resource-pane")
     const attractionPane = map.getPane("atlas-attraction-pane")
-    const transitionPanes = [boundaryPane, fogPane, resourcePane, attractionPane].filter(Boolean) as HTMLElement[]
+    const transitionPanes = [boundaryPane, fogPane, sectorPane, resourcePane, attractionPane].filter(Boolean) as HTMLElement[]
 
     setTravelling(true)
     setDetailReady(false)
@@ -316,6 +381,7 @@ export function FlatAtlasMap({
     })
     boundaries.clearLayers()
     fogLayer.clearLayers()
+    sectorOverlayLayer.clearLayers()
     resources.clearLayers()
     spots.clearLayers()
     setCityDetailMode(false)
@@ -403,9 +469,27 @@ export function FlatAtlasMap({
           },
         }).addTo(boundaries)
 
-        // Dark mask slices matching admin boundary polygons
+        // Tourism-sector color overlay: fill each province by its explicit sector so
+        // the country's tourism regions (华东/华南, Kyushu/Okinawa, …) read at a glance.
+        // Sectors without an explicit mapping fall back to nearest, so we only paint
+        // when at least one province resolved to a sector (keeps unmapped countries clean).
+        const painted = paintSectorOverlay(
+          adminData.features as GeoJSON.Feature[],
+          country.code,
+          sectorOverlayLayer,
+          sectorOverlayRenderer,
+          { activeRegionId: region?.id },
+        )
+        const hasSectorMap = painted > 0
+
+        // Dark mask slices matching admin boundary polygons.
+        // Use explicit tourism-sector ownership where available so a locked sector
+        // (e.g. 华东/西南) darkens as a whole instead of by mis-assigned nearest provinces.
         paintFogOfWar(adminData.features as GeoJSON.Feature[], regions, fogLayer, fogRenderer, {
           activeRegionId: region?.id,
+          ownerOf: hasSectorMap
+            ? (feature) => resolveProvinceSector(country.code, feature)
+            : undefined,
         })
 
         if (level === "country") {
@@ -544,6 +628,29 @@ export function FlatAtlasMap({
       <div className="map-paper-edge left"/><div className="map-paper-edge right"/>
       <div className="map-scanline" />
       <div className="flat-map-hud"><span><i className={detailReady || level === "continent" ? "ready" : ""}/>{level === "continent" ? "10M COUNTRY BORDERS" : "FOG OF WAR · BORDER MASK"}</span><b>SATELLITE DETAIL · Z{level === "region" ? "7.4+" : level === "country" ? "5.4" : continentConfig[continent].zoom}</b></div>
+      {level === "country" && country && PROVINCE_TO_REGION[country.code] && (
+        <div className="atlas-sector-legend" aria-label={`${country.name}旅游板块图例`}>
+          <span>TOURISM SECTORS · 旅游板块</span>
+          <ul>
+            {(() => {
+              // Only list regions that actually own ≥1 province in the sector map,
+              // so non-province regions (e.g. CHN 大湾区) don't pollute the sector legend.
+              const ownedSectors = new Set(Object.values(PROVINCE_TO_REGION[country.code]))
+              return regions
+                .filter(r => ownedSectors.has(r.id))
+                .map(r => {
+                  const palette = getSectorPalette(country.code, r.id)
+                  return (
+                    <li key={r.id} className={region?.id === r.id ? "is-active" : ""}>
+                      <i style={{ background: palette.fill, borderColor: palette.stroke }} />
+                      {r.name}
+                    </li>
+                  )
+                })
+            })()}
+          </ul>
+        </div>
+      )}
       {selectedAttraction && <div className="city-focus-status"><span>📍 POSITION LOCKED</span><b>{selectedAttraction.name}</b><small>LAT {selectedAttraction.lat_wgs84.toFixed(4)}° · LNG {selectedAttraction.lng_wgs84.toFixed(4)}°</small></div>}
       {travelling && <div className="flat-map-flight"><i/><span>ATLAS SYNC</span><b>{region?.name || country?.name || continent}</b><small>同步新地形、卫星瓦片与边界…</small></div>}
     </div>

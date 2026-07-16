@@ -16,6 +16,10 @@ dist/
 .env.*
 !.env.example
 
+# Temp docx extraction artifacts
+doc/_*_extract/
+doc/_*_text.txt
+
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -26,3 +30,9 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Cloudflare Wrangler local state (D1 SQLite, R2 mock, etc.)
+.wrangler/
+
+# ZCode agent session data
+.zcode/

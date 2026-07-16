@@ -3,10 +3,12 @@ import { getCatalogAttractions } from "./region-catalog"
 import { createScrapeAttractionProvider } from "./scraper"
 import type { Attraction, AttractionProvider, AttractionQuery } from "./types"
 
-/** Unified durable store — API / scrape / seed / catalog all land here */
-const FIXED_STORE = "atlas-attractions-fixed-v1"
-const API_STORE = "atlas-attractions-api-v1"
-const SCRAPE_STORE = "atlas-attractions-scrape-v1"
+/** Unified durable store — API / scrape / seed / catalog all land here.
+ *  Bumped to -v2 after the spot-coordinate accuracy fix so stale v1 caches
+ *  (which carried incorrect region-center fallbacks) are ignored. */
+const FIXED_STORE = "atlas-attractions-fixed-v2"
+const API_STORE = "atlas-attractions-api-v2"
+const SCRAPE_STORE = "atlas-attractions-scrape-v2"
 
 function storageKey(countryCode?: string, regionId?: string) {
   return `${countryCode || "ALL"}:${regionId || "ALL"}`

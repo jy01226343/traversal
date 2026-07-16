@@ -1,3 +1,6 @@
+// TODO(M5): 评估是否替换 cobe-globe-weather.tsx 的内联 globe shader。
+// 当前已实现完整 ShaderMaterial（biome 分带、卫星外观、地形位移、夜面城市灯光、大气边缘），
+// 但未被任何组件导入。M5 高级记忆与分享阶段评估接入或替换内联实现。
 import * as THREE from "three"
 
 export type TerrainStyle = "atlas-q" | "satellite"

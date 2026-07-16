@@ -12,6 +12,8 @@ interface AttractionExplorerPanelProps {
   preference: AttractionPreference
   category: "全部" | AttractionCategoryL1
   selectedId: string | null
+  /** Hide niche tab when it has no unique content vs popular */
+  showNicheToggle?: boolean
   onPreferenceChange: (preference: AttractionPreference) => void
   onCategoryChange: (category: "全部" | AttractionCategoryL1) => void
   onSelect: (item: RankedAttraction) => void
@@ -27,6 +29,7 @@ export function AttractionExplorerPanel({
   preference,
   category,
   selectedId,
+  showNicheToggle = true,
   onPreferenceChange,
   onCategoryChange,
   onSelect,
@@ -41,12 +44,20 @@ export function AttractionExplorerPanel({
   }, [selectedIndex])
   useEffect(() => setExpanded(false), [preference, category])
   const visibleItems = expanded ? items.slice(0, 10) : items.slice(0, 3)
+  const activePreference = showNicheToggle ? preference : "popular"
 
   return <aside className="attraction-explorer-panel" aria-label="景点探索列表">
     <button className="attraction-back" onClick={onBack}><span>←</span><b>{backLabel}</b><small>BACK</small></button>
     <header className="attraction-panel-head"><div><span>LOCAL PLAYBOOK · 4+2+X</span><b>景点探索</b><small>地图与列表实时联动 · Z{zoom.toFixed(1)}</small></div><i><Compass size={17}/></i></header>
-    <div className="attraction-controls">
-      <div className="preference-toggle" role="group" aria-label="热门或小众排序"><button className={preference === "popular" ? "active" : ""} onClick={() => onPreferenceChange("popular")}>热门必玩</button><button className={preference === "niche" ? "active" : ""} onClick={() => onPreferenceChange("niche")}>小众高替</button></div>
+    <div className={`attraction-controls ${showNicheToggle ? "" : "preference-solo"}`}>
+      {showNicheToggle ? (
+        <div className="preference-toggle" role="group" aria-label="热门或小众排序">
+          <button className={activePreference === "popular" ? "active" : ""} onClick={() => onPreferenceChange("popular")}>热门必玩</button>
+          <button className={activePreference === "niche" ? "active" : ""} onClick={() => onPreferenceChange("niche")}>小众高替</button>
+        </div>
+      ) : (
+        <div className="preference-static" aria-label="当前排序">热门必玩</div>
+      )}
       <label><span>分类</span><select value={category} onChange={event => onCategoryChange(event.target.value as "全部" | AttractionCategoryL1)}>{CATEGORIES.map(item => <option key={item}>{item}</option>)}</select><ChevronDown size={13}/></label>
     </div>
     {selectedId && <button className="attraction-reset" onClick={onClearSelection}><RotateCcw size={12}/>回到地区视野，继续查看全部锚点</button>}
@@ -54,15 +65,24 @@ export function AttractionExplorerPanel({
       {visibleItems.map(item => <button data-attraction={item.id} className={`attraction-list-item kind-${item.selection_kind} ${selectedId === item.id ? "selected" : ""}`} onClick={() => onSelect(item)} key={item.id}>
         <img src={item.image_url} alt=""/>
         <span className="attraction-copy"><em>{KIND_LABELS[item.selection_kind]} · {String(item.selection_rank).padStart(2,"0")}</em><b>{item.name}<small>{item.name_en}</small></b><i>{item.category_l2} · {item.best_season}</i><span>{item.tags.slice(0, 2).map(tag => <small key={tag}>{tag}</small>)}</span></span>
-        <strong>{preference === "popular" ? item.popularity_score : item.niche_score}<small>{preference === "popular" ? "HOT" : "NICHE"}</small></strong>
+        <strong>{activePreference === "popular" ? item.popularity_score : item.niche_score}<small>{activePreference === "popular" ? "HOT" : "NICHE"}</small></strong>
         <MapPin className="item-pin" size={15}/>
       </button>)}
       {!items.length && <div className="attraction-empty"><MapPin size={24}/><b>该地区暂无景点结果</b><p>已尝试 API → 爬虫（OSM/Wikipedia/官方站）→ 种子数据。稍后重试或切换地区。</p></div>}
     </div>
-    <footer className="attraction-panel-foot">
-      {items.length > 3 && <button onClick={() => setExpanded(value => !value)}>{expanded ? "收起精选" : `展开全部（共 ${Math.min(items.length, 10)} 个）`}<ChevronDown size={13}/></button>}
-      <span>{items.length} / {total} 个真实景点进入当前视野</span>
-      {visibleItems[0] && <a href={visibleItems[0].source_url} target="_blank" rel="noreferrer">查看首条官方来源 <ArrowUpRight size={11}/></a>}
-    </footer>
+    {items.length > 0 && (
+      <footer className="attraction-panel-foot">
+        <div className="attraction-foot-row">
+          {items.length > 3 ? (
+            <button type="button" onClick={() => setExpanded(value => !value)}>{expanded ? "收起" : `展开 ${Math.min(items.length, 10)}`}<ChevronDown size={12}/></button>
+          ) : (
+            <span className="attraction-foot-count">{items.length} / {total}</span>
+          )}
+          {visibleItems[0]?.source_url && visibleItems[0].source_url !== "#" && (
+            <a href={visibleItems[0].source_url} target="_blank" rel="noreferrer">来源 <ArrowUpRight size={11}/></a>
+          )}
+        </div>
+      </footer>
+    )}
   </aside>
 }

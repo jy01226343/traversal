@@ -67,7 +67,7 @@ export function buildDestinationBeacons(input: {
     const status = input.resolveStatus(item).id
     const layers: GlobeLayerId[] = ["status"]
     if (input.seasonalIds.includes(item.id)) layers.push("recommend")
-    if (status === "VISITED" || status === "MASTERED" || input.unlockedKeys.includes(key)) {
+    if (status === "EXPLORED" || status === "DEEP_EXPLORED" || input.unlockedKeys.includes(key)) {
       layers.push("footprint")
     }
     if (input.wishlistIds.includes(item.id) || status === "WISHLIST") layers.push("dream")

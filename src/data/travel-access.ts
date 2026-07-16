@@ -49,6 +49,16 @@ const TIER_LABEL: Record<AccessTier, string> = {
   requires_unlock: "需准备解锁",
 }
 
+/**
+ * Destinations that, although administered by the passport holder's own country,
+ * still require an extra travel permit / endorsement to enter. For a Chinese
+ * ordinary passport this is the Hong Kong & Macao travel permit (往来港澳通行证).
+ * Keyed by destination key (`countryCode:regionId`).
+ */
+const PERMIT_REQUIRED: ReadonlySet<string> = new Set([
+  "CHN:greater-bay-area",
+])
+
 export function isDomesticDestination(destinationCountryCode: string, passportCode?: string | null) {
   if (!passportCode) return false
   return destinationCountryCode.toUpperCase() === passportCode.toUpperCase()
@@ -73,6 +83,11 @@ export function resolveTravelAccess(input: {
 
   if (unlocked.includes(input.destinationKey)) {
     return { free: true, tier: "already_unlocked", label: TIER_LABEL.already_unlocked }
+  }
+  // Domestic destinations that nonetheless require an extra travel permit
+  // (e.g. HK/Macao permit for mainland residents) gate behind the unlock flow.
+  if (passport && dest === passport && PERMIT_REQUIRED.has(input.destinationKey)) {
+    return { free: false, tier: "requires_unlock", label: "需港澳通行证" }
   }
   if (passport && dest === passport) {
     return { free: true, tier: "domestic", label: TIER_LABEL.domestic }

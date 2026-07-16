@@ -65,6 +65,12 @@ const profiles: Record<string, Omit<UnlockDestinationProfile, "key">> = {
     task("drive", "核对长距离自驾补给点", "独库公路等季节道路应在出发前确认开放状态", "新疆文旅厅", "https://wlt.xinjiang.gov.cn/"),
     task("ski", "确认雪场票务与运营公告", "将军山雪场班次和开放雪道按当日公告执行", "阿勒泰地区政府", "https://www.xjalt.gov.cn/"),
   ] },
+  "CHN:greater-bay-area": { name: "粤港澳大湾区", english: "Greater Bay Area (Guangdong–HK–Macao)", code: "CN", focus: [22.95, 113.65], continent: "亚洲", verifiedAt: "2026-07-15", tasks: [
+    task("hmt-permit", "办理往来港澳通行证及有效签注", "内地居民赴港澳须持有效《往来港澳通行证》并办妥相应签注，以国家移民管理局公告为准", "国家移民管理局", "https://www.nia.gov.cn/"),
+    task("crossing", "核对口岸与港珠澳大桥通关安排", "各口岸开放时间、客流管制与大桥通行以官方公告为准", "港珠澳大桥管理局", "https://www.hzmb.cn/"),
+    task("currency", "准备港币 / 澳门元与电子支付", "部分商户与公共交通仍以本地货币或特定卡券为主", "香港旅游发展局", "https://www.discoverhongkong.cn/"),
+    task("transport", "保存城际与本地交通方案", "高铁、城际轨道与港澳码头船班需在出行前确认", "澳门旅游局", "https://www.macaotourism.gov.mo/zh-hans"),
+  ] },
   "NZL:south-island": { name: "新西兰南岛", english: "South Island", code: "NZ", focus: [-44.6, 169.1], continent: "大洋洲", verifiedAt: "2026-07-15", tasks: [
     task("entry", "核验签证或 NZeTA", "所需文件取决于护照、入境方式与停留目的", "Immigration New Zealand", "https://www.immigration.govt.nz/visit/what-you-need-to-visit-new-zealand/"),
     task("declaration", "准备 New Zealand Traveller Declaration", "航空旅客可在行程开始前 24 小时内提交", "NZ Traveller Declaration", "https://www.travellerdeclaration.govt.nz/"),

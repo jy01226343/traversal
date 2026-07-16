@@ -69,20 +69,29 @@ export function CardFanCarousel({ cards, onCardSelect, onWishToggle, controlsMod
   useLayoutEffect(() => {
     if (!rootRef.current || !visibleCards.length) return
     const nodes = Array.from(rootRef.current.querySelectorAll<HTMLElement>(".fan-card"))
-    const spacing = compact ? 54 : 76
-    const fanLift = compact ? 7 : 12
+    // Cover-flow spacing ≈ ~58–68% of card width so neighbors peek past the active card
+    const spacing = compact ? 78 : 102
+    const fanLift = compact ? 10 : 14
     const ctx = gsap.context(() => {
       nodes.forEach((node, index) => {
         const offset = circularOffset(index, activeIndex, visibleCards.length)
-        const hidden = Math.abs(offset) > 3
+        const depth = Math.abs(offset)
+        const hidden = depth > 2
         gsap.killTweensOf(node)
-        gsap.set(node, { zIndex: 20 - Math.abs(offset), pointerEvents: hidden ? "none" : "auto", opacity: hidden ? 0 : 1 })
+        // Active on top; side cards dimmed/scaled so stack reads as a deck, not a single card
+        gsap.set(node, {
+          zIndex: 30 - depth,
+          pointerEvents: depth === 0 ? "auto" : depth <= 2 ? "auto" : "none",
+          opacity: hidden ? 0 : depth === 0 ? 1 : Math.max(0.42, 0.92 - depth * 0.22),
+          xPercent: -50,
+        })
         gsap.to(node, {
           x: offset * spacing,
-          y: Math.abs(offset) * fanLift,
-          rotation: offset * (compact ? 5.4 : 6.6),
-          scale: offset === 0 ? 1 : 0.9 - Math.abs(offset) * 0.025,
-          duration: 0.62,
+          y: depth * fanLift,
+          xPercent: -50,
+          rotation: offset * (compact ? 7.2 : 8.5),
+          scale: depth === 0 ? 1 : Math.max(0.78, 0.94 - depth * 0.07),
+          duration: 0.58,
           ease: "power3.out",
           overwrite: true,
         })

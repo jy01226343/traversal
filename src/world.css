@@ -26,6 +26,8 @@
   color:#f0b48a;opacity:1;letter-spacing:.02em;
 }
 .world-ribbon button:hover small,.world-ribbon .ribbon-active small{color:#a85338}
+.world-ribbon button.ribbon-home{border-color:#e0c48666}
+.world-ribbon button.ribbon-home:not(.ribbon-active) b:after{content:' · 起点';font:8px 'DM Mono';color:#e8a57a;margin-left:4px;font-weight:400}
 .world-title{position:absolute;z-index:3;left:8.5vw;top:322px}
 .world-title p{font:9px 'DM Mono';letter-spacing:1.3px;color:#e8a57a}
 .world-title h1{font:clamp(36px,4.1vw,60px) 'Noto Serif SC';line-height:1.34;letter-spacing:-3px;margin:14px 0}

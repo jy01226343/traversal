@@ -233,8 +233,11 @@ async function enrichLandmark(spot: ScrapeTargetSpot, target: RegionScrapeTarget
     const wiki = spot.wiki ? await fetchWikipedia(spot.wiki, fetcher) : null
     const official = spot.officialUrl ? await scrapeOfficialHtml(spot.officialUrl, fetcher) : null
     const portal = target.officialPortals[0]
-    const lat = wiki?.coordinates?.lat ?? spot.lat ?? target.focus[0]
-    const lng = wiki?.coordinates?.lon ?? spot.lng ?? target.focus[1]
+    // Prefer the curated spot coordinate; only fall back to Wikipedia / region focus
+    // (Wikipedia article coordinates can land on an adjacent POI, e.g. a building
+    // next to a lake, so we never let them override a known-accurate spot lat/lng).
+    const lat = spot.lat ?? wiki?.coordinates?.lat ?? target.focus[0]
+    const lng = spot.lng ?? wiki?.coordinates?.lon ?? target.focus[1]
     const scores = deriveScores({ tourism: "attraction", wikipedia: spot.wiki || "" }, wiki ? 10 : 0)
     const image = official?.image || wiki?.originalimage?.source || wiki?.thumbnail?.source || base.image_url
     const sourceUrl = spot.officialUrl || wiki?.content_urls?.desktop?.page || portal?.url || base.source_url
@@ -303,8 +306,11 @@ async function scrapeRegion(target: RegionScrapeTarget, query: AttractionQuery, 
         image_url: wiki.originalimage?.source || wiki.thumbnail?.source || item.image_url,
         source_url: wiki.content_urls?.desktop?.page || item.source_url,
         data_source: "OpenStreetMap + Wikipedia 爬虫聚合",
-        lat_wgs84: wiki.coordinates?.lat ?? item.lat_wgs84,
-        lng_wgs84: wiki.coordinates?.lon ?? item.lng_wgs84,
+        // Keep the precise OSM node coordinate; Wikipedia article coordinates can
+        // land on an adjacent feature (e.g. a building beside a lake), so we never
+        // let them displace an accurate OSM point.
+        lat_wgs84: item.lat_wgs84,
+        lng_wgs84: item.lng_wgs84,
       }
     } catch {
       return item

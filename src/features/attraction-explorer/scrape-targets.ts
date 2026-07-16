@@ -91,11 +91,21 @@ export const REGION_SCRAPE_TARGETS: Record<string, RegionScrapeTarget> = {
     ],
   },
   "JPN:kyushu": {
-    countryCode: "JPN", regionId: "kyushu", english: "Okinawa", focus: [26.3, 127.8], span: 1.5,
+    countryCode: "JPN", regionId: "kyushu", english: "Kyushu", focus: [32.8, 130.7], span: 2,
+    officialPortals: [PORTAL("JNTO Kyushu", "https://www.japan.travel/en/destinations/kyushu/")],
+    landmarks: [
+      { name: "阿苏火山", name_en: "Mount Aso", wiki: "Mount_Aso", lat: 32.884, lng: 131.104, category_l1: "自然风光", category_l2: "火山", tags: ["火山口"] },
+      { name: "由布院", name_en: "Yufuin", wiki: "Yufuin,_Ōita", lat: 33.266, lng: 131.36, category_l1: "休闲露营", category_l2: "温泉", tags: ["温泉乡"] },
+      { name: "屋久岛", name_en: "Yakushima", wiki: "Yakushima", lat: 30.358, lng: 130.529, category_l1: "自然风光", category_l2: "雨林", tags: ["世界遗产"] },
+    ],
+  },
+  "JPN:okinawa": {
+    countryCode: "JPN", regionId: "okinawa", english: "Okinawa", focus: [26.5, 128.0], span: 1.5,
     officialPortals: [PORTAL("Visit Okinawa", "https://www.visitokinawa.jp/")],
     landmarks: [
       { name: "美丽海水族馆", name_en: "Churaumi Aquarium", wiki: "Okinawa_Churaumi_Aquarium", lat: 26.694, lng: 127.878, category_l1: "超级工程", category_l2: "场馆", tags: ["亲子"] },
       { name: "庆良间群岛", name_en: "Kerama Islands", wiki: "Kerama_Islands", lat: 26.199, lng: 127.333, category_l1: "自然风光", category_l2: "海洋", tags: ["潜水"] },
+      { name: "宫古岛", name_en: "Miyakojima", wiki: "Miyakojima,_Okinawa", lat: 24.805, lng: 125.281, category_l1: "自然风光", category_l2: "海岛", tags: ["海滩"] },
     ],
   },
   "CHN:northwest": {

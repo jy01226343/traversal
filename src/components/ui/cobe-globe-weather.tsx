@@ -809,7 +809,7 @@ export function GlobeWeather({
               <i className="beacon-spark s1" /><i className="beacon-spark s2" /><i className="beacon-spark s3" />
             </span>
             <span className="beacon-label">
-              <small>{beacon.grade} · {beacon.status === "WISHLIST" ? "心愿" : beacon.status === "VISITED" || beacon.status === "MASTERED" ? "足迹" : "推荐"}</small>
+              <small>{beacon.grade} · {beacon.status === "WISHLIST" ? "心愿" : beacon.status === "EXPLORED" || beacon.status === "DEEP_EXPLORED" ? "足迹" : beacon.status === "UNLOCKED" ? "可达" : beacon.status === "PREPARING" ? "准备" : "推荐"}</small>
               <b>{beacon.title.split(" · ")[0]}</b>
             </span>
           </button>

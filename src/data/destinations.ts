@@ -40,6 +40,33 @@ export const RESOURCE_ICONS: Record<string, string> = {
   美食: "🍜", 城市: "🏙️", 亲子: "🪁",
 }
 
+/**
+ * 中国省级行政区 → 旅游板块显式映射。
+ * key = admin1 geojson 的 iso_3166_2 代码；value = 对应地区 id。
+ * 替代过去"质心最近邻"的粗糙分派，让地图上每个省的板块归属与国家推荐旅游板块一致。
+ * 台湾岛在本边界数据集内无独立省界，天然随福建省（CN-FJ → east）涵盖，无需单独处理。
+ */
+export const CHINA_PROVINCE_TO_REGION: Record<string, string> = {
+  "CN-HL": "northeast", "CN-JL": "northeast", "CN-LN": "northeast",
+  "CN-BJ": "north", "CN-TJ": "north", "CN-HE": "north", "CN-SX": "north", "CN-NM": "north",
+  "CN-SH": "east", "CN-JS": "east", "CN-ZJ": "east", "CN-AH": "east", "CN-FJ": "east", "CN-JX": "east", "CN-SD": "east",
+  "CN-HA": "central", "CN-HB": "central", "CN-HN": "central",
+  "CN-GD": "south", "CN-GX": "south", "CN-HI": "south", "CN-X01~": "south",
+  "CN-CQ": "southwest", "CN-SC": "southwest", "CN-GZ": "southwest", "CN-YN": "southwest", "CN-XZ": "southwest",
+  "CN-SN": "northwest", "CN-GS": "northwest", "CN-QH": "northwest", "CN-NX": "northwest", "CN-XJ": "northwest",
+}
+
+/** 中国各旅游板块的地图配色（板块彩色填色，使华东/华南等地界一眼可辨）。 */
+export const CHINA_REGION_PALETTE: Record<string, { fill: string; stroke: string }> = {
+  northeast: { fill: "#2d5b8a", stroke: "#5fa8e6" },
+  north: { fill: "#7a4a2e", stroke: "#e0a578" },
+  east: { fill: "#1f6b5e", stroke: "#4ec3a8" },
+  central: { fill: "#5a3d7a", stroke: "#b08be0" },
+  south: { fill: "#8a3a2e", stroke: "#ef7a5a" },
+  southwest: { fill: "#7a6a1f", stroke: "#e6c34e" },
+  northwest: { fill: "#6b5a3a", stroke: "#d8b878" },
+}
+
 const REGION_SPOTLIGHTS: Record<string, Record<string, string[]>> = {
   hokkaido: { 滑雪: ["羊蹄山", "留寿都"], 徒步: ["大雪山", "知床五湖"], 温泉: ["洞爷湖", "登别"] },
   tohoku: { 温泉: ["银山温泉", "酸汤温泉"], 徒步: ["十和田湖", "藏王"], 文化: ["仙台", "平泉"] },
@@ -48,7 +75,8 @@ const REGION_SPOTLIGHTS: Record<string, Record<string, string[]>> = {
   kinki: { 文化: ["京都古寺", "奈良町"], 徒步: ["熊野古道", "六甲山"], 美食: ["大阪道顿堀", "锦市场"] },
   chugoku: { 文化: ["严岛神社", "仓敷古城"], 徒步: ["大山", "三段峡"], 骑行: ["岛波海道", "宍道湖"] },
   shikoku: { 徒步: ["四国遍路", "石锤山"], 文化: ["金刀比罗宫", "道后温泉"], 自驾: ["四国遍路公路", "祖谷溪"] },
-  kyushu: { 徒步: ["阿苏火山", "屋久岛"], 温泉: ["由布院", "黑川温泉"], 潜水: ["庆良间群岛", "青之洞窟"] },
+  kyushu: { 徒步: ["阿苏火山", "屋久岛"], 温泉: ["由布院", "黑川温泉"], 潜水: ["青之洞窟", "屋久岛"] },
+  okinawa: { 潜水: ["庆良间群岛", "青之洞窟"], 海岛: ["宫古岛", "石垣岛"], 亲子: ["美丽海水族馆", "古宇利岛"] },
   "capital-kr": { 城市: ["首尔南山", "仁川松岛"], 文化: ["景福宫", "北村"], 美食: ["弘大", "明洞"] },
   gangwon: { 滑雪: ["龙平滑雪场", "平昌"], 徒步: ["雪岳山", "五台山"], 海岸: ["江陵", "束草"] },
   chungcheong: { 文化: ["公州", "扶余"], 徒步: ["鸡龙山", "俗离山"], 城市: ["大田", "世宗"] },
@@ -95,6 +123,28 @@ const SPOT_COORDINATES: Record<string, [number, number]> = {
   露易丝湖: [51.416, -116.217], 冰原大道: [52.219, -117.224], 班夫: [51.178, -115.571], 贾斯珀: [52.873, -118.081], 梦莲湖: [51.321, -116.186], 佩托湖: [51.717, -116.508],
   斯米兰群岛: [8.658, 97.64], 皮皮岛: [7.741, 98.778], 普吉岛: [7.951, 98.339], 兰塔岛: [7.624, 99.079], 甲米: [8.086, 98.906], 攀牙湾: [8.274, 98.501],
   大堡礁: [-18.287, 147.699], 圣灵群岛: [-20.282, 148.957], 丹翠雨林: [-16.17, 145.418], 库兰达: [-16.819, 145.638], 汉密尔顿岛: [-20.352, 148.95], 磁岛: [-19.139, 146.842],
+  // —— 日本：东北 / 中部 / 四国 ——
+  银山温泉: [38.572, 140.523], 酸汤温泉: [40.464, 140.842], 十和田湖: [40.361, 141.013], 藏王: [38.166, 140.437], 仙台: [38.268, 140.872], 平泉: [38.989, 141.111],
+  奥多摩: [35.808, 139.084], 上高地: [36.249, 137.69], 白马: [36.7, 137.732], 志贺高原: [36.76, 138.504], 北阿尔卑斯: [36.265, 137.646], 立山黑部: [36.541, 137.611],
+  四国遍路: [33.841, 133.556], 石锤山: [33.767, 133.121], 金刀比罗宫: [34.183, 133.979], 道后温泉: [33.851, 132.789], 四国遍路公路: [33.841, 133.556], 祖谷溪: [33.853, 133.832],
+  // —— 韩国 ——
+  首尔南山: [37.552, 126.988], 仁川松岛: [37.398, 126.632], 景福宫: [37.58, 126.977], 北村: [37.583, 126.984], 弘大: [37.557, 126.924], 明洞: [37.564, 126.98],
+  龙平滑雪场: [37.643, 128.669], 平昌: [37.37, 128.39], 雪岳山: [38.109, 128.467], 江陵: [37.752, 128.876], 束草: [38.207, 128.591],
+  公州: [36.451, 127.121], 扶余: [36.281, 126.909], 鸡龙山: [36.495, 127.219], 俗离山: [36.026, 127.873], 大田: [36.351, 127.385], 世宗: [36.561, 127.259],
+  全州拌饭: [35.824, 127.149], 光州: [35.16, 126.852], 木浦: [34.812, 126.392], 丽水: [34.76, 127.662], 全州韩屋村: [35.815, 127.153], 潭阳: [35.321, 126.988],
+  釜山海云台: [35.158, 129.16], 大邱: [35.871, 128.601], 庆州佛国寺: [35.79, 129.332], 安东河回: [36.542, 128.226], 釜山太宗台: [35.051, 129.086], 浦项: [36.019, 129.343],
+  城山日出峰: [33.46, 126.942], 牛岛: [33.506, 126.952], 汉拿山: [33.362, 126.532], 奥尔勒步道: [33.246, 126.561], 泰迪熊博物馆: [33.247, 126.412], 香水湾: [33.257, 126.642],
+  // —— 中国 ——
+  苏州园林: [31.325, 120.628], 杭州西湖: [30.242, 120.149], 青岛: [36.067, 120.383], 厦门鼓浪屿: [24.448, 118.067], 上海本帮: [31.231, 121.474], 南京秦淮: [32.019, 118.786],
+  张家界: [29.326, 110.435], 三峡: [30.838, 111.046], 洛阳龙门: [34.556, 112.471], 武汉黄鹤楼: [30.545, 114.302], 神农架: [31.5, 110.5], 恩施: [30.272, 109.488],
+  稻城亚丁: [28.448, 100.331], 香格里拉: [27.831, 99.706], 丽江古城: [26.872, 100.226], 布达拉宫: [29.658, 91.117], 九寨沟: [33.164, 103.917], 黄果树: [25.997, 105.678],
+  河西走廊: [39.738, 98.494], 独库公路: [43.0, 84.5], 祁连山: [38.4, 99.5], 敦煌: [40.142, 94.664], 张掖丹霞: [38.961, 100.131],
+  // —— 意大利 ——
+  多洛米蒂: [46.41, 11.856], 科莫湖: [46.015, 9.257], 科尔蒂纳: [46.539, 12.136], 瓦尔加迪纳: [46.557, 11.825], 加尔达湖: [45.629, 10.637], 斯泰尔维奥: [46.518, 10.453],
+  佛罗伦萨: [43.769, 11.256], 锡耶纳: [43.319, 11.331], 奥尔恰谷: [43.07, 11.61], 基安蒂: [43.446, 11.255], 卢卡: [43.843, 10.503], 圣吉米尼亚诺: [43.487, 11.043],
+  // —— 美国 ——
+  一号公路: [36.602, -121.902], 红杉公路: [40.444, -123.685], 优胜美地: [37.865, -119.538], 雷尼尔山: [46.852, -121.76], 圣克鲁兹: [36.974, -122.03], 马里布: [34.026, -118.779],
+  大提顿: [43.79, -110.682], 冰川公园: [48.766, -113.788], 阿斯彭: [39.192, -106.817], 杰克逊霍尔: [43.479, -110.763], 黄石: [44.428, -110.588], 落基山公园: [40.343, -105.686],
 }
 
 const SPOT_MEDIA: Record<string, { image: string; imageSource: string; sourceUrl: string }> = {
@@ -174,7 +224,7 @@ export function findCountry(code: string) {
 
 /** Regional divisions follow each country's common tourism / geographic scheme. */
 export const REGIONS_BY_COUNTRY: Record<string, DestinationRegion[]> = {
-  /* 日本：八大地方区分（九州通常含冲绳） */
+  /* 日本：九大地方区分（九州与冲绳分立） */
   JPN: [
     { id: "hokkaido", name: "北海道地方", english: "Hokkaido", focus: [43.2, 142.7], heat: 99, visited: true, summary: "夏季花海与冬季粉雪滑雪", resources: [{ type: "滑雪", score: 99 }, { type: "徒步", score: 91 }, { type: "温泉", score: 96 }] },
     { id: "tohoku", name: "东北地方", english: "Tohoku", focus: [39.7, 140.7], heat: 92, visited: false, summary: "本州最北端的自然风光与温泉", resources: [{ type: "温泉", score: 97 }, { type: "徒步", score: 93 }, { type: "文化", score: 90 }] },
@@ -183,7 +233,8 @@ export const REGIONS_BY_COUNTRY: Record<string, DestinationRegion[]> = {
     { id: "kinki", name: "近畿地方", english: "Kinki (Kansai)", focus: [34.8, 135.5], heat: 99, visited: true, summary: "关西古都文化中心（京都·大阪·奈良）", resources: [{ type: "文化", score: 99 }, { type: "美食", score: 98 }, { type: "徒步", score: 92 }] },
     { id: "chugoku", name: "中国地方", english: "Chugoku", focus: [34.5, 133.2], heat: 88, visited: false, summary: "本州最西部的古城与濑户内海", resources: [{ type: "文化", score: 94 }, { type: "骑行", score: 92 }, { type: "徒步", score: 86 }] },
     { id: "shikoku", name: "四国地方", english: "Shikoku", focus: [33.8, 133.5], heat: 89, visited: false, summary: "四国岛遍路与溪谷山景", resources: [{ type: "徒步", score: 96 }, { type: "文化", score: 93 }, { type: "自驾", score: 90 }] },
-    { id: "kyushu", name: "九州地方", english: "Kyushu (incl. Okinawa)", focus: [32.0, 130.5], heat: 96, visited: false, summary: "九州火山温泉与冲绳亚热带海岛", resources: [{ type: "温泉", score: 98 }, { type: "潜水", score: 97 }, { type: "徒步", score: 94 }] },
+    { id: "kyushu", name: "九州地方", english: "Kyushu", focus: [32.8, 130.7], heat: 96, visited: false, summary: "九州火山温泉与森林溪谷", resources: [{ type: "温泉", score: 98 }, { type: "徒步", score: 95 }, { type: "潜水", score: 92 }] },
+    { id: "okinawa", name: "冲绳地方", english: "Okinawa", focus: [26.5, 128.0], heat: 97, visited: false, summary: "冲绳亚热带珊瑚礁与离岛", resources: [{ type: "潜水", score: 99 }, { type: "海岛", score: 98 }, { type: "亲子", score: 95 }] },
   ],
   /* 韩国：六大旅游文化圈 */
   KOR: [
@@ -194,15 +245,16 @@ export const REGIONS_BY_COUNTRY: Record<string, DestinationRegion[]> = {
     { id: "gyeongsang", name: "庆尚道", english: "Gyeongsang", focus: [35.5, 128.8], heat: 96, visited: false, summary: "釜山、大邱与庆州新罗遗产", resources: [{ type: "城市", score: 97 }, { type: "文化", score: 98 }, { type: "海岸", score: 94 }] },
     { id: "jeju", name: "济州岛", english: "Jeju", focus: [33.4, 126.5], heat: 98, visited: false, summary: "韩国最大岛屿与度假胜地", resources: [{ type: "海岛", score: 99 }, { type: "徒步", score: 95 }, { type: "亲子", score: 96 }] },
   ],
-  /* 中国：七大地理分区 */
+  /* 中国：国家推荐七大旅游板块 + 粤港澳大湾区 */
   CHN: [
-    { id: "northeast", name: "东北地区", english: "Northeast", focus: [45.3, 126.6], heat: 93, visited: false, summary: "黑吉辽冰雪文化与林海雪原", resources: [{ type: "滑雪", score: 98 }, { type: "徒步", score: 90 }, { type: "温泉", score: 88 }] },
-    { id: "north", name: "华北地区", english: "North China", focus: [39.5, 116.0], heat: 96, visited: true, summary: "京津冀晋与内蒙古中部古都草原", resources: [{ type: "文化", score: 99 }, { type: "徒步", score: 94 }, { type: "滑雪", score: 86 }] },
-    { id: "east", name: "华东地区", english: "East China", focus: [31.2, 120.5], heat: 98, visited: false, summary: "沪苏浙皖闽赣鲁台江南水乡", resources: [{ type: "文化", score: 98 }, { type: "美食", score: 97 }, { type: "海岸", score: 92 }] },
+    { id: "northeast", name: "东北地区", english: "Northeast China", focus: [43.9, 126.5], heat: 93, visited: false, summary: "黑吉辽冰雪文化与林海雪原", resources: [{ type: "滑雪", score: 98 }, { type: "徒步", score: 90 }, { type: "温泉", score: 88 }] },
+    { id: "north", name: "华北地区", english: "North China", focus: [39.5, 116.0], heat: 96, visited: true, summary: "京津冀晋与内蒙古古都草原", resources: [{ type: "文化", score: 99 }, { type: "徒步", score: 94 }, { type: "滑雪", score: 86 }] },
+    { id: "east", name: "华东地区", english: "East China", focus: [30.8, 119.2], heat: 98, visited: false, summary: "沪苏浙皖闽赣鲁江南水乡与山水", resources: [{ type: "文化", score: 98 }, { type: "美食", score: 97 }, { type: "海岸", score: 92 }] },
     { id: "central", name: "华中地区", english: "Central China", focus: [30.6, 114.3], heat: 91, visited: false, summary: "豫鄂湘交通枢纽与山水奇观", resources: [{ type: "徒步", score: 96 }, { type: "文化", score: 93 }, { type: "自驾", score: 90 }] },
-    { id: "south", name: "华南地区", english: "South China", focus: [23.1, 113.3], heat: 95, visited: true, summary: "粤桂琼港澳热带海滨风情", resources: [{ type: "潜水", score: 94 }, { type: "美食", score: 98 }, { type: "海岸", score: 96 }] },
-    { id: "southwest", name: "西南地区", english: "Southwest", focus: [29.6, 102.7], heat: 97, visited: false, summary: "渝川黔滇藏自然与民族文化", resources: [{ type: "徒步", score: 99 }, { type: "文化", score: 97 }, { type: "摄影", score: 99 }] },
-    { id: "northwest", name: "西北地区", english: "Northwest", focus: [40.0, 95.0], heat: 99, visited: true, summary: "陕甘青宁新丝路与大漠高山", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 97 }, { type: "摄影", score: 99 }] },
+    { id: "south", name: "华南地区", english: "South China", focus: [22.8, 109.6], heat: 95, visited: true, summary: "粤桂琼热带海滨与喀斯特山水", resources: [{ type: "潜水", score: 94 }, { type: "美食", score: 98 }, { type: "海岸", score: 96 }] },
+    { id: "greater-bay-area", name: "粤港澳大湾区", english: "Guangdong–HK–Macao Greater Bay Area", focus: [22.95, 113.65], heat: 99, visited: false, summary: "珠三角城市带与港澳（需港澳通行证）", resources: [{ type: "城市", score: 99 }, { type: "美食", score: 98 }, { type: "海岸", score: 95 }] },
+    { id: "southwest", name: "西南地区", english: "Southwest China", focus: [29.6, 102.7], heat: 97, visited: false, summary: "渝川黔滇藏自然与民族文化", resources: [{ type: "徒步", score: 99 }, { type: "文化", score: 97 }, { type: "摄影", score: 99 }] },
+    { id: "northwest", name: "西北地区", english: "Northwest China", focus: [40.0, 95.0], heat: 99, visited: true, summary: "陕甘青宁新丝路与大漠高山", resources: [{ type: "自驾", score: 99 }, { type: "徒步", score: 97 }, { type: "摄影", score: 99 }] },
   ],
   /* 泰国：北 / 东北 / 中部 / 东 / 南 */
   THA: [
