@@ -334,6 +334,8 @@ export function FlatAtlasMap({
   const onMapViewChangeRef = useRef(onMapViewChange)
   const onExitToCountryRef = useRef(onExitToCountry)
   const onExitToRegionListRef = useRef(onExitToRegionList)
+  const levelRef = useRef(level)
+  levelRef.current = level
   const wishedRegionKeysRef = useRef(wishedRegionKeys)
   const [travelling, setTravelling] = useState(true)
   const [detailReady, setDetailReady] = useState(false)
@@ -419,6 +421,7 @@ export function FlatAtlasMap({
 
     const syncMapView = () => {
       const zoom = map.getZoom()
+      const currentLevel = levelRef.current
       setCityDetailMode(zoom >= 9.2)
       // Bug 2 fix: skip state feedback during programmatic flyTo to prevent
       // zoom-reset feedback loop on mobile pinch-zoom
@@ -428,13 +431,13 @@ export function FlatAtlasMap({
       }
       // Bug 1 part 2: when at region level and user zooms out below country
       // threshold, exit back to country level (restore sectors + region hotlist)
-      if (level === "region" && zoom < 5.5 && !flyingRef.current) {
+      if (currentLevel === "region" && zoom < 5.5 && !flyingRef.current) {
         onExitToCountryRef.current?.()
       }
       // Bug 3: when at region level with a selected attraction, zooming out
       // below the detail threshold clears the selection so the list returns
       // to the attraction explorer panel (not the detail view)
-      if (level === "region" && zoom < 7.8 && !flyingRef.current) {
+      if (currentLevel === "region" && zoom < 7.8 && !flyingRef.current) {
         onExitToRegionListRef.current?.()
       }
       computeScaleBar()
@@ -570,8 +573,12 @@ export function FlatAtlasMap({
     const adminPromise = level !== "continent" && country
       ? loadGeoJson(`/geo/admin1/${country.code.toLowerCase()}.geojson`)
       : Promise.resolve<GeoJSON.FeatureCollection | null>(null)
+    // Load global countries GeoJSON at region level to darken other continents
+    const countriesPromise = level === "region"
+      ? loadGeoJson(`/geo/countries.geojson`)
+      : Promise.resolve<GeoJSON.FeatureCollection | null>(null)
 
-    const geometryComplete = Promise.all([loadGeoJson(continentUrl), adminPromise]).then(([data, adminData]) => {
+    const geometryComplete = Promise.all([loadGeoJson(continentUrl), adminPromise, countriesPromise]).then(([data, adminData, countriesData]) => {
       if (cancelled || requestId !== requestIdRef.current) return
       if (level === "continent") {
         L.geoJSON(data, {
@@ -623,10 +630,10 @@ export function FlatAtlasMap({
         ) > 0
 
         if (level === "region" && region) {
-          // Region-level focus mask: darken other countries + same-country
+          // Region-level focus mask: darken other countries (all continents) + same-country
           // provinces outside the active region so user focuses on one region.
           paintFocusMask(
-            data.features as GeoJSON.Feature[],
+            countriesData?.features as GeoJSON.Feature[] || [],
             adminData.features as GeoJSON.Feature[],
             country.code,
             region.id,
