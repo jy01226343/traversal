@@ -1,6 +1,6 @@
 /**
- * Cloudflare Pages Function: /api/scrape-proxy?url=...
- * Mirrors the Vite dev scrape proxy for production deploys.
+ * 境外 API 抓取代理（Workers 模式）。
+ * allowlist-only，遵守 robots/频率/版权，不绕登录/验证码/付费墙。
  */
 const ALLOWLIST = [
   "www.visit-hokkaido.jp",
@@ -41,14 +41,13 @@ const ALLOWLIST = [
 function allowed(urlString: string) {
   try {
     const host = new URL(urlString).hostname.toLowerCase()
-    return ALLOWLIST.some(item => host === item || host.endsWith(`.${item}`))
+    return ALLOWLIST.some((item) => host === item || host.endsWith(`.${item}`))
   } catch {
     return false
   }
 }
 
-export const onRequest: PagesFunction = async context => {
-  const request = context.request
+export async function handleScrapeProxy(request: Request, url: URL): Promise<Response> {
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -60,7 +59,7 @@ export const onRequest: PagesFunction = async context => {
     })
   }
 
-  const target = new URL(request.url).searchParams.get("url")
+  const target = url.searchParams.get("url")
   if (!target) {
     return new Response(JSON.stringify({ error: "missing_url" }), {
       status: 400,
@@ -93,7 +92,7 @@ export const onRequest: PagesFunction = async context => {
     const headers = new Headers(upstream.headers)
     headers.set("Access-Control-Allow-Origin", "*")
     headers.set("Cache-Control", "public, max-age=300")
-    headers.set("X-Scrape-Proxy", "family-atlas-pages")
+    headers.set("X-Scrape-Proxy", "family-atlas-worker")
     return new Response(upstream.body, { status: upstream.status, headers })
   } catch (error) {
     return new Response(JSON.stringify({ error: "proxy_failed", message: String(error) }), {

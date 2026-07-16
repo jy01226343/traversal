@@ -1,13 +1,12 @@
-# Cloudflare Workers + Static Assets（前端 SPA）+ Pages Functions（API）
-# 部署模式：GitHub Git 集成自动部署
+# Cloudflare Workers（Worker 入口 + Static Assets binding）
+# 部署模式：GitHub Git 集成自动部署到 *.workers.dev
+# - Worker（src/worker.ts）处理 /api/* 路由
+# - Assets binding 托管前端 SPA + fallback
 # 详见 docs/cloudflare-setup.md
-#
-# M0 阶段：D1/R2 binding 暂未激活（线上资源未创建）。
-# 前端 SPA + scrape-proxy 正常工作；health 端点在 binding 激活前会返回 503。
-# 创建 D1/R2 后取消下方注释并填入真实 database_id。
 
 name = "traversal"
 compatibility_date = "2025-07-01"
+main = "worker/index.ts"
 
 [assets]
 directory = "./dist"

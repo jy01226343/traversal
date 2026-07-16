@@ -1,23 +1,12 @@
 /**
- * Cloudflare Pages Function: /api/v1/*
- *
- * 健康检查端点，验证 Workers + D1 + R2 绑定链路。
- * M0 骨架：仅返回状态；M1 起加入业务路由（home/destination/journey/memory/share/sync）。
+ * 健康检查端点（Workers 模式）。
+ * 验证 D1 + R2 binding 链路。binding 未激活时优雅降级。
  */
-import type { D1Database, R2Bucket } from "@cloudflare/workers-types"
+import type { Env } from "../index"
 
-interface Env {
-  DB?: D1Database
-  MEDIA?: R2Bucket
-  ENV?: string
-  APP_VERSION?: string
-}
-
-export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env } = context
+export async function handleHealth(request: Request, env: Env): Promise<Response> {
   const checks: Record<string, { ok: boolean; detail?: string }> = {}
 
-  // D1 连通检查（binding 可能未激活）
   if (env.DB) {
     try {
       const result = await env.DB.prepare("SELECT value FROM kv WHERE key = ?")
@@ -31,7 +20,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     checks.d1 = { ok: false, detail: "binding not activated (see wrangler.toml)" }
   }
 
-  // R2 绑定检查
   checks.r2 = { ok: Boolean(env.MEDIA), detail: env.MEDIA ? "bound" : "not activated" }
 
   const allOk = Object.values(checks).every((c) => c.ok)
