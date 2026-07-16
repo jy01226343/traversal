@@ -676,7 +676,9 @@ export function GlobeWeather({
           globe.quaternion.slerp(targetQuaternion.current, 0.055)
         }
       }
-      clouds.rotation.y += 0.00032 * delta
+      // Cloud layer rotates ~1.2x faster than its previous rate, independent
+      // from the globe surface so clouds visibly drift against terrain.
+      clouds.rotation.y += 0.000384 * delta
 
       const { width, height } = shell.getBoundingClientRect()
       if (flightPlaneRef.current) {
