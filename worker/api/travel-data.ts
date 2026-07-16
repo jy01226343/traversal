@@ -41,13 +41,17 @@ function normalizeAmap(payload: any) {
   const distanceMeters = Number(path.distance)
   const durationSeconds = Number(path.duration ?? path.cost?.duration)
   if (!Number.isFinite(distanceMeters)) throw new Error("AMap route payload missing distance")
-  const geometry = Array.isArray(path.steps)
-    ? path.steps.map((step: { polyline?: string }) => step.polyline).filter(Boolean).join(";").split(";").map((pair: string) => {
+  let geometry: string | undefined
+  try {
+    const rawGeometry = Array.isArray(path.steps) ? path.steps.map((step: { polyline?: string }) => step.polyline).filter(Boolean).join(";") : ""
+    const normalizedPairs = rawGeometry.split(";").flatMap((pair: string) => {
       const [lng, lat] = pair.split(",").map(Number)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
       const [wgsLat, wgsLng] = gcj02ToWgs84(lat, lng)
-      return `${wgsLng},${wgsLat}`
-    }).join(";")
-    : undefined
+      return Number.isFinite(wgsLat) && Number.isFinite(wgsLng) ? [`${wgsLng},${wgsLat}`] : []
+    })
+    geometry = normalizedPairs.length ? normalizedPairs.join(";") : undefined
+  } catch { /* geometry is optional; distance and duration remain usable */ }
   return { distanceMeters, ...(Number.isFinite(durationSeconds) ? { durationSeconds } : {}), geometry, provider: "amap" as const }
 }
 
