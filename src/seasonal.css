@@ -78,27 +78,29 @@
 .seasonal-toggle{position:absolute;z-index:40;right:0;bottom:0;min-height:38px;padding:8px 12px;border:1px solid #f2d49b;border-radius:999px;background:#f5f0e8;color:#173839;box-shadow:4px 4px 0 #bd6346;font:700 11px 'Noto Serif SC';pointer-events:auto;white-space:nowrap;transition:transform .2s ease,box-shadow .2s ease}.seasonal-toggle:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 #bd6346}.seasonal-toggle:focus-visible{outline:3px solid #e8833b;outline-offset:3px}
 .seasonal-recommendations.is-collapsed{left:auto;right:5.4vw;bottom:22px;width:170px;height:42px;contain:layout style;pointer-events:auto}.seasonal-recommendations.is-collapsed .seasonal-toggle{right:0;bottom:0}
 @media(min-width:1281px){
-  .seasonal-recommendations.is-expanded{left:auto;right:5.4vw;bottom:42px;width:320px;height:260px;transform:none}
-  .seasonal-recommendations.is-expanded>header{width:145px;padding:8px 9px}
-  .seasonal-recommendations.is-expanded>header>div b{font-size:13px;line-height:1.35}
-  .seasonal-recommendations.is-expanded>header>small{display:none}
-  .seasonal-recommendations.is-expanded .seasonal-filter-dock{width:164px;padding:6px}
-  .seasonal-recommendations.is-expanded .seasonal-filter-dock button{padding:5px 3px;font-size:6px}
-  .seasonal-recommendations.is-expanded .seasonal-fan{inset:72px 0 0}
+  .world-hero:has(.seasonal-recommendations.is-expanded) .globe-stage{left:40%;transition:left .35s cubic-bezier(.2,.8,.2,1)}
+  .world-hero:has(.seasonal-recommendations.is-expanded) .world-progress{opacity:0;pointer-events:none}
+  .seasonal-recommendations.is-expanded{left:auto;right:2vw;bottom:34px;width:clamp(440px,28vw,520px);height:500px;padding:12px;background:#071d20e8;border:1px solid #8fa9a15c;box-shadow:8px 10px 0 #0a1416;transform:none}
+  .seasonal-recommendations.is-expanded>header{width:43%;padding:12px 13px}
+  .seasonal-recommendations.is-expanded>header>div b{font-size:17px;line-height:1.4}
+  .seasonal-recommendations.is-expanded>header>small{display:block}
+  .seasonal-recommendations.is-expanded .seasonal-filter-dock{width:52%;padding:8px}
+  .seasonal-recommendations.is-expanded .seasonal-filter-dock button{padding:6px 5px;font-size:7px}
+  .seasonal-recommendations.is-expanded .seasonal-fan{inset:110px 0 0}
   .seasonal-recommendations.is-expanded .fan-stack{height:auto;top:0;bottom:0}
-  .seasonal-recommendations.is-expanded .fan-card{width:110px;height:150px;bottom:0}
-  .seasonal-recommendations.is-expanded .fan-access{left:7px;top:8px;padding:3px 4px;font-size:4px}
-  .seasonal-recommendations.is-expanded .fan-copy{left:8px;right:8px;bottom:8px}
-  .seasonal-recommendations.is-expanded .fan-copy>b{font-size:12px}.seasonal-recommendations.is-expanded .fan-copy>i,.seasonal-recommendations.is-expanded .fan-copy>u{display:none}
-  .seasonal-recommendations.is-expanded .fan-wish{right:7px;bottom:7px;width:23px;height:23px;font-size:12px}
+  .seasonal-recommendations.is-expanded .fan-card{width:158px;height:214px;bottom:8px}
+  .seasonal-recommendations.is-expanded .fan-access{left:11px;top:12px;padding:5px 6px;font-size:5px}
+  .seasonal-recommendations.is-expanded .fan-copy{left:13px;right:40px;bottom:11px}
+  .seasonal-recommendations.is-expanded .fan-copy>b{font-size:14px}.seasonal-recommendations.is-expanded .fan-copy>i,.seasonal-recommendations.is-expanded .fan-copy>u{display:block}
+  .seasonal-recommendations.is-expanded .fan-wish{right:10px;bottom:10px;width:28px;height:28px;font-size:14px}
   .seasonal-recommendations.is-expanded .fan-controls{right:0;bottom:0;left:auto}
   .seasonal-recommendations.is-expanded .seasonal-toggle{top:-44px;bottom:auto}
 }
 @media(max-width:1280px) and (min-width:761px){
   .seasonal-recommendations.is-collapsed{right:2.5vw;bottom:18px}
-  .seasonal-recommendations.is-expanded{left:auto;right:2.5vw;bottom:34px;width:260px;height:244px;transform:none}
-  .seasonal-recommendations.is-expanded>header{width:126px;padding:7px 8px}.seasonal-recommendations.is-expanded>header>div b{font-size:12px}.seasonal-recommendations.is-expanded>header>small{display:none}
-  .seasonal-recommendations.is-expanded .seasonal-filter-dock{width:130px;padding:5px}.seasonal-recommendations.is-expanded .seasonal-filter-dock button{padding:4px 2px;font-size:5px}
-  .seasonal-recommendations.is-expanded .seasonal-fan{inset:68px 0 0}.seasonal-recommendations.is-expanded .fan-stack{height:auto;top:0;bottom:0}.seasonal-recommendations.is-expanded .fan-card{width:96px;height:136px;bottom:0}.seasonal-recommendations.is-expanded .fan-copy{left:7px;right:7px;bottom:7px}.seasonal-recommendations.is-expanded .fan-copy>b{font-size:11px}.seasonal-recommendations.is-expanded .fan-copy>i,.seasonal-recommendations.is-expanded .fan-copy>u{display:none}.seasonal-recommendations.is-expanded .fan-access{left:6px;top:6px;font-size:4px}.seasonal-recommendations.is-expanded .fan-wish{right:6px;bottom:6px;width:22px;height:22px}.seasonal-recommendations.is-expanded .fan-controls{right:0;bottom:0;left:auto}.seasonal-recommendations.is-expanded .seasonal-toggle{top:-44px;bottom:auto}
+  .seasonal-recommendations.is-expanded{left:auto;right:2.5vw;bottom:26px;width:360px;height:410px;padding:10px;background:#071d20e8;border:1px solid #8fa9a15c;box-shadow:7px 8px 0 #0a1416;transform:none}
+  .seasonal-recommendations.is-expanded>header{width:42%;padding:10px}.seasonal-recommendations.is-expanded>header>div b{font-size:15px}.seasonal-recommendations.is-expanded>header>small{display:none}
+  .seasonal-recommendations.is-expanded .seasonal-filter-dock{width:54%;padding:7px}.seasonal-recommendations.is-expanded .seasonal-filter-dock button{padding:5px 4px;font-size:6px}
+  .seasonal-recommendations.is-expanded .seasonal-fan{inset:94px 0 0}.seasonal-recommendations.is-expanded .fan-stack{height:auto;top:0;bottom:0}.seasonal-recommendations.is-expanded .fan-card{width:140px;height:190px;bottom:4px}.seasonal-recommendations.is-expanded .fan-copy{left:10px;right:34px;bottom:9px}.seasonal-recommendations.is-expanded .fan-copy>b{font-size:13px}.seasonal-recommendations.is-expanded .fan-copy>i,.seasonal-recommendations.is-expanded .fan-copy>u{display:none}.seasonal-recommendations.is-expanded .fan-access{left:8px;top:9px;font-size:5px}.seasonal-recommendations.is-expanded .fan-wish{right:8px;bottom:8px;width:25px;height:25px}.seasonal-recommendations.is-expanded .fan-controls{right:0;bottom:0;left:auto}.seasonal-recommendations.is-expanded .seasonal-toggle{top:-44px;bottom:auto}
 }
 @media(max-width:760px){.seasonal-recommendations.is-collapsed{left:auto;right:14px;bottom:72px;width:160px;height:42px}.seasonal-recommendations.is-expanded .seasonal-toggle{top:-44px;bottom:auto}}
