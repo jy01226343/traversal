@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from "react"
+import React, { useLayoutEffect, useRef, useState } from "react"
 import gsap from "gsap"
 import { getFreshnessLabel } from "./freshness"
 
@@ -11,6 +11,7 @@ const LAYERS = [
 
 export function GlobalAtmosphereSyncPanel({ loading, updatedAt, source, onSync, reducedMotion = false }) {
   const panelRef = useRef(null)
+  const [expanded, setExpanded] = useState(false)
   useLayoutEffect(() => {
     if (reducedMotion || !panelRef.current) return undefined
     const context = gsap.context(() => {
@@ -19,10 +20,15 @@ export function GlobalAtmosphereSyncPanel({ loading, updatedAt, source, onSync, 
     return () => context.revert()
   }, [reducedMotion])
   const status = loading ? "syncing" : updatedAt ? "fresh" : "unavailable"
-  return <aside ref={panelRef} className="atmosphere-sync tool-card" aria-live="polite">
-    <div className="atmosphere-sync-head"><span>LIVE ATMOSPHERE</span><button type="button" onClick={onSync} disabled={loading}>{loading ? "同步中" : "同步最新信息"}</button></div>
-    <b>全球旅行环境演算</b>
-    <ul>{LAYERS.map(([id, label, layerSource]) => <li key={id}><span>{label}</span><em className={`freshness freshness-${status}`}>{getFreshnessLabel(status)}</em><small>{id === "daylight" ? layerSource : source || "等待同步"}</small></li>)}</ul>
-    <p>{updatedAt ? `最后成功更新：${new Date(updatedAt).toLocaleString("zh-CN")}` : "尚无可用同步数据"}</p>
+  return <aside ref={panelRef} className={`atmosphere-sync tool-card ${expanded ? "is-expanded" : "is-collapsed"}`} aria-label="旅行环境同步工具" aria-live="polite">
+    <div className="atmosphere-sync-head">
+      <span><i className={`freshness-dot freshness-${status}`}/>LIVE ATMOSPHERE</span>
+      <button className="atmosphere-sync-toggle" type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? "收起" : "旅行环境"}</button>
+    </div>
+    {expanded && <div className="atmosphere-sync-details">
+      <div className="atmosphere-sync-title"><b>全球旅行环境演算</b><button type="button" onClick={onSync} disabled={loading}>{loading ? "同步中" : "同步最新信息"}</button></div>
+      <ul>{LAYERS.map(([id, label, layerSource]) => <li key={id}><span>{label}</span><em className={`freshness freshness-${status}`}>{getFreshnessLabel(status)}</em><small>{id === "daylight" ? layerSource : source || "等待同步"}</small></li>)}</ul>
+      <p>{updatedAt ? `最后成功更新：${new Date(updatedAt).toLocaleString("zh-CN")}` : "尚无可用同步数据"}</p>
+    </div>}
   </aside>
 }
