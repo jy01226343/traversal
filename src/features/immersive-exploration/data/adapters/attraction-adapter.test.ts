@@ -1,11 +1,11 @@
 /**
  * attraction-adapter 测试：
- * 策展覆盖（三件套）、关键词推断、未启用家族降级、time_event 挂靠与降级、推断失败 null。
+ * 策展覆盖（六件套）、关键词推断、time_event 挂靠与降级、推断失败 null。
  */
 
 import { describe, expect, it } from "vitest";
 import type { Attraction } from "../../../attraction-explorer/types";
-import { isImmersiveEligible, toExplorationEntity } from "./attraction-adapter";
+import { hasImmersiveScene, isImmersiveEligible, toExplorationEntity } from "./attraction-adapter";
 
 function makeAttraction(overrides: Partial<Attraction>): Attraction {
   return {
@@ -86,6 +86,95 @@ describe("toExplorationEntity · 策展覆盖（三件套）", () => {
   });
 });
 
+describe("toExplorationEntity · 策展覆盖（V2 新增三件套）", () => {
+  it("马赛马拉（官方 id ke-mara 命中）→ 配置化 entity", () => {
+    const entity = toExplorationEntity(
+      makeAttraction({
+        id: "ke-mara",
+        country_code: "KEN",
+        name: "马赛马拉国家保护区",
+        name_en: "Masai Mara",
+        category_l2: "野生动物",
+        tags: ["大迁徙", "摄影", "草原"],
+      }),
+    );
+    expect(entity).not.toBeNull();
+    expect(entity!.id).toBe("masai-mara");
+    expect(entity!.sceneFamily).toBe("wilderness");
+    expect(entity!.shape).toBe("area");
+    expect(entity!.sceneDefinitionId).toBe("scene-masai-mara");
+    expect(entity!.fallbackContentId).toBe("fallback-masai-mara");
+    expect(entity!.coordinates).toEqual({ lat: -1.4061, lng: 35.0117 });
+  });
+
+  it("塞伦盖蒂（官方 id tz-serengeti 命中）→ 同一 wilderness 配置化 entity", () => {
+    const entity = toExplorationEntity(
+      makeAttraction({
+        id: "tz-serengeti",
+        country_code: "TZA",
+        name: "塞伦盖蒂国家公园",
+        name_en: "Serengeti National Park",
+        category_l2: "野生动物",
+        tags: ["迁徙", "摄影"],
+      }),
+    );
+    expect(entity).not.toBeNull();
+    expect(entity!.id).toBe("masai-mara");
+    expect(entity!.sceneDefinitionId).toBe("scene-masai-mara");
+  });
+
+  it("东京晴空塔（官方 id 命中）→ 配置化 entity", () => {
+    const entity = toExplorationEntity(
+      makeAttraction({
+        id: "jp-kt-tokyo-skytree",
+        country_code: "JPN",
+        name: "东京晴空塔",
+        name_en: "Tokyo Skytree",
+        category_l1: "人文历史",
+        category_l2: "地标",
+        tags: ["夜景", "观景", "亲子", "城市"],
+      }),
+    );
+    expect(entity).not.toBeNull();
+    expect(entity!.id).toBe("tokyo-skytree");
+    expect(entity!.sceneFamily).toBe("human_city");
+    expect(entity!.shape).toBe("point");
+    expect(entity!.sceneDefinitionId).toBe("scene-tokyo-skytree");
+    expect(entity!.coordinates).toEqual({ lat: 35.7101, lng: 139.8107 });
+  });
+
+  it("独库公路（官方 id cn-xj-duku 命中）→ 配置化 entity", () => {
+    const entity = toExplorationEntity(
+      makeAttraction({
+        id: "cn-xj-duku",
+        country_code: "CHN",
+        name: "独库公路",
+        name_en: "Duku Highway",
+        category_l1: "户外极限",
+        category_l2: "自驾",
+        tags: ["史诗公路", "峡谷", "季节性"],
+      }),
+    );
+    expect(entity).not.toBeNull();
+    expect(entity!.id).toBe("duku-highway");
+    expect(entity!.sceneFamily).toBe("engineering_route");
+    expect(entity!.shape).toBe("route");
+    expect(entity!.sceneDefinitionId).toBe("scene-duku-highway");
+    expect(entity!.coordinates).toEqual({ lat: 43.0, lng: 84.5 });
+  });
+
+  it("名称命中（无官方 id）→ 同样进入策展覆盖", () => {
+    const skytree = toExplorationEntity(
+      makeAttraction({ id: "poi-xyz", name: "晴空塔夜景", name_en: "Tokyo Skytree Night", category_l2: "地标", tags: ["夜景"] }),
+    );
+    expect(skytree!.sceneDefinitionId).toBe("scene-tokyo-skytree");
+    const mara = toExplorationEntity(
+      makeAttraction({ id: "poi-abc", name: "Masai Mara Reserve", name_en: "Masai Mara Reserve", category_l2: "野生动物", tags: [] }),
+    );
+    expect(mara!.sceneDefinitionId).toBe("scene-masai-mara");
+  });
+});
+
 describe("toExplorationEntity · 关键词推断", () => {
   it("通用山地（玉龙雪山）→ mountain + generic 场景 id", () => {
     const a = makeAttraction({
@@ -137,7 +226,7 @@ describe("toExplorationEntity · 关键词推断", () => {
     expect(entity!.shape).toBe("route");
   });
 
-  it("城市博物馆 → human_city 且不可沉浸", () => {
+  it("城市博物馆 → human_city 且可沉浸（家族已启用）", () => {
     const a = makeAttraction({
       id: "city-museum",
       name: "市立博物馆",
@@ -149,10 +238,10 @@ describe("toExplorationEntity · 关键词推断", () => {
     expect(entity).not.toBeNull();
     expect(entity!.sceneFamily).toBe("human_city");
     expect(entity!.sceneDefinitionId).toBe("scene-human_city-generic");
-    expect(isImmersiveEligible(a)).toBe(false);
+    expect(isImmersiveEligible(a)).toBe(true);
   });
 
-  it("草原 → wilderness（area）且不可沉浸", () => {
+  it("草原 → wilderness（area）且可沉浸（家族已启用）", () => {
     const a = makeAttraction({
       id: "hulunbuir",
       name: "呼伦贝尔草原",
@@ -163,10 +252,10 @@ describe("toExplorationEntity · 关键词推断", () => {
     expect(entity).not.toBeNull();
     expect(entity!.sceneFamily).toBe("wilderness");
     expect(entity!.shape).toBe("area");
-    expect(isImmersiveEligible(a)).toBe(false);
+    expect(isImmersiveEligible(a)).toBe(true);
   });
 
-  it("超级工程（桥梁）→ engineering_route 且不可沉浸", () => {
+  it("超级工程（桥梁）→ engineering_route 且可沉浸（家族已启用）", () => {
     const a = makeAttraction({
       id: "sea-bridge",
       name: "某跨海大桥",
@@ -177,7 +266,7 @@ describe("toExplorationEntity · 关键词推断", () => {
     const entity = toExplorationEntity(a);
     expect(entity).not.toBeNull();
     expect(entity!.sceneFamily).toBe("engineering_route");
-    expect(isImmersiveEligible(a)).toBe(false);
+    expect(isImmersiveEligible(a)).toBe(true);
   });
 
   it("无任何关键词命中 → null（走标准图文降级）", () => {
@@ -223,5 +312,24 @@ describe("toExplorationEntity · time_event 挂靠与降级", () => {
     expect(entity!.shape).toBe("time_event");
     expect(entity!.hostEntityId).toBeUndefined();
     expect(isImmersiveEligible(a)).toBe(false);
+  });
+});
+
+describe("hasImmersiveScene · 「3D」徽标判定（与 resolveImmersiveTarget 等价）", () => {
+  it("黄金样例 POI（富士山 / 晴空塔 / 独库公路）→ true", () => {
+    expect(hasImmersiveScene(makeAttraction({ id: "mount-fuji", name: "富士山", category_l2: "火山", tags: ["登山"] }))).toBe(true);
+    expect(hasImmersiveScene(makeAttraction({ id: "jp-kt-tokyo-skytree", name: "东京晴空塔", category_l1: "人文历史", category_l2: "地标", tags: ["夜景"] }))).toBe(true);
+    expect(hasImmersiveScene(makeAttraction({ id: "cn-xj-duku", name: "独库公路", category_l1: "户外极限", category_l2: "自驾", tags: ["峡谷"] }))).toBe(true);
+  });
+
+  it("generic 家族推断（玉龙雪山 → scene-mountain-generic）→ false", () => {
+    const a = makeAttraction({ id: "yulong-snow-mountain", name: "玉龙雪山", category_l2: "雪山", tags: ["登山"] });
+    expect(isImmersiveEligible(a)).toBe(true); // 家族可沉浸，但无 3D 实景场景
+    expect(hasImmersiveScene(a)).toBe(false);
+  });
+
+  it("time_event（富士山红叶季）→ false；推断失败 → false", () => {
+    expect(hasImmersiveScene(makeAttraction({ id: "fuji-momiji-season", name: "富士山红叶季", category_l2: "红叶", tags: ["红叶"] }))).toBe(false);
+    expect(hasImmersiveScene(makeAttraction({ id: "viral-wall", name: "网红打卡墙", category_l1: "网红奇观", category_l2: "打卡点", tags: ["拍照"] }))).toBe(false);
   });
 });

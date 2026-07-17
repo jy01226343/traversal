@@ -22,11 +22,14 @@ export type SceneFamily =
   | "human_city"
   | "engineering_route";
 
-/** 首期启用的场景家族（§1 冻结规则） */
+/** 首期启用的场景家族（§1 冻结规则）；V2 起六大家族全部启用 */
 export const ENABLED_SCENE_FAMILIES: readonly SceneFamily[] = [
   "mountain",
   "waterside",
   "underwater",
+  "wilderness",
+  "human_city",
+  "engineering_route",
 ] as const;
 
 export type ExplorationChannel =

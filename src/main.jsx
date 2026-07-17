@@ -38,7 +38,7 @@ import { DestinationLivePanel } from './features/live-data/DestinationLivePanel'
 import { AtlasSearchOverlay } from './features/search/AtlasSearchOverlay';
 import { buildAtlasSearchIndex, dedupeRecentSearches } from './features/search/search-index';
 import { MobileAtlasShell } from './features/mobile-explore/MobileAtlasShell';
-import { resolveImmersiveTarget, resolveImmersiveTargetByEntityId } from './features/immersive-exploration/data/resolve-immersive-target';
+import { resolveImmersiveTarget } from './features/immersive-exploration/data/resolve-immersive-target';
 import { isImmersiveExplorationEnabled } from './features/immersive-exploration/config';
 import { fetchDestinationLiveData } from './features/live-data/destination-live';
 // 沉浸层按需加载（three.js 场景代码分割，点击入口时才下载）
@@ -831,22 +831,6 @@ function App() {
     exitImmersive();
     addSelectedAttractionToJourney(); // 选中对象在沉浸期间保持，直接复用现有 Journey 流程
   };
-  // 快捷验收入口：?ix=mount-fuji | lake-toya | maldives-coral-garden 直达沉浸场景
-  React.useEffect(() => {
-    const entityId = new URLSearchParams(window.location.search).get('ix');
-    if (!entityId || !isImmersiveExplorationEnabled()) return;
-    let target = null;
-    try { target = resolveImmersiveTargetByEntityId(entityId); } catch { target = null; }
-    if (!target) return;
-    immersiveSnapshotRef.current = { mapLevel, continent, activeCountry, activeRegion, selectedAttractionId, attractionMapView, mobileDetent };
-    setImmersiveSession({ target, liveSnapshot: null, plannedMonth: null });
-    const coords = target.entity.coordinates;
-    if (coords) {
-      fetchDestinationLiveData({ name: target.entity.name, lat: coords.lat, lng: coords.lng })
-        .then(snapshot => setImmersiveSession(current => current ? { ...current, liveSnapshot: snapshot } : current))
-        .catch(() => { /* 实况不可用 → 典型预览口径，不阻塞 */ });
-    }
-  }, []);
   const semanticFilterEnabled = import.meta.env.VITE_SEMANTIC_FILTER_ENABLED === 'true';
   const recentSearches = React.useMemo(() => recentSearchIds.map(id => searchIndex.find(item => item.id === id)).filter(Boolean), [recentSearchIds, searchIndex]);
   const openSearch = () => { setSearchQuery(''); setSearchOpen(true); };

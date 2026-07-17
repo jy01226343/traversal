@@ -1,6 +1,6 @@
 /**
  * SCENES 测试（jsdom 无 WebGL）：
- * - 注册表命中 / 未启用家族返回 null
+ * - 注册表命中：六大家族均返回各自不同的工厂
  * - 契约语义节点名握手（防止工厂内节点名打错）
  * - shared 纯函数：positionRef 解析、锚点节点名映射、visual 参数读取、pixelRatio 档位
  *
@@ -32,30 +32,37 @@ import {
 import { MOUNTAIN_NODE_NAMES } from "./mountain/MountainScene"
 import { WATERSIDE_NODE_NAMES } from "./waterside/WatersideScene"
 import { UNDERWATER_NODE_NAMES } from "./underwater/UnderwaterScene"
+import { WILDERNESS_NODE_NAMES } from "./wilderness/WildernessScene"
+import { HUMAN_CITY_NODE_NAMES } from "./human_city/HumanCityScene"
+import { ENGINEERING_ROUTE_NODE_NAMES } from "./engineering_route/EngineeringRouteScene"
 import type { ActivityDefinition, SceneAnchorDefinition } from "../domain/types"
 
 // ---------------------------------------------------------------- 注册表
 
 describe("getSceneFactory", () => {
-  it("mountain / waterside / underwater 返回工厂函数", () => {
+  it("六大家族均返回工厂函数", () => {
     expect(typeof getSceneFactory("mountain")).toBe("function")
     expect(typeof getSceneFactory("waterside")).toBe("function")
     expect(typeof getSceneFactory("underwater")).toBe("function")
+    expect(typeof getSceneFactory("wilderness")).toBe("function")
+    expect(typeof getSceneFactory("human_city")).toBe("function")
+    expect(typeof getSceneFactory("engineering_route")).toBe("function")
   })
 
-  it("三个家族返回各自不同的工厂", () => {
-    const mountain = getSceneFactory("mountain")
-    const waterside = getSceneFactory("waterside")
-    const underwater = getSceneFactory("underwater")
-    expect(mountain).not.toBe(waterside)
-    expect(waterside).not.toBe(underwater)
-    expect(mountain).not.toBe(underwater)
-  })
-
-  it("未启用家族 wilderness / human_city / engineering_route 返回 null", () => {
-    expect(getSceneFactory("wilderness")).toBeNull()
-    expect(getSceneFactory("human_city")).toBeNull()
-    expect(getSceneFactory("engineering_route")).toBeNull()
+  it("六个家族返回各自不同的工厂", () => {
+    const factories = [
+      getSceneFactory("mountain"),
+      getSceneFactory("waterside"),
+      getSceneFactory("underwater"),
+      getSceneFactory("wilderness"),
+      getSceneFactory("human_city"),
+      getSceneFactory("engineering_route"),
+    ]
+    for (let i = 0; i < factories.length; i += 1) {
+      for (let j = i + 1; j < factories.length; j += 1) {
+        expect(factories[i]).not.toBe(factories[j])
+      }
+    }
   })
 })
 
@@ -77,6 +84,24 @@ describe("语义节点名握手（CONTRACT.md §SCENES）", () => {
   it("underwater 节点名与契约一致", () => {
     expect([...UNDERWATER_NODE_NAMES].sort()).toEqual(
       ["entry_point", "reef_flat", "coral_garden", "seagrass", "cave", "drop_off", "fish_school", "turtle_zone", "boat_channel", "risk_current"].sort(),
+    )
+  })
+
+  it("wilderness 节点名与契约一致", () => {
+    expect([...WILDERNESS_NODE_NAMES].sort()).toEqual(
+      ["waterhole", "acacia_grove", "grassland_sea", "herd_zone", "safari_loop", "viewpoint_a", "kopje_rocks", "risk_fire_zone"].sort(),
+    )
+  })
+
+  it("human_city 节点名与契约一致", () => {
+    expect([...HUMAN_CITY_NODE_NAMES].sort()).toEqual(
+      ["landmark_tower", "skyline_cluster", "river_promenade", "night_view_deck", "street_market", "viewpoint_a", "historic_block", "risk_crowd_zone"].sort(),
+    )
+  })
+
+  it("engineering_route 节点名与契约一致", () => {
+    expect([...ENGINEERING_ROUTE_NODE_NAMES].sort()).toEqual(
+      ["route_main", "bridge_node", "tunnel_node", "pass_summit", "viewpoint_a", "service_stop", "risk_rockfall_zone", "scenic_spur"].sort(),
     )
   })
 })

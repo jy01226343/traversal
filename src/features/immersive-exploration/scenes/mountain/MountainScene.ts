@@ -33,12 +33,14 @@ import {
   createCloudPuffTexture,
   createNamedNode,
   createRadialGlowTexture,
+  fbm2D,
   hashNoise,
   lerp,
   matchesAnyKeyword,
   nodeNamesFromRef,
   normalizeUnitInterval,
   resolveActionTargetNodeNames,
+  ridged2D,
   smoothstep,
   visualColor,
   visualFlag,
@@ -83,6 +85,28 @@ function radiusAtHeight(y: number): number {
     if (y <= h1) return lerp(r0, r1, (y - h0) / (h1 - h0 || Number.EPSILON))
   }
   return PROFILE[PROFILE.length - 1][0]
+}
+
+// ---------------------------------------------------------------- 山体侵蚀位移（V1.4 商业级山体）
+
+/**
+ * 多倍频噪声位移：大尺度山腹鼓出 + 中频岩壁起伏 − 脊线噪声刻出的放射状冲沟。
+ * 输出约 -1..1（底部与火山口缘收敛，保持富士式剪影可辨）。
+ */
+function erosionDisplacement(y: number, angle: number): number {
+  const frac = clamp01(y / SUMMIT_Y)
+  const dx = Math.cos(angle)
+  const dz = Math.sin(angle)
+  const large = fbm2D(dx * 1.35 + 7.7, dz * 1.35 + 3.1, 3) - 0.5
+  const mid = fbm2D(dx * 3.2 + frac * 2.8, dz * 3.2 + 11.7, 4) - 0.5
+  const gully = ridged2D(dx * 2.3 + 5.5, dz * 2.3 + frac * 5.4, 3)
+  const amp = smoothstep(0.02, 0.22, frac) * (1 - smoothstep(0.84, 1, frac) * 0.55)
+  return (large * 1.1 + mid * 0.55 - gully * 1.05) * amp
+}
+
+/** 含位移的山体表面半径（angle 为 atan2(x,z) 方位角）：登山道/雪线/植被/闪光点统一贴地。 */
+function surfaceRadiusAtHeight(y: number, angle: number): number {
+  return Math.max(0.03, radiusAtHeight(y) * (1 + erosionDisplacement(y, angle) * 0.24))
 }
 
 // ---------------------------------------------------------------- 光照调色板（按一天时刻 t∈[0,1] 插值）
@@ -155,7 +179,12 @@ interface HighlightTarget {
 }
 
 export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: ImmersiveSceneDefinition): SceneHandle {
-  const session = new SceneSession({ canvas, sceneDef, controls: { minDistance: 7, maxDistance: 55, maxPolarAngle: Math.PI * 0.54 } })
+  const session = new SceneSession({
+    canvas,
+    sceneDef,
+    controls: { minDistance: 7, maxDistance: 55, maxPolarAngle: Math.PI * 0.54 },
+    bloom: { strength: 0.3, radius: 0.5, threshold: 0.72 },
+  })
   const { scene } = session
 
   // ================================================================ 天空穹顶 + 雾 + 灯光
@@ -256,9 +285,35 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
   })
   scene.add(ridgeGroup)
 
-  // ================================================================ 火山锥（顶点色三段材质）
-  const lathePoints = PROFILE.map(([r, h]) => new THREE.Vector2(r, h))
-  const mountainGeometry = new THREE.LatheGeometry(lathePoints, 128)
+  // ================================================================ 火山锥（高段数位移山体 + 坡度/高度混合顶点色）
+  // 剖面重采样（垂直分辨率支撑中频噪声），再多倍频噪声径向位移 + 沟壑侵蚀
+  const LATHE_SEGMENTS = session.quality === "high" ? 168 : session.quality === "standard" ? 128 : 88
+  const PROFILE_SAMPLES = session.quality === "low" ? 18 : 28
+  const lathePoints: THREE.Vector2[] = []
+  for (let i = 0; i <= PROFILE_SAMPLES; i += 1) {
+    const h = (i / PROFILE_SAMPLES) * 6.4
+    lathePoints.push(new THREE.Vector2(radiusAtHeight(h), h))
+  }
+  // 火山口碗（剖面尾部精确还原）
+  lathePoints.push(new THREE.Vector2(1.05, 7.15), new THREE.Vector2(0.85, 6.9), new THREE.Vector2(0.0, 6.55))
+  const mountainGeometry = new THREE.LatheGeometry(lathePoints, LATHE_SEGMENTS)
+  {
+    // 径向位移（火山口碗与中心轴不动），位移后重算法线
+    const pos = mountainGeometry.attributes.position as THREE.BufferAttribute
+    for (let i = 0; i < pos.count; i += 1) {
+      const x = pos.getX(i)
+      const y = pos.getY(i)
+      const z = pos.getZ(i)
+      const r0 = Math.hypot(x, z)
+      if (r0 > 0.4 && y < 6.85) {
+        const angle = Math.atan2(x, z)
+        const k = surfaceRadiusAtHeight(y, angle) / r0
+        pos.setX(i, x * k)
+        pos.setZ(i, z * k)
+      }
+    }
+    mountainGeometry.computeVertexNormals()
+  }
   const mountainMaterial = new THREE.MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.95,
@@ -275,9 +330,10 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
   const SNOW_COLOR = new THREE.Color(0xe8eef2)
   const CRATER_COLOR = new THREE.Color(0x4a423b)
 
-  /** 重算顶点色：vegColor 植被带 / snowStartFrac 雪线起点（高度占比） */
+  /** 重算顶点色：vegColor 植被带 / snowStartFrac 雪线起点（高度占比）；坡度因子混合雪-岩-草 */
   function paintMountain(vegColor: THREE.Color, snowStartFrac: number): void {
     const position = mountainGeometry.attributes.position as THREE.BufferAttribute
+    const normal = mountainGeometry.attributes.normal as THREE.BufferAttribute
     const colors = new Float32Array(position.count * 3)
     const color = new THREE.Color()
     for (let i = 0; i < position.count; i += 1) {
@@ -286,14 +342,20 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
       const z = position.getZ(i)
       const r = Math.hypot(x, z)
       const frac = clamp01(y / SUMMIT_Y)
-      const variation = 0.9 + 0.2 * hashNoise(x * 1.7, z * 1.7)
+      const slope = normal ? 1 - normal.getY(i) : 0 // 0 平缓 → 1 陡峭
+      const crevice = clamp01(-erosionDisplacement(y, Math.atan2(x, z))) // 冲沟背光变暗
+      const variation = (0.88 + 0.24 * hashNoise(x * 1.7, z * 1.7)) * (1 - crevice * 0.28)
       if (y > 6.4 && r < 1.0) {
         color.copy(CRATER_COLOR)
       } else {
-        // 植被带 → 岩壁
-        color.copy(vegColor).lerp(ROCK_COLOR, smoothstep(0.28, 0.5, frac))
-        // 岩壁 → 雪顶
-        color.lerp(SNOW_COLOR, smoothstep(snowStartFrac, Math.min(snowStartFrac + 0.09, 1), frac))
+        // 坡度/高度双因子：缓坡低处草灌带，陡坡与高处出露岩壁
+        const rockT = clamp01(smoothstep(0.26, 0.5, frac) + smoothstep(0.3, 0.62, slope) * 0.7)
+        color.copy(vegColor).lerp(ROCK_COLOR, rockT)
+        // 岩壁 → 雪顶：陡坡挂不住雪，雪带随坡度变薄
+        const snowT =
+          smoothstep(snowStartFrac, Math.min(snowStartFrac + 0.09, 1), frac) *
+          (1 - smoothstep(0.5, 0.85, slope) * 0.45)
+        color.lerp(SNOW_COLOR, snowT)
       }
       color.multiplyScalar(variation)
       colors[i * 3] = color.r
@@ -317,11 +379,12 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
   // ================================================================ 雪线环
   const snowLineMaterial = new THREE.LineBasicMaterial({ color: 0xdfe9f2, transparent: true, opacity: 0.65 })
   function buildSnowLineGeometry(snowY: number): THREE.BufferGeometry {
-    const radius = radiusAtHeight(snowY) + 0.06
     const points: THREE.Vector3[] = []
     for (let i = 0; i <= 96; i += 1) {
       const a = (i / 96) * Math.PI * 2
-      points.push(new THREE.Vector3(Math.cos(a) * radius, snowY, Math.sin(a) * radius))
+      // 贴地雪线：逐方位角取位移后表面半径（与山体噪声同源）
+      const radius = surfaceRadiusAtHeight(snowY, a) + 0.07
+      points.push(new THREE.Vector3(Math.sin(a) * radius, snowY, Math.cos(a) * radius))
     }
     return new THREE.BufferGeometry().setFromPoints(points)
   }
@@ -354,10 +417,10 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
       const angle = hashNoise(i, 3.3) * Math.PI * 2
       const frac = snowFrac + 0.02 + hashNoise(i, 5.7) * Math.max(0.02, 0.96 - snowFrac)
       const y = frac * SUMMIT_Y
-      const r = radiusAtHeight(y) + 0.06
-      sparklePositions[i * 3] = Math.cos(angle) * r
+      const r = surfaceRadiusAtHeight(y, angle) + 0.07
+      sparklePositions[i * 3] = Math.sin(angle) * r
       sparklePositions[i * 3 + 1] = y
-      sparklePositions[i * 3 + 2] = Math.sin(angle) * r
+      sparklePositions[i * 3 + 2] = Math.cos(angle) * r
     }
     ;(sparkleGeometry.attributes.position as THREE.BufferAttribute).needsUpdate = true
   }
@@ -375,7 +438,7 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
   cloudSeaB.position.y = 1.5
   scene.add(cloudSeaA, cloudSeaB)
 
-  // 柔光云团 sprite：程序化团簇纹理，缓慢绕山漂移 + 透明度脉动（quality=low 整层关闭）
+  // 柔光云团 sprite：双层团簇纹理 + 上下叠层（体积感层次），缓慢绕山漂移 + 透明度脉动
   interface CloudSprite {
     sprite: THREE.Sprite
     material: THREE.SpriteMaterial
@@ -386,34 +449,40 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
     phase: number
     baseOpacity: number
   }
-  const cloudPuffTexture = createCloudPuffTexture(128)
+  const cloudPuffTextureA = createCloudPuffTexture(128, 8)
+  const cloudPuffTextureB = createCloudPuffTexture(128, 14)
   const cloudSprites: CloudSprite[] = []
-  for (let i = 0; i < 18; i += 1) {
+  function addCloudSprite(index: number, layer: 0 | 1): void {
     const material = new THREE.SpriteMaterial({
-      map: cloudPuffTexture,
+      map: index % 2 === 0 ? cloudPuffTextureA : cloudPuffTextureB,
       color: 0xdfe8f0,
       transparent: true,
       opacity: 0.28,
       depthWrite: false,
     })
     const sprite = new THREE.Sprite(material)
-    const scale = 4 + hashNoise(i, 2.3) * 5
-    sprite.scale.set(scale, scale * 0.52, 1)
+    const scale = (4 + hashNoise(index, 2.3) * 5) * (layer === 0 ? 1 : 1.45)
+    sprite.scale.set(scale, scale * (layer === 0 ? 0.52 : 0.38), 1)
     cloudSprites.push({
       sprite,
       material,
-      baseAngle: hashNoise(i, 1.3) * Math.PI * 2,
-      radius: 15 + hashNoise(i, 3.7) * 26,
-      y: 1.5 + hashNoise(i, 5.1) * 1.5,
-      speed: 6 + hashNoise(i, 7.9) * 8, // 弧度/千秒级，极缓慢漂移
-      phase: hashNoise(i, 9.7) * Math.PI * 2,
-      baseOpacity: 0.2 + hashNoise(i, 11.3) * 0.16,
+      baseAngle: hashNoise(index, 1.3) * Math.PI * 2 + layer * 0.22,
+      radius: 15 + hashNoise(index, 3.7) * 26 + layer * 1.6,
+      // 双层云底/云腰叠放，云海上沿出现厚度
+      y: 1.4 + hashNoise(index, 5.1) * 1.7 + layer * 0.55,
+      speed: (6 + hashNoise(index, 7.9) * 8) * (layer === 0 ? 1 : 0.7),
+      phase: hashNoise(index, 9.7) * Math.PI * 2 + layer * 1.9,
+      baseOpacity: (0.2 + hashNoise(index, 11.3) * 0.16) * (layer === 0 ? 1 : 0.55),
     })
     scene.add(sprite)
   }
+  for (let i = 0; i < 22; i += 1) {
+    addCloudSprite(i, 0)
+    if (i % 3 === 0) addCloudSprite(i, 1) // 1/3 云团带底层垫云，云海更具体积感
+  }
 
-  // ================================================================ 高山植被（InstancedMesh）
-  const TREE_COUNT = 170
+  // ================================================================ 高山植被（InstancedMesh，贴地位移面）
+  const TREE_COUNT = 190
   const treeGeometry = new THREE.ConeGeometry(0.5, 1.25, 6)
   const treeMaterial = new THREE.MeshStandardMaterial({ color: 0x2e4a2e, roughness: 1, flatShading: true })
   const trees = new THREE.InstancedMesh(treeGeometry, treeMaterial, TREE_COUNT)
@@ -427,9 +496,9 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
       const angle = hashNoise(i, 7.3) * Math.PI * 2
       const frac = 0.04 + hashNoise(i, 3.1) * 0.36
       const y = frac * SUMMIT_Y
-      const r = radiusAtHeight(y) + 0.12
+      const r = surfaceRadiusAtHeight(y, angle) + 0.12
       const s = 0.5 + hashNoise(i, 11.7) * 0.55
-      pos.set(Math.cos(angle) * r, y + 0.4 * s, Math.sin(angle) * r)
+      pos.set(Math.sin(angle) * r, y + 0.4 * s, Math.cos(angle) * r)
       quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), hashNoise(i, 5.5) * Math.PI)
       scl.setScalar(s)
       matrix.compose(pos, quat, scl)
@@ -456,14 +525,14 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
     return { line, material }
   }
 
-  // 登山主路线：螺旋上攀至火山口
+  // 登山主路线：螺旋上攀至火山口（逐点贴位移后山面）
   const mainTrailPoints: THREE.Vector3[] = []
   for (let i = 0; i <= 13; i += 1) {
     const frac = i / 13
     const y = 0.15 + frac * 6.95
     const angle = 2.5 - frac * 3.7
-    const r = radiusAtHeight(y) + 0.22
-    mainTrailPoints.push(new THREE.Vector3(Math.cos(angle) * r, y, Math.sin(angle) * r))
+    const r = surfaceRadiusAtHeight(y, angle) + 0.14
+    mainTrailPoints.push(new THREE.Vector3(Math.sin(angle) * r, y + 0.04, Math.cos(angle) * r))
   }
   const mainTrail = buildTrailLine(mainTrailPoints, 0xffb35c)
   mainTrail.line.name = "trail_main_line"
@@ -563,7 +632,23 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
     riskSlopeMaterial,
   )
   riskSlope.name = "risk_slope_overlay"
-  riskSlope.scale.set(1.018, 1.004, 1.018)
+  {
+    // 与本体同源位移后再略放大，警示面贴合坡面不陷入
+    const pos = riskSlope.geometry.attributes.position as THREE.BufferAttribute
+    for (let i = 0; i < pos.count; i += 1) {
+      const x = pos.getX(i)
+      const y = pos.getY(i)
+      const z = pos.getZ(i)
+      const r0 = Math.hypot(x, z)
+      if (r0 > 0.4 && y < 6.85) {
+        const angle = Math.atan2(x, z)
+        const k = surfaceRadiusAtHeight(y, angle) / r0
+        pos.setX(i, x * k * 1.012)
+        pos.setZ(i, z * k * 1.012)
+      }
+    }
+    riskSlope.geometry.computeVertexNormals()
+  }
   scene.add(riskSlope)
 
   const ROCKFALL_COUNT = 30
@@ -604,7 +689,7 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
   const snowLineNode = node("snow_line", 0, 4.4, 0, 0.85)
 
   function placeSnowLineNode(snowY: number): void {
-    const r = radiusAtHeight(snowY) + 0.15
+    const r = surfaceRadiusAtHeight(snowY, Math.PI / 4) + 0.25
     snowLineNode.position.set(r * 0.72, snowY + 0.18, r * 0.72)
     session.markers.moveMarker("snow_line", snowLineNode.position)
   }
@@ -931,19 +1016,27 @@ export function createMountainScene(canvas: HTMLCanvasElement, sceneDef: Immersi
           rockfallAzimuth[i] = -0.5 + hashNoise(i, time * 0.001) * 1.15
         }
         const y = lerp(5.8, 0.5, rockfallProgress[i])
-        const r = radiusAtHeight(y) + 0.28
-        rockfallPositions[i * 3] = Math.cos(rockfallAzimuth[i]) * r
+        const r = surfaceRadiusAtHeight(y, rockfallAzimuth[i]) + 0.28
+        rockfallPositions[i * 3] = Math.sin(rockfallAzimuth[i]) * r
         rockfallPositions[i * 3 + 1] = y
-        rockfallPositions[i * 3 + 2] = Math.sin(rockfallAzimuth[i]) * r
+        rockfallPositions[i * 3 + 2] = Math.cos(rockfallAzimuth[i]) * r
       }
       ;(rockfallGeometry.attributes.position as THREE.BufferAttribute).needsUpdate = true
     }
   })
 
-  // quality=low 关粒子
-  session.onQualityChange(() => applyVisualState())
+  // quality 三档差异：粒子量（树木实例数 / 闪光点 drawRange）+ low 档整层关云团/闪光/落石
+  function applyQualityTier(q: "high" | "standard" | "low"): void {
+    trees.count = q === "high" ? TREE_COUNT : q === "standard" ? Math.floor(TREE_COUNT * 0.7) : Math.floor(TREE_COUNT * 0.4)
+    sparkleGeometry.setDrawRange(0, q === "high" ? SPARKLE_COUNT : q === "standard" ? 80 : 40)
+  }
+  session.onQualityChange(q => {
+    applyQualityTier(q)
+    applyVisualState()
+  })
 
   // ================================================================ 初始渲染
+  applyQualityTier(session.quality)
   applyVisualState()
   session.requestRender() // mount 即完成首帧
 

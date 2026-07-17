@@ -24,7 +24,7 @@ import {
 
 // ---------------------------------------------------------------- 契约节点名（冻结，与 CONTRACT §SCENES 一致）
 
-export const CONTRACT_NODE_NAMES: Record<"mountain" | "waterside" | "underwater", readonly string[]> = {
+export const CONTRACT_NODE_NAMES: Record<SceneFamily, readonly string[]> = {
   mountain: [
     "peak",
     "crater",
@@ -60,6 +60,36 @@ export const CONTRACT_NODE_NAMES: Record<"mountain" | "waterside" | "underwater"
     "boat_channel",
     "risk_current",
   ],
+  wilderness: [
+    "waterhole",
+    "acacia_grove",
+    "grassland_sea",
+    "herd_zone",
+    "safari_loop",
+    "viewpoint_a",
+    "kopje_rocks",
+    "risk_fire_zone",
+  ],
+  human_city: [
+    "landmark_tower",
+    "skyline_cluster",
+    "river_promenade",
+    "night_view_deck",
+    "street_market",
+    "viewpoint_a",
+    "historic_block",
+    "risk_crowd_zone",
+  ],
+  engineering_route: [
+    "route_main",
+    "bridge_node",
+    "tunnel_node",
+    "pass_summit",
+    "viewpoint_a",
+    "service_stop",
+    "risk_rockfall_zone",
+    "scenic_spur",
+  ],
 } as const;
 
 /** 水下进入叙事六拍（契约冻结，逐字匹配） */
@@ -89,7 +119,7 @@ export function validateSceneConfig(
   const errors: string[] = [];
   const prefix = `[${scene.id}]`;
 
-  const nodeNames = CONTRACT_NODE_NAMES[scene.family as keyof typeof CONTRACT_NODE_NAMES];
+  const nodeNames = CONTRACT_NODE_NAMES[scene.family];
   if (!nodeNames) {
     errors.push(`${prefix} family "${scene.family}" 无契约节点名集合（首期仅启用 mountain/waterside/underwater）`);
     return errors;
@@ -261,7 +291,7 @@ export function validateGoldenSamples(): string[] {
   return errors;
 }
 
-// 供外部按 family 查询契约节点名（类型收敛到已启用家族）
+// 供外部按 family 查询契约节点名（六家族全覆盖）
 export function getContractNodeNames(family: SceneFamily): readonly string[] {
-  return CONTRACT_NODE_NAMES[family as keyof typeof CONTRACT_NODE_NAMES] ?? [];
+  return CONTRACT_NODE_NAMES[family] ?? [];
 }

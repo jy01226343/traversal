@@ -9,7 +9,7 @@
 import type { Attraction } from "../../attraction-explorer/types";
 import type { ExplorationEntity, ImmersiveSceneDefinition } from "../domain/types";
 import { toExplorationEntity } from "./adapters/attraction-adapter";
-import { GOLDEN_ENTITIES, getSceneDefinition } from "./scene-configs";
+import { getSceneDefinition } from "./scene-configs";
 
 export interface ImmersiveTarget {
   entity: ExplorationEntity;
@@ -18,18 +18,6 @@ export interface ImmersiveTarget {
 
 export function resolveImmersiveTarget(attraction: Attraction): ImmersiveTarget | null {
   const entity = toExplorationEntity(attraction);
-  if (!entity) return null;
-  const scene = getSceneDefinition(entity.sceneDefinitionId);
-  if (!scene) return null;
-  return { entity, scene };
-}
-
-/**
- * 快捷验收入口：直接按黄金样例 entityId（如 "mount-fuji"）构造目标，
- * 跳过 Attraction 适配——供 ?ix=<entityId> 直达链接使用。
- */
-export function resolveImmersiveTargetByEntityId(entityId: string): ImmersiveTarget | null {
-  const entity = GOLDEN_ENTITIES[entityId];
   if (!entity) return null;
   const scene = getSceneDefinition(entity.sceneDefinitionId);
   if (!scene) return null;

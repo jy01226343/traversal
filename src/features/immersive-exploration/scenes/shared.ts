@@ -11,6 +11,10 @@
  */
 import * as THREE from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js"
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js"
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js"
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js"
 import type {
   ActivityDefinition,
   CameraPreset,
@@ -166,6 +170,41 @@ export function easeInOutCubic(t: number): number {
 export function hashNoise(x: number, z: number): number {
   const s = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453
   return s - Math.floor(s)
+}
+
+/** 平滑值噪声（双线性 + smoothstep 插值，输出 0..1，确定性）。 */
+export function valueNoise2D(x: number, z: number): number {
+  const xi = Math.floor(x)
+  const zi = Math.floor(z)
+  const xf = x - xi
+  const zf = z - zi
+  const u = xf * xf * (3 - 2 * xf)
+  const v = zf * zf * (3 - 2 * zf)
+  return lerp(
+    lerp(hashNoise(xi, zi), hashNoise(xi + 1, zi), u),
+    lerp(hashNoise(xi, zi + 1), hashNoise(xi + 1, zi + 1), u),
+    v,
+  )
+}
+
+/** 多倍频分形噪声（fbm，输出 0..1）：山体位移 / 海岸线 / 地形起伏用。 */
+export function fbm2D(x: number, z: number, octaves = 4, lacunarity = 2, gain = 0.5): number {
+  let amplitude = 0.5
+  let frequency = 1
+  let sum = 0
+  let norm = 0
+  for (let i = 0; i < octaves; i += 1) {
+    sum += valueNoise2D(x * frequency, z * frequency) * amplitude
+    norm += amplitude
+    amplitude *= gain
+    frequency *= lacunarity
+  }
+  return sum / (norm || Number.EPSILON)
+}
+
+/** 脊线噪声（|0.5-fbm|×2，输出 0..1，0 处为沟壑）：侵蚀冲沟 / 山脊纹理用。 */
+export function ridged2D(x: number, z: number, octaves = 3): number {
+  return Math.abs(fbm2D(x, z, octaves) - 0.5) * 2
 }
 
 /** 文本是否命中任一关键词（大小写不敏感，支持中文）。 */
@@ -531,6 +570,16 @@ export interface SceneSessionOptions {
     maxDistance?: number
     maxPolarAngle?: number
   }
+  /**
+   * V1.4 商业级后处理：EffectComposer（RenderPass → UnrealBloomPass → OutputPass）。
+   * 低阈值小强度泛光，只作用于 WebGL canvas（UI 照片背景层天然隔离）。
+   * quality=low 或 reducedMotion 时自动跳过 composer 直渲（见 tick）。
+   */
+  bloom?: {
+    strength?: number
+    radius?: number
+    threshold?: number
+  }
 }
 
 const _projWorld = new THREE.Vector3()
@@ -567,6 +616,7 @@ export class SceneSession {
   private lastTime = 0
   private autoRotate = false
   private controlsSyncNeeded = false
+  private composer: EffectComposer | null = null
 
   constructor(opts: SceneSessionOptions) {
     this.canvas = opts.canvas
@@ -600,6 +650,26 @@ export class SceneSession {
     this.controls.addEventListener("change", () => {
       if (this.reducedMotion) this.requestRender()
     })
+    // ---- 后处理管线（V1.4）：bloom 仅 standard/high 且非 reducedMotion 时启用（tick 内判断）
+    if (opts.bloom) {
+      const composer = new EffectComposer(this.renderer)
+      composer.addPass(new RenderPass(this.scene, this.camera))
+      const bloom = new UnrealBloomPass(
+        new THREE.Vector2(1, 1),
+        opts.bloom.strength ?? 0.32,
+        opts.bloom.radius ?? 0.45,
+        opts.bloom.threshold ?? 0.72,
+      )
+      composer.addPass(bloom)
+      // OutputPass 在构造时读取 renderer 的 ACESFilmic tone mapping 与 sRGB 输出色彩空间
+      composer.addPass(new OutputPass())
+      // quality=high 时对离屏 render target 开 4x MSAA 抗锯齿（WebGL2）
+      if (this.quality === "high") {
+        composer.renderTarget1.samples = 4
+        composer.renderTarget2.samples = 4
+      }
+      this.composer = composer
+    }
     this.resize()
     if (typeof ResizeObserver !== "undefined") {
       this.resizeObserver = new ResizeObserver(() => this.resize())
@@ -669,6 +739,7 @@ export class SceneSession {
     const width = this.canvas.clientWidth || this.canvas.parentElement?.clientWidth || 1
     const height = this.canvas.clientHeight || this.canvas.parentElement?.clientHeight || 1
     this.renderer.setSize(width, height, false)
+    this.composer?.setSize(width, height)
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
   }
@@ -712,6 +783,7 @@ export class SceneSession {
     if (quality === this.quality || this.disposed) return
     this.quality = quality
     this.renderer.setPixelRatio(pixelRatioForQuality(quality))
+    this.composer?.setPixelRatio(pixelRatioForQuality(quality))
     this.qualityListener?.(quality)
     this.requestRender()
   }
@@ -734,6 +806,13 @@ export class SceneSession {
     this.updater = null
     this.qualityListener = null
     this.controls.dispose()
+    if (this.composer) {
+      for (const pass of this.composer.passes) {
+        ;(pass as { dispose?: () => void }).dispose?.()
+      }
+      ;(this.composer as unknown as { dispose?: () => void }).dispose?.()
+      this.composer = null
+    }
     disposeScene(this.scene, this.renderer)
   }
 
@@ -758,7 +837,12 @@ export class SceneSession {
     }
     this.updater?.(time, deltaSeconds)
     this.markers.update(time, !this.reducedMotion)
-    this.renderer.render(this.scene, this.camera)
+    // 后处理：composer 仅在 standard/high 且非 reducedMotion 时启用，否则直渲
+    if (this.composer && this.quality !== "low" && !this.reducedMotion) {
+      this.composer.render()
+    } else {
+      this.renderer.render(this.scene, this.camera)
+    }
     this.frameCallbacks.forEach(cb => {
       try {
         cb()

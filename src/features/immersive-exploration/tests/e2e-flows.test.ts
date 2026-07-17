@@ -256,12 +256,12 @@ describe("§13.3-8 无选择直接生成总结：默认规则生效", () => {
   });
 });
 
-describe("黄金样例三件套：schema 全量校验（P1-06）", () => {
-  it("三件套通过契约校验且覆盖五主题", () => {
-    expect(GOLDEN_SCENE_IDS).toHaveLength(3);
+describe("黄金样例六件套：schema 全量校验（P1-06）", () => {
+  it("六件套通过契约校验且覆盖五主题", () => {
+    expect(GOLDEN_SCENE_IDS).toHaveLength(6);
     for (const id of GOLDEN_SCENE_IDS) {
       const scene = getSceneDefinition(id)!;
-      const errors = validateSceneDefinition(scene, CONTRACT_NODE_NAMES[scene.family as "mountain" | "waterside" | "underwater"]);
+      const errors = validateSceneDefinition(scene, CONTRACT_NODE_NAMES[scene.family]);
       expect(errors, `${id} 校验错误: ${errors.join("; ")}`).toEqual([]);
       const themeIds = scene.themes.map((t) => t.id);
       for (const common of ["highlights", "experience", "audience", "cautions"]) {

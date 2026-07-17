@@ -30,10 +30,12 @@ import {
   collectAnchorNodeNames,
   createNamedNode,
   createSpeckleTexture,
+  fbm2D,
   hashNoise,
   lerp,
   matchesAnyKeyword,
   nodeNamesFromRef,
+  smoothstep,
   visualFlag,
   visualNumber,
   visualText,
@@ -54,6 +56,25 @@ export const WATERSIDE_NODE_NAMES = [
 
 const LAKE_RADIUS = 13
 
+/** 噪声海岸线（V1.4）：湖面/岸线/泡沫共用同一函数，湾区与小岬角打破正圆 */
+function coastRadius(angle: number): number {
+  const dx = Math.cos(angle)
+  const dz = Math.sin(angle)
+  return LAKE_RADIUS + (fbm2D(dx * 1.6 + 9.1, dz * 1.6 + 4.7, 3) - 0.5) * 2.6
+}
+
+/** 海岸线 1D 查找表纹理（angle → radius），水面 shader 采样用（程序化纹理，运行期生成） */
+function createCoastLookupTexture(samples = 256): THREE.DataTexture {
+  const data = new Float32Array(samples)
+  for (let i = 0; i < samples; i += 1) data[i] = coastRadius((i / samples) * Math.PI * 2)
+  const texture = new THREE.DataTexture(data, samples, 1, THREE.RedFormat, THREE.FloatType)
+  texture.wrapS = THREE.RepeatWrapping
+  texture.magFilter = THREE.LinearFilter
+  texture.minFilter = THREE.LinearFilter
+  texture.needsUpdate = true
+  return texture
+}
+
 const BOAT_KEYWORDS = ["boat", "游船", "cruise", "游览船", "sightseeing"] as const
 const PADDLE_KEYWORDS = ["paddle", "独木舟", "皮划", "kayak", "sup", "桨板", "canoe", "划船"] as const
 const WALK_KEYWORDS = ["walk", "散步", "漫步", "环湖", "lakeside", "trail", "步道", "stroll", "cycling", "骑行"] as const
@@ -66,7 +87,12 @@ interface HighlightTarget {
 }
 
 export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: ImmersiveSceneDefinition): SceneHandle {
-  const session = new SceneSession({ canvas, sceneDef, controls: { minDistance: 6, maxDistance: 48, maxPolarAngle: Math.PI * 0.54 } })
+  const session = new SceneSession({
+    canvas,
+    sceneDef,
+    controls: { minDistance: 6, maxDistance: 48, maxPolarAngle: Math.PI * 0.54 },
+    bloom: { strength: 0.28, radius: 0.45, threshold: 0.72 },
+  })
   const { scene } = session
 
   // ================================================================ 天空穹顶 + 雾 + 灯光
@@ -112,16 +138,100 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
   sun.position.set(-18, 16, 10)
   scene.add(ambient, sun)
 
-  // ================================================================ 湖面（顶点波浪）
-  const WATER_SEGMENTS = 64
+  // ================================================================ 湖面（自定义 shader：法线扰动 + 菲涅尔天空反射 + 浅水渐变 + 岸线泡沫）
+  const coastTexture = createCoastLookupTexture()
+  const WATER_SEGMENTS = session.quality === "high" ? 96 : session.quality === "standard" ? 64 : 36
   const waterGeometry = new THREE.PlaneGeometry(34, 34, WATER_SEGMENTS, WATER_SEGMENTS)
-  const waterBasePositions = (waterGeometry.attributes.position as THREE.BufferAttribute).array.slice() as unknown as Float32Array
-  const waterMaterial = new THREE.MeshPhongMaterial({
-    color: 0x1b3a4d,
-    specular: 0x9fc8d8,
-    shininess: 90,
+  const waterUniforms = {
+    uTime: { value: 0 },
+    uWaveAmp: { value: 0.05 },
+    uCoast: { value: coastTexture },
+    uDeepColor: { value: new THREE.Color(0x1b3a4d) },
+    uShallowColor: { value: new THREE.Color(0x3f7a8a) },
+    uSkyTop: { value: new THREE.Color(0x0d1622) },
+    uSkyHorizon: { value: new THREE.Color(0x31506b) },
+    uSunDir: { value: new THREE.Vector3(-0.55, 0.62, 0.4).normalize() },
+    uSunColor: { value: new THREE.Color(0xffe8c2) },
+    uOpacity: { value: 0.95 },
+    uGlint: { value: 0.9 },
+    uFoam: { value: 0.12 },
+  }
+  const waterMaterial = new THREE.ShaderMaterial({
     transparent: true,
-    opacity: 0.96,
+    uniforms: waterUniforms,
+    vertexShader: `
+      uniform float uTime;
+      uniform float uWaveAmp;
+      uniform sampler2D uCoast;
+      varying vec3 vWorld;
+      varying float vEdge;
+      float waveH(vec2 p, float t) {
+        return sin(p.x * 0.85 + t * 1.7) * sin(p.y * 0.65 + t * 1.15)
+             + 0.6 * sin(p.x * 1.9 - t * 1.3)
+             + 0.4 * sin((p.x + p.y) * 1.2 + t * 0.8);
+      }
+      void main() {
+        vec3 pos = position;
+        // rotation.x=-π/2 后 local (x,y) → world (x,-y)
+        vec2 wxz = vec2(pos.x, -pos.y);
+        float r = length(wxz);
+        float angle = atan(wxz.y, wxz.x);
+        float coastR = texture2D(uCoast, vec2(fract(angle / 6.2831853 + 0.5), 0.5)).r;
+        float edge = 1.0 - smoothstep(coastR - 3.0, coastR, r); // 近岸波浪衰减
+        pos.z += waveH(wxz, uTime) * uWaveAmp * edge;
+        vEdge = edge;
+        vec4 world = modelMatrix * vec4(pos, 1.0);
+        vWorld = world.xyz;
+        gl_Position = projectionMatrix * viewMatrix * world;
+      }`,
+    fragmentShader: `
+      uniform vec3 uDeepColor;
+      uniform vec3 uShallowColor;
+      uniform vec3 uSkyTop;
+      uniform vec3 uSkyHorizon;
+      uniform vec3 uSunDir;
+      uniform vec3 uSunColor;
+      uniform float uTime;
+      uniform float uWaveAmp;
+      uniform float uOpacity;
+      uniform float uGlint;
+      uniform float uFoam;
+      uniform sampler2D uCoast;
+      varying vec3 vWorld;
+      varying float vEdge;
+      void main() {
+        vec2 p = vWorld.xz;
+        float r = length(p);
+        float angle = atan(p.y, p.x);
+        float coastR = texture2D(uCoast, vec2(fract(angle / 6.2831853 + 0.5), 0.5)).r;
+        // 解析法线扰动（与顶点波同源的导数和式）
+        float t = uTime;
+        float dhdx = 0.85 * cos(p.x * 0.85 + t * 1.7) * sin(p.y * 0.65 + t * 1.15)
+                   + 0.6 * 1.9 * cos(p.x * 1.9 - t * 1.3)
+                   + 0.4 * 1.2 * cos((p.x + p.y) * 1.2 + t * 0.8);
+        float dhdy = 0.65 * sin(p.x * 0.85 + t * 1.7) * cos(p.y * 0.65 + t * 1.15)
+                   + 0.4 * 1.2 * cos((p.x + p.y) * 1.2 + t * 0.8);
+        vec3 n = normalize(vec3(-dhdx * uWaveAmp * vEdge, 1.0, -dhdy * uWaveAmp * vEdge));
+        vec3 viewDir = normalize(cameraPosition - vWorld);
+        float fresnel = 0.06 + 0.86 * pow(1.0 - max(dot(viewDir, n), 0.0), 3.0);
+        // 菲涅尔反射天空色（反射向量仰角在天际线色↔天顶色间插值）
+        vec3 refl = reflect(-viewDir, n);
+        vec3 skyRef = mix(uSkyHorizon, uSkyTop, clamp(refl.y * 1.6, 0.0, 1.0));
+        // 岸边浅水色渐变
+        float shallow = smoothstep(coastR - 4.5, coastR - 0.6, r);
+        vec3 water = mix(uDeepColor, uShallowColor, shallow * 0.85);
+        vec3 color = mix(water, skyRef, fresnel);
+        // 太阳碎金高光
+        float glint = pow(max(dot(refl, uSunDir), 0.0), 120.0) * uGlint;
+        color += uSunColor * glint;
+        // 岸线泡沫带（随时间呼吸的碎条纹，沿噪声海岸）
+        float foamBand = smoothstep(coastR - 1.1, coastR - 0.25, r) * (1.0 - smoothstep(coastR - 0.25, coastR + 0.05, r));
+        float foamTex = 0.55 + 0.45 * sin(angle * 14.0 + t * 2.2 + sin(p.x * 2.0 + t) * 1.5);
+        color = mix(color, vec3(0.92, 0.96, 0.97), foamBand * foamTex * uFoam);
+        float alpha = uOpacity * (1.0 - smoothstep(coastR - 0.45, coastR + 0.1, r));
+        alpha = max(alpha, foamBand * uFoam * 0.9);
+        gl_FragColor = vec4(color, alpha);
+      }`,
   })
   const water = new THREE.Mesh(waterGeometry, waterMaterial)
   water.name = "lake_surface"
@@ -146,24 +256,38 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
   sparkleLayer.position.y = 0.02
   scene.add(sparkleLayer)
 
-  // ================================================================ 岸线泡沫环（呼吸动画，风浪增强）
-  const foamMaterial = new THREE.MeshBasicMaterial({
-    color: 0xe8f2f4,
-    transparent: true,
-    opacity: 0.05,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  })
-  const foamRing = new THREE.Mesh(new THREE.RingGeometry(LAKE_RADIUS - 0.5, LAKE_RADIUS - 0.06, 96), foamMaterial)
-  foamRing.name = "shore_foam_ring"
-  foamRing.rotation.x = -Math.PI / 2
-  foamRing.position.y = 0.03
-  scene.add(foamRing)
-
-  // ================================================================ 岸线环形地面
-  const shoreGeometry = new THREE.RingGeometry(LAKE_RADIUS + 0.15, 90, 72, 1)
+  // ================================================================ 岸线环形地面（噪声海岸，自定义环带网格）
+  function buildShoreGeometry(): THREE.BufferGeometry {
+    const SEG = 128
+    const RINGS = [0, 7, 26, 90] // 距噪声海岸线的径向距离
+    const positions: number[] = []
+    for (let ri = 0; ri < RINGS.length; ri += 1) {
+      for (let si = 0; si <= SEG; si += 1) {
+        const a = (si / SEG) * Math.PI * 2
+        const r = coastRadius(a) + 0.02 + RINGS[ri]
+        positions.push(Math.cos(a) * r, Math.sin(a) * r, 0)
+      }
+    }
+    const indices: number[] = []
+    const row = SEG + 1
+    for (let ri = 0; ri < RINGS.length - 1; ri += 1) {
+      for (let si = 0; si < SEG; si += 1) {
+        const a = ri * row + si
+        const b = a + 1
+        const c = a + row
+        const d = c + 1
+        indices.push(a, c, b, b, c, d)
+      }
+    }
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3))
+    geometry.setIndex(indices)
+    geometry.computeVertexNormals()
+    return geometry
+  }
+  const shoreGeometry = buildShoreGeometry()
   const shoreMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true })
-  /** 内圈沙滩色 → 外圈草色；snowT>0 时混入积雪亮白（冬季 preset） */
+  /** 内圈沙滩色 → 外圈草色（按距噪声海岸的距离）；snowT>0 时混入积雪亮白（冬季 preset） */
   function paintShore(snowT: number): void {
     const pos = shoreGeometry.attributes.position as THREE.BufferAttribute
     const colors = new Float32Array(pos.count * 3)
@@ -171,9 +295,12 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
     const grass = new THREE.Color(0x2e3d26).lerp(new THREE.Color(0xc8d4d8), snowT * 0.55)
     const c = new THREE.Color()
     for (let i = 0; i < pos.count; i += 1) {
-      const r = Math.hypot(pos.getX(i), pos.getY(i))
-      c.copy(sand).lerp(grass, clamp01((r - LAKE_RADIUS) / 6))
-      c.multiplyScalar(0.9 + 0.2 * hashNoise(pos.getX(i), pos.getY(i)))
+      const lx = pos.getX(i)
+      const ly = pos.getY(i)
+      // rotation.x=-π/2 后 local (x,y) → world (x,-y)：世界方位角取 atan2(-ly, lx)
+      const dist = Math.hypot(lx, ly) - coastRadius(Math.atan2(-ly, lx))
+      c.copy(sand).lerp(grass, clamp01(dist / 6))
+      c.multiplyScalar(0.9 + 0.2 * hashNoise(lx, ly))
       colors[i * 3] = c.r
       colors[i * 3 + 1] = c.g
       colors[i * 3 + 2] = c.b
@@ -473,6 +600,7 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
   function applyVisualState(): void {
     // 浪高：preset 基础浪高 + 风浪风险加成
     waveAmp = baseWaveAmp + effects.wind * 0.33
+    waterUniforms.uWaveAmp.value = waveAmp
     // 天空：evening preset → 夕阳色；风浪压暗（先算天空，水色要取天色做反射）
     const top = new THREE.Color(0x0d1622).lerp(SKY_EVENING_TOP, evening)
     const horizon = new THREE.Color(0x31506b).lerp(SKY_EVENING_HORIZON, evening * 0.85)
@@ -485,17 +613,27 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
     waterColor.lerp(WATER_COLD, effects.cold * 0.8)
     waterColor.lerp(WATER_STORM, effects.wind * 0.75)
     waterColor.lerp(horizon, 0.15)
-    waterMaterial.color.copy(waterColor)
+    waterUniforms.uDeepColor.value.copy(waterColor)
+    // 浅水色：深水色向暖沙绿提亮，风浪时压暗
+    waterUniforms.uShallowColor.value.copy(waterColor).lerp(new THREE.Color(0x7ab8a8), 0.55 * (1 - effects.wind * 0.5))
+    // 菲涅尔天空反射源色
+    waterUniforms.uSkyTop.value.copy(top)
+    waterUniforms.uSkyHorizon.value.copy(horizon)
     // 波光层：reflection preset 调强弱，风浪打散的碎光减弱，quality=low 隐藏
     sparkleLayer.visible = session.quality !== "low"
     sparkleMaterial.opacity = (0.05 + reflectionStrength * 0.17) * (1 - effects.wind * 0.55)
     // 岸线泡沫：风平浪静几乎不可见，风浪 risk 增强
     foamStrength = 0.04 + effects.wind * 0.3
+    waterUniforms.uFoam.value = clamp01(foamStrength * 2.4)
     // V1.2：穹顶半透明透出实景照片背景；风浪压回不透明
     skyUniforms.alpha.value = 0.32 + effects.wind * 0.5
     if (scene.fog instanceof THREE.Fog) scene.fog.color.copy(horizon)
     sun.color.set(evening > 0.5 ? 0xff9a4a : dawnCool > 0.5 ? 0xcfe0e8 : 0xffe8c2)
     sun.intensity = lerp(1.9, 1.2, evening) * (1 - dawnCool * 0.25) * (1 - effects.wind * 0.35)
+    // 水面太阳高光方向/颜色/强度（reflection preset × 风浪打散）
+    waterUniforms.uSunDir.value.copy(sun.position).normalize()
+    waterUniforms.uSunColor.value.copy(sun.color)
+    waterUniforms.uGlint.value = reflectionStrength * 1.7 * (1 - effects.wind * 0.55) * (0.4 + sun.intensity * 0.4)
     // 薄雾：mist preset + 低水温加成
     mistMaterial.opacity = clamp01(mist * 0.3 + effects.cold * 0.25)
     // 花火点：fireworks preset 且非 low 档
@@ -518,12 +656,10 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
     dawnCool = lightText && matchesAnyKeyword(lightText, ["dawn", "清晨", "winter", "冬", "cool", "soft"]) ? 1 : 0
     // 花火开关（DATA 约定 fireworks 布尔键）
     fireworksEnabled = visualFlag(visual, "fireworks", evening > 0.3)
-    // reflection（倒影清晰度）→ 高光锐度 + 波光层强度
+    // reflection（倒影清晰度）→ 菲涅尔高光强度 + 水面不透明度
     const reflection = clamp01(visualNumber(visual, "reflection", 0.6))
     reflectionStrength = reflection
-    waterMaterial.shininess = lerp(30, 140, reflection)
-    waterMaterial.specular.set(0x9fc8d8).multiplyScalar(lerp(0.4, 1.2, reflection))
-    waterMaterial.opacity = lerp(0.9, 0.98, reflection)
+    waterUniforms.uOpacity.value = lerp(0.9, 0.98, reflection)
     // season / snow → 岸线植被与积雪
     const season = visualText(visual, "season")
     const snowT = visualFlag(visual, "snow") || (season ? matchesAnyKeyword(season, ["winter", "冬"]) : false) ? 1 : 0
@@ -633,31 +769,15 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
   // ================================================================ 每帧动画
   let fireworkClock = 0
   session.setUpdater((time, delta) => {
-    // 波浪顶点动画（湖面半径内，边缘归零）
-    const posAttr = waterGeometry.attributes.position as THREE.BufferAttribute
     const t = time * 0.001
-    for (let i = 0; i < posAttr.count; i += 1) {
-      const x = waterBasePositions[i * 3]
-      const y = waterBasePositions[i * 3 + 1]
-      const r = Math.hypot(x, y)
-      if (r < LAKE_RADIUS) {
-        const edge = 1 - r / LAKE_RADIUS
-        posAttr.setZ(i, Math.sin(x * 0.85 + t * 1.7) * Math.sin(y * 0.65 + t * 1.15) * waveAmp * edge)
-      } else {
-        posAttr.setZ(i, 0)
-      }
-    }
-    posAttr.needsUpdate = true
-    waterGeometry.computeVertexNormals()
+    // 波浪/法线/泡沫全部在 GPU（uTime 驱动），CPU 零逐顶点开销
+    waterUniforms.uTime.value = t
 
     // 波光层 UV 缓慢平移（碎金漂移）
     if (sparkleLayer.visible) {
       sparkleTexture.offset.x = t * 0.008
       sparkleTexture.offset.y = t * 0.005
     }
-    // 岸线泡沫呼吸（透明度脉动 + 轻微缩放）
-    foamMaterial.opacity = foamStrength * (0.65 + 0.35 * Math.sin(t * 1.4))
-    foamRing.scale.setScalar(1 + Math.sin(t * 0.9) * 0.004)
 
     // 游船绕区缓行
     const boatAngle = time * 0.00016
@@ -715,9 +835,18 @@ export function createWatersideScene(canvas: HTMLCanvasElement, sceneDef: Immers
     mistLayer.rotation.z = time * 0.00003
   })
 
-  session.onQualityChange(() => applyVisualState())
+  // quality 三档差异：芦苇实例数 / 候鸟 drawRange（几何段数在建场景时按初始档位定）
+  function applyQualityTier(q: "high" | "standard" | "low"): void {
+    reeds.count = q === "high" ? REED_COUNT : q === "standard" ? Math.floor(REED_COUNT * 0.75) : Math.floor(REED_COUNT * 0.45)
+    birdGeometry.setDrawRange(0, q === "high" ? BIRD_COUNT : q === "standard" ? 18 : 10)
+  }
+  session.onQualityChange(q => {
+    applyQualityTier(q)
+    applyVisualState()
+  })
 
   // ================================================================ 初始渲染
+  applyQualityTier(session.quality)
   applyVisualState()
   session.requestRender()
 

@@ -16,6 +16,7 @@
  * activity 机位：浮潜→贴水面 / 体验潜水→中层 / 持证潜水→深层 + 手电光锥
  */
 import * as THREE from "three"
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js"
 import type {
   ActivityDefinition,
   AudienceDefinition,
@@ -33,6 +34,7 @@ import {
   collectAnchorNodeNames,
   createNamedNode,
   createRadialGlowTexture,
+  fbm2D,
   hashNoise,
   lerp,
   matchesAnyKeyword,
@@ -82,7 +84,13 @@ interface HighlightTarget {
 }
 
 export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: ImmersiveSceneDefinition): SceneHandle {
-  const session = new SceneSession({ canvas, sceneDef, far: 300, controls: { minDistance: 3.5, maxDistance: 40, maxPolarAngle: Math.PI * 0.8 } })
+  const session = new SceneSession({
+    canvas,
+    sceneDef,
+    far: 300,
+    controls: { minDistance: 3.5, maxDistance: 40, maxPolarAngle: Math.PI * 0.8 },
+    bloom: { strength: 0.32, radius: 0.5, threshold: 0.68 },
+  })
   const { scene } = session
   scene.add(session.camera) // 手电挂在相机上，需要相机入场景树
 
@@ -163,7 +171,7 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
 
   // ================================================================ 海底地形
   const FLOOR_SIZE = 90
-  const FLOOR_SEGMENTS = 64
+  const FLOOR_SEGMENTS = session.quality === "high" ? 96 : session.quality === "standard" ? 64 : 40
   const floorGeometry = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, FLOOR_SEGMENTS, FLOOR_SEGMENTS)
   {
     const pos = floorGeometry.attributes.position as THREE.BufferAttribute
@@ -184,6 +192,12 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
       // 航道区域偏粉砂暗色
       if (Math.abs(worldZ + 7) < 2.2 && worldX > -8 && worldX < 10) c.lerp(channelSilts, 0.5)
       c.multiplyScalar(0.88 + 0.24 * hashNoise(worldX * 1.3, worldZ * 1.3))
+      // 海沙纹理（V1.4）：浅区平行沙纹脊 + 细颗粒 speckle 高光
+      if (depthFactor < 0.45) {
+        const ripple = Math.sin(worldX * 1.9 + Math.sin(worldZ * 0.9) * 2.4 + worldZ * 0.35)
+        c.multiplyScalar(1 + ripple * 0.05)
+        if (hashNoise(worldX * 7.3, worldZ * 7.3) > 0.9) c.multiplyScalar(1.14)
+      }
       colors[i * 3] = c.r
       colors[i * 3 + 1] = c.g
       colors[i * 3 + 2] = c.b
@@ -295,10 +309,102 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
     }
     return spots
   }
-  // 珊瑚花园（密集）+ reef_flat（稀疏）
-  scatterCorals(new THREE.IcosahedronGeometry(0.5, 0), [...makeSpots(-3.5, 1.8, 3.2, 16, 1.3), ...makeSpots(3.5, -1, 4, 7, 2.9, 0.2, 0.45)], "coral_brain")
-  scatterCorals(new THREE.ConeGeometry(0.32, 0.9, 6), [...makeSpots(-3.5, 1.8, 3.4, 14, 4.7), ...makeSpots(3.5, -1, 4, 6, 6.1, 0.2, 0.4)], "coral_staghorn")
-  scatterCorals(new THREE.CylinderGeometry(0.1, 0.16, 0.8, 5), makeSpots(-3.2, 2.2, 3.0, 10, 8.3, 0.4, 0.9), "coral_tube")
+  // ---------------------------------------------------------------- 程序化珊瑚几何（V1.4：四种真实形态，确定性 hashNoise 驱动）
+  /** 鹿角珊瑚：递归分支锥柱（2-3 级分叉） */
+  function buildStaghornGeometry(seed = 0): THREE.BufferGeometry {
+    const parts: THREE.BufferGeometry[] = []
+    const up = new THREE.Vector3(0, 1, 0)
+    const branch = (origin: THREE.Vector3, dir: THREE.Vector3, length: number, radius: number, depth: number): void => {
+      const seg = new THREE.CylinderGeometry(radius * 0.55, radius, length, 5)
+      seg.translate(0, length / 2, 0)
+      seg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, dir.clone().normalize()))
+      seg.translate(origin.x, origin.y, origin.z)
+      parts.push(seg)
+      if (depth <= 0) return
+      const end = origin.clone().addScaledVector(dir, length)
+      const children = 2 + Math.floor(hashNoise(seed + depth * 1.7, length * 10) * 2)
+      for (let i = 0; i < children; i += 1) {
+        const spread = 0.5 + hashNoise(i, seed + depth * 3.1) * 0.5
+        const nd = dir
+          .clone()
+          .add(new THREE.Vector3(
+            (hashNoise(i, 1.1 + seed + depth) - 0.5) * 2 * spread,
+            hashNoise(i, 2.3 + seed + depth) * 0.7,
+            (hashNoise(i, 3.7 + seed + depth) - 0.5) * 2 * spread,
+          ))
+          .normalize()
+        branch(end, nd, length * 0.62, radius * 0.62, depth - 1)
+      }
+    }
+    branch(new THREE.Vector3(0, 0, 0), up.clone(), 0.34, 0.075, 3)
+    return mergeGeometries(parts) ?? new THREE.ConeGeometry(0.3, 0.9, 6)
+  }
+  /** 脑珊瑚：球体多频沟槽位移（脑回纹） */
+  function buildBrainCoralGeometry(): THREE.BufferGeometry {
+    const geo = new THREE.SphereGeometry(0.5, 26, 20)
+    const pos = geo.attributes.position as THREE.BufferAttribute
+    const n = new THREE.Vector3()
+    for (let i = 0; i < pos.count; i += 1) {
+      n.set(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize()
+      const groove = Math.sin(n.x * 14 + n.y * 6) * Math.sin(n.z * 12 - n.y * 5)
+      const d = 0.045 * groove + 0.05 * (fbm2D(n.x * 4 + 3, n.z * 4 + 7, 3) - 0.5)
+      const r = 0.5 + d
+      pos.setXYZ(i, n.x * r, Math.max(n.y, -0.12) * r * 0.72, n.z * r)
+    }
+    geo.computeVertexNormals()
+    return geo
+  }
+  /** 扇珊瑚：底部收窄、扇面展开并微卷的网格 */
+  function buildFanCoralGeometry(): THREE.BufferGeometry {
+    const geo = new THREE.PlaneGeometry(1.0, 0.9, 14, 10)
+    const pos = geo.attributes.position as THREE.BufferAttribute
+    for (let i = 0; i < pos.count; i += 1) {
+      const x = pos.getX(i)
+      const y = pos.getY(i)
+      const v = (y + 0.45) / 0.9 // 0 底 → 1 顶
+      const spread = 0.15 + v * 0.85
+      pos.setXYZ(i, x * spread, v * 0.9, Math.sin(x * 4) * 0.04 * v + v * v * 0.18)
+    }
+    geo.computeVertexNormals()
+    return geo
+  }
+  /** 软珊瑚：一簇顶端弯曲的触手锥 */
+  function buildSoftCoralGeometry(): THREE.BufferGeometry {
+    const parts: THREE.BufferGeometry[] = []
+    for (let i = 0; i < 7; i += 1) {
+      const h = 0.5 + hashNoise(i, 2.2) * 0.4
+      const cone = new THREE.ConeGeometry(0.07, h, 6)
+      cone.translate(0, h / 2, 0)
+      const bend = (hashNoise(i, 4.4) - 0.5) * 0.5
+      const p = cone.attributes.position as THREE.BufferAttribute
+      for (let j = 0; j < p.count; j += 1) {
+        const y = p.getY(j)
+        p.setX(j, p.getX(j) + bend * (y / h) * (y / h) * 0.4)
+      }
+      const angle = (i / 7) * Math.PI * 2
+      cone.rotateZ((hashNoise(i, 6.6) - 0.5) * 0.7)
+      cone.rotateY(angle)
+      cone.translate(Math.cos(angle) * 0.12, 0, Math.sin(angle) * 0.12)
+      parts.push(cone)
+    }
+    return mergeGeometries(parts) ?? new THREE.ConeGeometry(0.2, 0.8, 6)
+  }
+
+  // 珊瑚花园（密集）+ reef_flat（稀疏）：鹿角 / 脑珊瑚 / 扇珊瑚 / 软珊瑚四类
+  const coralMeshes: THREE.InstancedMesh[] = []
+  function scatterCoralKind(
+    geometry: THREE.BufferGeometry,
+    spots: Array<{ x: number; z: number; scale: number; rot: number }>,
+    name: string,
+  ): void {
+    coralMeshes.push(scatterCorals(geometry, spots, name))
+  }
+  scatterCoralKind(buildBrainCoralGeometry(), [...makeSpots(-3.5, 1.8, 3.2, 16, 1.3), ...makeSpots(3.5, -1, 4, 7, 2.9, 0.2, 0.45)], "coral_brain")
+  scatterCoralKind(buildStaghornGeometry(0), [...makeSpots(-3.5, 1.8, 3.4, 14, 4.7), ...makeSpots(3.5, -1, 4, 6, 6.1, 0.2, 0.4)], "coral_staghorn")
+  scatterCoralKind(buildStaghornGeometry(5.5), makeSpots(-3.2, 2.2, 3.0, 8, 8.3, 0.4, 0.85), "coral_staghorn_b")
+  scatterCoralKind(buildFanCoralGeometry(), [...makeSpots(-4.2, 1.2, 3.0, 12, 10.9, 0.5, 1.0), ...makeSpots(3.8, -1.4, 3.6, 5, 12.7, 0.4, 0.7)], "coral_fan")
+  scatterCoralKind(buildSoftCoralGeometry(), [...makeSpots(-2.8, 2.6, 2.8, 10, 14.3, 0.5, 1.0), ...makeSpots(4.2, -0.6, 3.2, 4, 16.1, 0.4, 0.7)], "coral_soft")
+  const CORAL_FULL_COUNTS = coralMeshes.map(mesh => mesh.count)
 
   // ================================================================ 海草摆动带
   const GRASS_COUNT = 36
@@ -341,12 +447,22 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
   caveGroup.lookAt(-6, caveFloorY + 0.5, 3)
   scene.add(caveGroup)
 
-  // ================================================================ 鱼群（Points 绕场游动，大小两群分层质感）
+  // ================================================================ 鱼群（大群 InstancedMesh 摆尾游动，小群 Points 远景碎银）
+  /** 程序化小鱼几何：侧扁锥身 + 尾鳍，头朝 +z */
+  function buildFishGeometry(): THREE.BufferGeometry {
+    const body = new THREE.ConeGeometry(0.085, 0.4, 6)
+    body.rotateX(Math.PI / 2)
+    body.scale(0.55, 1, 1)
+    const tail = new THREE.ConeGeometry(0.075, 0.16, 4)
+    tail.rotateX(-Math.PI / 2)
+    tail.scale(0.3, 1, 1)
+    tail.translate(0, 0, -0.25)
+    return mergeGeometries([body, tail]) ?? body
+  }
   const FISH_COUNT = 110
-  const FISH_LARGE = 55 // 前 55 条为大鱼群（近景主体），其余为小鱼群（远景碎银）
-  const fishPositions = new Float32Array(FISH_LARGE * 3)
+  const FISH_LARGE = 55 // 前 55 条为大鱼群（近景主体，摆尾动画），其余为小鱼群（远景碎银）
   const fishPositionsSmall = new Float32Array((FISH_COUNT - FISH_LARGE) * 3)
-  const fishParams: Array<{ angle: number; radius: number; height: number; speed: number; wobble: number }> = []
+  const fishParams: Array<{ angle: number; radius: number; height: number; speed: number; wobble: number; size: number }> = []
   for (let i = 0; i < FISH_COUNT; i += 1) {
     fishParams.push({
       angle: hashNoise(i, 1.9) * Math.PI * 2,
@@ -354,13 +470,20 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
       height: -3 + hashNoise(i, 5.3) * 3.2,
       speed: 0.6 + hashNoise(i, 7.1) * 0.8,
       wobble: hashNoise(i, 9.7) * Math.PI * 2,
+      size: 0.75 + hashNoise(i, 12.3) * 0.55,
     })
   }
-  const fishGeometry = new THREE.BufferGeometry()
-  fishGeometry.setAttribute("position", new THREE.BufferAttribute(fishPositions, 3))
-  const fishMaterial = new THREE.PointsMaterial({ color: 0xbfe8e0, size: 0.17, transparent: true, opacity: 0.9, depthWrite: false })
-  const fishSchool = new THREE.Points(fishGeometry, fishMaterial)
+  const fishMaterial = new THREE.MeshStandardMaterial({ color: 0xbfe8e0, roughness: 0.55, metalness: 0.25, flatShading: true })
+  const fishSchool = new THREE.InstancedMesh(buildFishGeometry(), fishMaterial, FISH_LARGE)
   fishSchool.name = "fish_school_points"
+  {
+    const tint = new THREE.Color()
+    for (let i = 0; i < FISH_LARGE; i += 1) {
+      tint.set(0xbfe8e0).multiplyScalar(0.75 + hashNoise(i, 15.1) * 0.45)
+      fishSchool.setColorAt(i, tint)
+    }
+    if (fishSchool.instanceColor) fishSchool.instanceColor.needsUpdate = true
+  }
   scene.add(fishSchool)
   const fishGeometrySmall = new THREE.BufferGeometry()
   fishGeometrySmall.setAttribute("position", new THREE.BufferAttribute(fishPositionsSmall, 3))
@@ -435,7 +558,16 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
   planktonPositions.set(planktonBase)
   const planktonGeometry = new THREE.BufferGeometry()
   planktonGeometry.setAttribute("position", new THREE.BufferAttribute(planktonPositions, 3))
-  const planktonMaterial = new THREE.PointsMaterial({ color: 0xc8e8d8, size: 0.045, transparent: true, opacity: 0.4, depthWrite: false })
+  // 微光浮游生物：柔光纹理 + additive，随水流闪烁（V1.4 质感升级）
+  const planktonMaterial = new THREE.PointsMaterial({
+    color: 0xc8e8d8,
+    size: 0.05,
+    map: createRadialGlowTexture(24),
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  })
   const plankton = new THREE.Points(planktonGeometry, planktonMaterial)
   plankton.name = "plankton_particles"
   scene.add(plankton)
@@ -559,13 +691,12 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
       },
     }
   }
-  /** 鱼群高亮：点精灵变大变暖色（大小两群同步） */
+  /** 鱼群高亮：大鱼群变暖色 + 自发光，小鱼群同步变大变暖 */
   function makeFishTarget(): HighlightTarget {
     return {
       set(state) {
-        fishMaterial.size = state === "active" ? 0.23 : 0.17
-        fishMaterial.color.set(state === "active" ? 0xffe8b0 : state === "dim" ? 0x6a8a88 : state === "hidden" ? 0x3a4a48 : 0xbfe8e0)
-        fishMaterial.opacity = state === "hidden" ? 0.25 : state === "dim" ? 0.5 : 0.9
+        fishMaterial.color.set(state === "active" ? 0xffe8b0 : state === "dim" ? 0x5a7a78 : state === "hidden" ? 0x2a3a38 : 0xbfe8e0)
+        fishMaterial.emissive.set(state === "active" ? 0x4a3a18 : 0x000000)
         fishMaterialSmall.size = state === "active" ? 0.13 : 0.09
         fishMaterialSmall.color.set(state === "active" ? 0xffe0a0 : state === "dim" ? 0x5a7a78 : state === "hidden" ? 0x3a4a48 : 0x9fc8c0)
         fishMaterialSmall.opacity = state === "hidden" ? 0.22 : state === "dim" ? 0.45 : 0.8
@@ -801,28 +932,41 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
     }
     // 水面起伏闪烁
     surfaceMaterial.opacity = 0.2 + Math.sin(t * 0.5) * 0.03 + totalSwell * Math.abs(Math.sin(t * 8)) * 0.12
-    // 鱼群游动（海流 → 加速逃散）
+    // 鱼群游动（海流 → 加速逃散）；大鱼群逐实例摆尾 + 朝向航向
     const scatter = 1 + effects.current * 0.5
     const drift = effects.current * 2.2
-    for (let i = 0; i < FISH_COUNT; i += 1) {
-      const p = fishParams[i]
-      p.angle += delta * 0.24 * p.speed * (1 + effects.current * 1.8)
-      const radius = p.radius * scatter
-      const x = Math.cos(p.angle) * radius + drift + Math.sin(t * 1.3 + p.wobble) * 0.3
-      const y = p.height + Math.sin(t * 0.9 + p.wobble) * 0.35
-      const z = Math.sin(p.angle) * radius * 0.8 + Math.cos(t * 1.1 + p.wobble) * 0.3
-      if (i < FISH_LARGE) {
-        fishPositions[i * 3] = x
-        fishPositions[i * 3 + 1] = y
-        fishPositions[i * 3 + 2] = z
-      } else {
-        const j = i - FISH_LARGE
-        fishPositionsSmall[j * 3] = x
-        fishPositionsSmall[j * 3 + 1] = y
-        fishPositionsSmall[j * 3 + 2] = z
+    {
+      const m = new THREE.Matrix4()
+      const p = new THREE.Vector3()
+      const q = new THREE.Quaternion()
+      const e = new THREE.Euler()
+      const s = new THREE.Vector3()
+      for (let i = 0; i < FISH_COUNT; i += 1) {
+        const fp = fishParams[i]
+        fp.angle += delta * 0.24 * fp.speed * (1 + effects.current * 1.8)
+        const radius = fp.radius * scatter
+        const x = Math.cos(fp.angle) * radius + drift + Math.sin(t * 1.3 + fp.wobble) * 0.3
+        const y = fp.height + Math.sin(t * 0.9 + fp.wobble) * 0.35
+        const z = Math.sin(fp.angle) * radius * 0.8 + Math.cos(t * 1.1 + fp.wobble) * 0.3
+        if (i < FISH_LARGE) {
+          // 航向 = 轨道切线方向；摆尾 = 偏航正弦 + 轻微横滚
+          const yaw = Math.atan2(-Math.sin(fp.angle), Math.cos(fp.angle) * 0.8)
+          const wag = Math.sin(t * 7 + fp.wobble) * 0.32
+          e.set(Math.sin(t * 0.9 + fp.wobble) * 0.12, yaw + wag, Math.sin(t * 5 + fp.wobble) * 0.18, "YXZ")
+          q.setFromEuler(e)
+          p.set(x, y, z)
+          s.setScalar(fp.size)
+          m.compose(p, q, s)
+          fishSchool.setMatrixAt(i, m)
+        } else {
+          const j = i - FISH_LARGE
+          fishPositionsSmall[j * 3] = x
+          fishPositionsSmall[j * 3 + 1] = y
+          fishPositionsSmall[j * 3 + 2] = z
+        }
       }
+      fishSchool.instanceMatrix.needsUpdate = true
     }
-    ;(fishGeometry.attributes.position as THREE.BufferAttribute).needsUpdate = true
     ;(fishGeometrySmall.attributes.position as THREE.BufferAttribute).needsUpdate = true
     // 海龟慢游
     turtleAngle += delta * 0.16
@@ -852,7 +996,7 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
       }
       seagrass.instanceMatrix.needsUpdate = true
     }
-    // 浮游生物漂移
+    // 浮游生物漂移 + 微光闪烁
     if (plankton.visible) {
       for (let i = 0; i < PLANKTON_COUNT; i += 1) {
         planktonPositions[i * 3] = planktonBase[i * 3] + Math.sin(t * 0.22 + i) * 0.4 + effects.current * ((t * 1.5 + i * 0.7) % 6)
@@ -860,6 +1004,8 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
         planktonPositions[i * 3 + 2] = planktonBase[i * 3 + 2] + Math.cos(t * 0.18 + i * 1.3) * 0.4
       }
       ;(planktonGeometry.attributes.position as THREE.BufferAttribute).needsUpdate = true
+      planktonMaterial.opacity = clamp01(0.1 + planktonDensity * 0.5) * (0.78 + 0.22 * Math.sin(t * 2.1))
+      planktonMaterial.size = 0.045 + 0.012 * Math.sin(t * 1.3 + 0.7)
     }
     // 海流粒子定向流动
     if (currentStream.visible) {
@@ -873,9 +1019,21 @@ export function createUnderwaterScene(canvas: HTMLCanvasElement, sceneDef: Immer
     entryGroup.rotation.z = Math.sin(t * 0.8) * 0.05 * (1 + effects.swell * 3)
   })
 
-  session.onQualityChange(() => applyVisualState())
+  // quality 三档差异：珊瑚实例数 / 海草 drawRange / 粒子层开关（几何段数在建场景时按初始档位定）
+  function applyQualityTier(q: "high" | "standard" | "low"): void {
+    const ratio = q === "high" ? 1 : q === "standard" ? 0.7 : 0.45
+    coralMeshes.forEach((mesh, index) => {
+      mesh.count = Math.max(2, Math.floor(CORAL_FULL_COUNTS[index] * ratio))
+    })
+    seagrass.count = q === "high" ? GRASS_COUNT : q === "standard" ? Math.floor(GRASS_COUNT * 0.75) : Math.floor(GRASS_COUNT * 0.5)
+  }
+  session.onQualityChange(q => {
+    applyQualityTier(q)
+    applyVisualState()
+  })
 
   // ================================================================ 初始渲染
+  applyQualityTier(session.quality)
   applyVisualState()
   session.requestRender()
 

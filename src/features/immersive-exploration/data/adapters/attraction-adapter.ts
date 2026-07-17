@@ -2,15 +2,14 @@
  * Attraction → ExplorationEntity 适配器（CONTRACT DATA 节）
  *
  * 推断顺序：
- *   1. 策展覆盖表：attraction id / name 命中富士山、洞爷湖、马尔代夫珊瑚花园
- *      → 直接产出对应黄金样例 entity（配置化 sceneDefinitionId）。
+ *   1. 策展覆盖表：attraction id / name 命中富士山、洞爷湖、马尔代夫珊瑚花园、
+ *      马赛马拉、东京晴空塔、独库公路 → 直接产出对应黄金样例 entity（配置化 sceneDefinitionId）。
  *   2. 关键词推断：category_l1 / category_l2 / tags / name → sceneFamily / shape。
  *      sceneDefinitionId 为 `scene-<family>-generic`，fallbackContentId 为 `fallback-<id>`。
  *   3. 推断失败返回 null（调用方走标准图文降级页，施工方案 §4.1）。
  *
- * 未启用家族（wilderness / human_city / engineering_route）保留枚举输出，
- * 但 isImmersiveEligible = false；time_event（花期 / 祭典 / 季节现象）尝试
- * hostEntityId 挂靠同区域母对象，且首期一律非沉浸（降级）。
+ * 六大家族均已启用（ENABLED_SCENE_FAMILIES）；time_event（花期 / 祭典 / 季节现象）尝试
+ * hostEntityId 挂靠同区域母对象，且一律非沉浸（降级）。
  *
  * 备注：CONTRACT 中示例 import 路径 `../../../features/attraction-explorer/types`
  * 相对本文件实际多出一级，此处使用真实相对路径 `../../../attraction-explorer/types`。
@@ -24,7 +23,7 @@ import type {
   SceneFamily,
 } from "../../domain/types";
 import { ENABLED_SCENE_FAMILIES } from "../../domain/types";
-import { GOLDEN_ENTITIES } from "../scene-configs";
+import { GOLDEN_ENTITIES, getSceneDefinition } from "../scene-configs";
 
 // ---------------------------------------------------------------- 策展覆盖表
 
@@ -64,6 +63,29 @@ const CURATED_RULES: readonly CuratedRule[] = [
       a.name.includes("珊瑚花园") ||
       /(coral\s*garden)/i.test(a.name_en) ||
       (a.country_code === "MV" && /(珊瑚|coral)/i.test(`${a.name} ${a.name_en}`) && !isEventLike(a)),
+  },
+  {
+    entityId: "masai-mara",
+    test: (a) =>
+      a.id === "ke-mara" ||
+      a.id === "tz-serengeti" ||
+      a.name.includes("马赛马拉") ||
+      a.name.includes("塞伦盖蒂") ||
+      /(masai\s*mara|serengeti)/i.test(a.name_en),
+  },
+  {
+    entityId: "tokyo-skytree",
+    test: (a) =>
+      a.id === "jp-kt-tokyo-skytree" ||
+      a.name.includes("晴空塔") ||
+      /(tokyo\s*skytree)/i.test(a.name_en),
+  },
+  {
+    entityId: "duku-highway",
+    test: (a) =>
+      a.id === "cn-xj-duku" ||
+      a.name.includes("独库公路") ||
+      /duku\s*highway/i.test(a.name_en),
   },
 ];
 
@@ -220,12 +242,24 @@ export function toExplorationEntity(attraction: Attraction): ExplorationEntity |
 
 /**
  * 是否具备沉浸体验资格：
- * 已启用家族（mountain / waterside / underwater）且非 time_event。
- * 未启用家族与 time_event 保留实体输出但返回 false（走标准图文降级）。
+ * 已启用家族（六大家族，见 ENABLED_SCENE_FAMILIES）且非 time_event。
+ * time_event 保留实体输出但返回 false（走标准图文降级）。
  */
 export function isImmersiveEligible(attraction: Attraction): boolean {
   const entity = toExplorationEntity(attraction);
   if (!entity) return false;
   if (entity.shape === "time_event") return false;
   return ENABLED_SCENE_FAMILIES.includes(entity.sceneFamily);
+}
+
+/**
+ * 是否拥有可进入的 3D 实景沉浸场景：
+ * 判定与 resolveImmersiveTarget 等价 —— 适配出的 entity 命中黄金样例
+ * 场景注册表（getSceneDefinition 非 null）。generic 家族推断、time_event
+ * 一律返回 false。地图锚点 / 景点列表的「3D」徽标统一走此判定。
+ */
+export function hasImmersiveScene(attraction: Attraction): boolean {
+  const entity = toExplorationEntity(attraction);
+  if (!entity) return false;
+  return getSceneDefinition(entity.sceneDefinitionId) !== null;
 }

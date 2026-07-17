@@ -6,6 +6,7 @@ import type { AttractionMapView, RankedAttraction } from "@/features/attraction-
 import { categoryIcon, renderIconSvg } from "@/features/attraction-explorer/icons"
 import { getAttractionMarkerMode } from "@/features/attraction-explorer/focus-state"
 import { resolveMarkerPresentations } from "@/features/attraction-explorer/marker-layout"
+import { hasImmersiveScene } from "@/features/immersive-exploration/data/adapters/attraction-adapter"
 
 interface PickedCountry {
   code: string
@@ -261,62 +262,83 @@ function paintFogOfWar(
 }
 
 /**
+ * Focus mask（聚焦暗色蒙版）— Leaflet 反向多边形做法：
+ * 以「世界外框 + 选中边界为洞」构造单个 L.polygon，fillRule evenodd，
+ * 使选中区域以外的一切（陆地+海洋）盖上暗色蒙版，视觉聚焦在所选边界内。
+ * stroke 关、interactive 关；挂在 fog pane（边界 pane 之上、资源 pane 之下），
+ * 层级返回世界/洲时随图层清理自然移除。
+ */
+
+/** 世界外框（LatLng 环，顺时针；evenodd 下方向不敏感） */
+const WORLD_RING: L.LatLngExpression[] = [
+  [-85, -180], [-85, 180], [85, 180], [85, -180], [-85, -180],
+]
+
+/** 提取 Feature 的全部线性环（Polygon/MultiPolygon），GeoJSON [lng,lat] → Leaflet [lat,lng] */
+function featureRings(feature: GeoJSON.Feature): L.LatLngExpression[][] {
+  const geometry = feature.geometry
+  const rings: L.LatLngExpression[][] = []
+  const pushPolygon = (coordinates: number[][][]) => {
+    coordinates.forEach(ring => {
+      rings.push(ring.map(position => [position[1], position[0]] as [number, number]))
+    })
+  }
+  if (geometry.type === "Polygon") pushPolygon(geometry.coordinates as number[][][])
+  else if (geometry.type === "MultiPolygon") (geometry.coordinates as number[][][][]).forEach(pushPolygon)
+  return rings
+}
+
+/** 反向蒙版：世界外框为面、holes 为洞，洞外整体压暗 */
+function paintInvertedMask(
+  holes: L.LatLngExpression[][],
+  maskLayer: L.LayerGroup,
+  darkRenderer: L.Canvas,
+  fillOpacity = 0.45,
+) {
+  if (!holes.length) return
+  L.polygon([WORLD_RING, ...holes], {
+    renderer: darkRenderer,
+    interactive: false,
+    stroke: false,
+    fill: true,
+    fillColor: "#010507",
+    fillOpacity,
+    fillRule: "evenodd",
+    className: "atlas-focus-mask",
+  }).addTo(maskLayer)
+}
+
+/**
  * Region-level focus mask: darken everything outside the active region.
- * - Other countries (from continent GeoJSON): solid dark fill
- * - Same-country provinces not in the active region's sector: solid dark fill
- * This ensures the user's visual focus is the active region only.
+ * - 有省州→旅游板块映射（resolveProvinceSector）：以该板块全部省州边界为洞
+ * - 无映射（岛国/无省州边界数据）：降级为「地区中心矩形洞」（约 ±0.55° 纬 /
+ *   ±0.85° 经），仅作视觉聚焦近似 —— 降级实现，见施工说明
  */
 function paintFocusMask(
-  continentFeatures: GeoJSON.Feature[],
   adminFeatures: GeoJSON.Feature[],
   countryCode: string,
   activeRegionId: string,
+  regionFocus: [number, number],
   fogLayer: L.LayerGroup,
   darkRenderer: L.Canvas,
 ) {
-  // 1. Darken all OTHER countries from the continent GeoJSON
-  const otherCountries = continentFeatures.filter(
-    feature => feature.properties?.ADM0_A3 !== countryCode,
+  const sectorFeatures = adminFeatures.filter(
+    feature => resolveProvinceSector(countryCode, feature) === activeRegionId,
   )
-  if (otherCountries.length) {
-    const collection = { type: "FeatureCollection", features: otherCountries } as GeoJSON.FeatureCollection
-    L.geoJSON(collection, {
-      interactive: false,
-      style: () => ({
-        renderer: darkRenderer,
-        stroke: false,
-        fill: true,
-        fillColor: "#010507",
-        fillOpacity: 0.72,
-        className: "atlas-focus-mask",
-      }),
-    }).addTo(fogLayer)
+  if (sectorFeatures.length) {
+    paintInvertedMask(sectorFeatures.flatMap(featureRings), fogLayer, darkRenderer, 0.5)
+    return
   }
-
-  // 2. Darken same-country provinces not belonging to the active region
-  const otherProvinces = adminFeatures.filter(feature => {
-    const sectorId = resolveProvinceSector(countryCode, feature)
-    return sectorId !== activeRegionId
-  })
-  if (!otherProvinces.length) return
-
-  const collection = { type: "FeatureCollection", features: otherProvinces } as GeoJSON.FeatureCollection
-  L.geoJSON(collection, {
-    interactive: false,
-    style: () => ({
-      renderer: darkRenderer,
-      stroke: true,
-      color: "#03090b",
-      weight: 1,
-      opacity: 0.4,
-      fill: true,
-      fillColor: "#010507",
-      fillOpacity: 0.68,
-      lineCap: "round",
-      lineJoin: "round",
-      className: "atlas-focus-mask",
-    }),
-  }).addTo(fogLayer)
+  // 降级：无独立边界可映射时，用地区中心 + 固定范围的矩形洞近似聚焦范围
+  const [lat, lng] = regionFocus
+  const dLat = 0.55
+  const dLng = 0.85
+  const rectHole: L.LatLngExpression[] = [
+    [lat - dLat, lng - dLng], [lat - dLat, lng + dLng],
+    [lat + dLat, lng + dLng], [lat + dLat, lng - dLng],
+    [lat - dLat, lng - dLng],
+  ]
+  paintInvertedMask([rectHole], fogLayer, darkRenderer, 0.5)
 }
 
 const KIND_LABELS = { must: "值得专程", alternative: "适合顺路发现", "easter-egg": "小众发现" }
@@ -424,6 +446,8 @@ export function FlatAtlasMap({
       wheelPxPerZoomLevel: 85,
       preferCanvas: true,
     })
+    // 调试/验收句柄：E2E 探针可经 container._atlasMap 访问地图实例（只读用途）
+    ;(containerRef.current as unknown as Record<string, unknown>)._atlasMap = map
     const boundaryPane = map.createPane("atlas-boundary-pane")
     const fogPane = map.createPane("atlas-fog-pane")
     const sectorOverlayPane = map.createPane("atlas-sector-pane")
@@ -743,23 +767,21 @@ export function FlatAtlasMap({
       return response.json() as Promise<GeoJSON.FeatureCollection>
     }
     const adminPromise = level !== "continent" && country
-      ? loadGeoJson(`/geo/admin1/${country.code.toLowerCase()}.geojson`)
-      : Promise.resolve<GeoJSON.FeatureCollection | null>(null)
-    // Load global countries GeoJSON at region level to darken other continents
-    const countriesPromise = level === "region"
-      ? loadGeoJson(`/geo/countries.geojson`)
+      // 无省州边界文件的国家（如马尔代夫）不阻断整张地图：降级为 null，
+      // 后续走「无边界降级」分支（中心矩形洞蒙版等）
+      ? loadGeoJson(`/geo/admin1/${country.code.toLowerCase()}.geojson`).catch(() => null)
       : Promise.resolve<GeoJSON.FeatureCollection | null>(null)
 
-    const geometryComplete = Promise.all([loadGeoJson(continentUrl), adminPromise, countriesPromise]).then(([data, adminData, countriesData]) => {
+    const geometryComplete = Promise.all([loadGeoJson(continentUrl), adminPromise]).then(([data, adminData]) => {
       if (cancelled || requestId !== requestIdRef.current) return null
       // NOTE: borders are NOT drawn here. They are drawn in the Promise.all().then()
       // below, AFTER tiles are ready, so borders and tiles reveal together (no flash).
-      return { data, adminData, countriesData }
+      return { data, adminData }
     })
 
     // Draw borders from loaded geo data. Called only after tiles + flight are ready.
     // Refs are guaranteed non-null (checked at top of useEffect); alias them here.
-    function drawBoundaries(geo: { data: GeoJSON.FeatureCollection; adminData: GeoJSON.FeatureCollection | null; countriesData: GeoJSON.FeatureCollection | null } | null) {
+    function drawBoundaries(geo: { data: GeoJSON.FeatureCollection; adminData: GeoJSON.FeatureCollection | null } | null) {
       if (!geo) return
       const br = boundaryRenderer!
       const bl = boundaries!
@@ -789,8 +811,15 @@ export function FlatAtlasMap({
           style: () => ({ renderer: br, color: "#07191a", weight: 4.1, opacity: 0.84, fill: false, lineCap: "round", lineJoin: "round" }),
         }).addTo(bl)
         L.geoJSON({ type: "FeatureCollection", features: selected } as GeoJSON.FeatureCollection, {
+          // 纯描边装饰：必须关闭交互。Polygon 即使 fill:false，命中检测仍按"点在面内"成立，
+          // 若保持交互会在 hover 时以绘制序最后层身份压住市町村细分层的 tooltip
+          interactive: false,
           style: () => ({ renderer: br, color: "#ef8c66", weight: 1.75, opacity: 1, fill: false, lineCap: "round", lineJoin: "round" }),
         }).addTo(bl)
+        // 国家层级聚焦蒙版：以国界为洞的反向多边形，压暗国外一切区域
+        if (level === "country" && selected.length) {
+          paintInvertedMask(selected.flatMap(featureRings), fl, fr, 0.45)
+        }
       }
 
       if (level !== "continent" && country && adminData) {
@@ -799,8 +828,11 @@ export function FlatAtlasMap({
           style: () => ({ renderer: br, color: "#061718", weight: 2.5, opacity: 0.68, fill: false, lineCap: "round", lineJoin: "round" }),
         }).addTo(bl)
         L.geoJSON(adminData, {
+          // region 层级让位给市町村细分层：省州面不再可交互，避免整面 tooltip 压住城市 hover
+          interactive: level !== "region",
           style: () => ({ renderer: br, color: "#fff1ca", weight: level === "region" ? 1.2 : 1, opacity: 0.93, fillColor: "#071f22", fillOpacity: 0.035, dashArray: level === "region" ? undefined : "5 3", lineCap: "round", lineJoin: "round" }),
           onEachFeature: (feature, layer) => {
+            if (level === "region") return
             const name = feature.properties?.name_zh || feature.properties?.name || feature.properties?.name_en
             if (name) layer.bindTooltip(String(name), { className: "atlas-province-tooltip", sticky: true })
             // Click province to enter its region (same as clicking hotlist item)
@@ -824,11 +856,12 @@ export function FlatAtlasMap({
         ) > 0
 
         if (level === "region" && region) {
+          // 地区层级聚焦蒙版：板块省州边界为洞（无映射时降级为矩形洞）
           paintFocusMask(
-            data.features as GeoJSON.Feature[],
             adminData.features as GeoJSON.Feature[],
             country.code,
             region.id,
+            region.focus,
             fl,
             fr,
           )
@@ -872,6 +905,9 @@ export function FlatAtlasMap({
           }
           resourceMarker(item, region?.id === item.id, isWished, handlePin).addTo(rl)
         })
+      } else if (level === "region" && country && region) {
+        // 地区层级但该国无省州边界文件：降级为地区中心矩形洞聚焦蒙版
+        paintFocusMask([], country.code, region.id, region.focus, fl, fr)
       }
       setDetailReady(level === "continent" || Boolean(adminData))
     }
@@ -945,11 +981,15 @@ export function FlatAtlasMap({
       const presentation = presentations.get(attraction.id) || "compact"
       const isSelected = presentation === "selected"
       const coordinate = `${attraction.lat_wgs84.toFixed(3)}° · ${attraction.lng_wgs84.toFixed(3)}°`
+      // 「3D 实景沉浸式体验」徽标：与沉浸 CTA 同一判定（hasImmersiveScene）
+      const immersiveBadge = hasImmersiveScene(attraction)
+        ? `<i class="poi-3d-badge" title="该 POI 有 3D 实景沉浸式体验" aria-label="该 POI 有 3D 实景沉浸式体验">3D</i>`
+        : ""
       const html = isSelected
-        ? `<div class="attraction-map-pin is-selected kind-${attraction.selection_kind}"><img src="${escapeHtml(attraction.image_url)}" alt=""/><div><span>${attractionPinIcon(attraction, true)}</span><p><b>${escapeHtml(attraction.name)}</b><small>${coordinate} · ${KIND_LABELS[attraction.selection_kind]}</small></p></div></div>`
+        ? `<div class="attraction-map-pin is-selected kind-${attraction.selection_kind}">${immersiveBadge}<img src="${escapeHtml(attraction.image_url)}" alt=""/><div><span>${attractionPinIcon(attraction, true)}</span><p><b>${escapeHtml(attraction.name)}</b><small>${coordinate} · ${KIND_LABELS[attraction.selection_kind]}</small></p></div></div>`
         : presentation === "compact"
-          ? `<div class="attraction-map-dot kind-${attraction.selection_kind}" aria-label="${escapeHtml(attraction.name)}"><span>${attractionPinIcon(attraction, false)}</span></div>`
-          : `<div class="attraction-map-pin kind-${attraction.selection_kind}"><span>${attractionPinIcon(attraction, false)}</span><b>${escapeHtml(attraction.name)}</b><small>${KIND_LABELS[attraction.selection_kind]} · ${attraction.category_l2}</small></div>`
+          ? `<div class="attraction-map-dot kind-${attraction.selection_kind}" aria-label="${escapeHtml(attraction.name)}"><span>${attractionPinIcon(attraction, false)}</span>${immersiveBadge}</div>`
+          : `<div class="attraction-map-pin kind-${attraction.selection_kind}">${immersiveBadge}<span>${attractionPinIcon(attraction, false)}</span><b>${escapeHtml(attraction.name)}</b><small>${KIND_LABELS[attraction.selection_kind]} · ${attraction.category_l2}</small></div>`
       const marker = L.marker([attraction.lat_wgs84, attraction.lng_wgs84], {
         pane: "atlas-attraction-pane",
         keyboard: true,
@@ -976,6 +1016,52 @@ export function FlatAtlasMap({
       marker.addTo(spotLayer)
     })
   }, [attractions, level, selectedAttraction?.id, hoveredAttractionId, comparedAttractionIds, onAttractionHover])
+
+  // 北海道市町村分界层（任务 4b）：进入北海道地区层级时加载本地 GeoJSON
+  // （public/geojson/hokkaido-municipalities.geojson，国土数值信息 N03 降采样），
+  // 细描边 + mouseover 高亮 + 市名 tooltip；加载失败/离线时静默降级为不显示。
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || level !== "region" || country?.code !== "JPN" || region?.id !== "hokkaido") return
+    let cancelled = false
+    const controller = new AbortController()
+    const cityLayer = L.layerGroup().addTo(map)
+    // 注意1：fill 必须为 true（fillOpacity 0），否则 Canvas 命中检测只认 0.6px 描边，悬停几乎无法触发
+    // 注意2：必须用 boundaryRenderer（atlas-boundary-pane，z430）。默认 overlay 画布（z400）被上层
+    //        画布挡住收不到 DOM mousemove（Leaflet Canvas 的 hover 监听挂在各自 canvas 元素上）。
+    const cityRenderer = boundaryRendererRef.current ?? undefined
+    const baseStyle: L.PathOptions = { renderer: cityRenderer, color: "#9fd8cf", weight: 0.6, opacity: 0.5, fill: true, fillColor: "#9fd8cf", fillOpacity: 0, lineJoin: "round" }
+    const highlightStyle: L.PathOptions = { renderer: cityRenderer, color: "#f2d89f", weight: 1.6, opacity: 0.95, fillOpacity: 0.08 }
+    fetch("/geojson/hokkaido-municipalities.geojson", { signal: controller.signal })
+      .then(response => {
+        if (!response.ok) throw new Error(`Unable to load hokkaido municipalities: ${response.status}`)
+        return response.json() as Promise<GeoJSON.FeatureCollection>
+      })
+      .then(data => {
+        if (cancelled) return
+        L.geoJSON(data, {
+          style: () => baseStyle,
+          onEachFeature: (feature, layer) => {
+            const props = (feature.properties || {}) as { name?: string; city?: string }
+            const label = props.city && props.city !== props.name ? `${props.city} · ${props.name}` : props.name
+            const path = layer as L.Path
+            if (label) path.bindTooltip(label, { className: "atlas-city-tooltip", sticky: true, direction: "top" })
+            layer.on({
+              mouseover: () => path.setStyle(highlightStyle),
+              mouseout: () => path.setStyle(baseStyle),
+            })
+          },
+        }).addTo(cityLayer)
+      })
+      .catch(error => {
+        if (!controller.signal.aborted) console.warn(error)
+      })
+    return () => {
+      cancelled = true
+      controller.abort()
+      map.removeLayer(cityLayer)
+    }
+  }, [level, country?.code, region?.id])
 
   useEffect(() => {
     const routeLayer = journeyRouteLayerRef.current

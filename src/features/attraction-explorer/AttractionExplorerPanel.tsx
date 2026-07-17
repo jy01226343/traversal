@@ -3,6 +3,7 @@ import { ArrowUpRight, ChevronDown, Compass, MapPin, RotateCcw, type LucideIcon 
 import type { AttractionCategoryL1, AttractionPreference, RankedAttraction } from "./types"
 import { EXPERIENCE_FILTERS, type AttractionExperience } from "./manual-filters"
 import { tagIcon } from "./icons"
+import { hasImmersiveScene } from "@/features/immersive-exploration/data/adapters/attraction-adapter"
 import { SemanticFilterInput } from "@/features/semantic-filter/SemanticFilterInput"
 import { unavailableSemanticFilterProvider } from "@/features/semantic-filter/semantic-filter"
 
@@ -109,7 +110,7 @@ export function AttractionExplorerPanel({
     <div className="attraction-list" aria-live="polite">
       {visibleItems.map(item => <div className="attraction-list-entry" key={item.id}><button data-attraction={item.id} className={`attraction-list-item kind-${item.selection_kind} ${selectedId === item.id ? "selected" : ""} ${hoveredId === item.id ? "is-external-hover" : ""}`} onClick={() => onSelect(item)} onMouseEnter={() => onHoverChange(item.id)} onMouseLeave={() => onHoverChange(null)} onFocus={() => onHoverChange(item.id)} onBlur={() => onHoverChange(null)}>
         <img src={item.image_url} alt=""/>
-        <span className="attraction-copy"><em>{KIND_LABELS[item.selection_kind]}</em><b>{item.name}<small>{item.name_en}</small></b><i>{item.category_l2} · {item.best_season}</i><span>{item.tags.slice(0, 2).map(tag => <small key={tag}><TagIcon tag={tag} />{tag}</small>)}</span></span>
+        <span className="attraction-copy"><em>{KIND_LABELS[item.selection_kind]}</em><b>{item.name}{hasImmersiveScene(item) && <i className="poi-3d-badge" title="该 POI 有 3D 实景沉浸式体验" aria-label="该 POI 有 3D 实景沉浸式体验">3D</i>}<small>{item.name_en}</small></b><i>{item.category_l2} · {item.best_season}</i><span>{item.tags.slice(0, 2).map(tag => <small key={tag}><TagIcon tag={tag} />{tag}</small>)}</span></span>
         <MapPin className="item-pin" size={15}/>
       </button><button type="button" className={`attraction-compare-toggle ${comparedIds.includes(item.id) ? "is-on" : ""}`} onClick={() => onCompareToggle(item.id)} aria-pressed={comparedIds.includes(item.id)}>{comparedIds.includes(item.id) ? "已比较" : "比较"}</button></div>)}
       {!items.length && loading && <div className="attraction-empty is-loading" data-attractions-loading="true"><Compass size={24}/><b>正在加载该地区景点…</b><p>依次尝试 API → 爬虫（OSM/Wikipedia/官方站）→ 种子数据；弱网或数据源不可达时可能需要十几秒，请稍候。</p></div>}
