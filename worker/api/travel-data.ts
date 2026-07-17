@@ -155,12 +155,16 @@ async function handleOsmPlaceSearch(url: URL, countryCode: string, query: string
     const cacheKey = `osm-place:v1:${countryCode}:${escapeOverpassText(query)}:${lat.toFixed(3)}:${lng.toFixed(3)}`
     const cached = await staleWhileRevalidate(cacheKey, 24 * 60 * 60_000, async () => {
       const safeQuery = escapeOverpassText(query)
-      const overpass = `[out:json][timeout:15];(nwr["name"~"${safeQuery}",i](around:5000,${lat},${lng}););out center tags 20;`
+      // Public Overpass instances are shared infrastructure. Keep the server-side
+      // evaluation and each client attempt bounded so an unavailable instance does
+      // not leave the interactive POI search waiting indefinitely.
+      const upstreamTimeout = Math.min(8_000, Math.max(5_000, timeoutMs(env)))
+      const overpass = `[out:json][timeout:${Math.floor(upstreamTimeout / 1_000)}];(nwr["name"~"${safeQuery}",i](around:5000,${lat},${lng}););out center tags 20;`
       const init = { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "Family-Atlas/1.0 (destination POI lookup)" }, body: new URLSearchParams({ data: overpass }) }
       const endpoints = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
       let lastError: unknown
       for (const endpoint of endpoints) {
-        try { return await fetchJsonWithTimeout(endpoint, init, Math.max(timeoutMs(env), 15_000)) }
+        try { return await fetchJsonWithTimeout(endpoint, init, upstreamTimeout) }
         catch (error) { lastError = error }
       }
       throw lastError
