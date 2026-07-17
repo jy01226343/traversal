@@ -153,10 +153,17 @@ async function handleOsmPlaceSearch(url: URL, countryCode: string, query: string
   if (!canUseProvider("osm-overpass", env.OVERPASS_DAILY_SOFT_LIMIT)) return json(providerFailure("osm-overpass", "RATE_LIMITED", "Overpass 调用已达到当前软阈值，正在使用缓存或等待恢复", true), 429)
   try {
     const cacheKey = `osm-place:v1:${countryCode}:${escapeOverpassText(query)}:${lat.toFixed(3)}:${lng.toFixed(3)}`
-    const cached = await staleWhileRevalidate(cacheKey, 24 * 60 * 60_000, () => {
+    const cached = await staleWhileRevalidate(cacheKey, 24 * 60 * 60_000, async () => {
       const safeQuery = escapeOverpassText(query)
       const overpass = `[out:json][timeout:15];(nwr["name"~"${safeQuery}",i](around:5000,${lat},${lng}););out center tags 20;`
-      return fetchJsonWithTimeout("https://overpass-api.de/api/interpreter", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "Family-Atlas/1.0 (destination POI lookup)" }, body: new URLSearchParams({ data: overpass }) }, timeoutMs(env))
+      const init = { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "Family-Atlas/1.0 (destination POI lookup)" }, body: new URLSearchParams({ data: overpass }) }
+      const endpoints = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
+      let lastError: unknown
+      for (const endpoint of endpoints) {
+        try { return await fetchJsonWithTimeout(endpoint, init, Math.max(timeoutMs(env), 15_000)) }
+        catch (error) { lastError = error }
+      }
+      throw lastError
     })
     const payload = cached.value as { elements?: Array<{ type: string; id: number; lat?: number; lon?: number; center?: { lat?: number; lon?: number }; tags?: Record<string, string> }> }
     const pois = (payload.elements || []).flatMap(element => {
