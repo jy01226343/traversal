@@ -25,13 +25,24 @@ export function providerFailure(provider: string, code: ProviderCode, message: s
 
 export async function fetchJsonWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  const timedOut = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      controller.abort()
+      reject(new Error("UPSTREAM_TIMEOUT"))
+    }, timeoutMs)
+  })
   try {
-    const response = await fetch(url, { ...init, signal: controller.signal })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    return await response.json<unknown>()
+    const request = fetch(url, { ...init, signal: controller.signal }).then(async response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.json<unknown>()
+    })
+    // In some edge runtimes aborting a fetch does not immediately settle its
+    // promise. Racing the request ensures the caller still gets a bounded,
+    // retryable failure while the underlying connection is released.
+    return await Promise.race([request, timedOut])
   } finally {
-    clearTimeout(timeout)
+    if (timeout) clearTimeout(timeout)
   }
 }
 
