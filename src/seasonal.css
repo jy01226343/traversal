@@ -72,3 +72,33 @@
   .seasonal-fan{inset:158px 0 0;overflow:visible}.fan-stack{bottom:28px;height:200px;overflow:visible}.fan-card{width:118px;height:160px;bottom:6px}.fan-card:before{inset:5px}.fan-access{left:7px;top:8px;padding:4px;font-size:4px}.fan-copy{left:9px;right:8px;bottom:9px}.fan-copy>b{font-size:12px}.fan-copy>i{display:none}.fan-controls{left:0;right:auto;bottom:0}.fan-controls button{width:27px;height:22px}
 }
 @media(prefers-reduced-motion:reduce){.fan-card,.fan-card img,.map-unroll-curtain{transition:none!important;animation:none!important}.map-unroll-curtain{display:none}}
+
+/* World Explore keeps the globe as the primary visual anchor. Seasonal planning is
+   an on-demand side rail, not a permanent layer over the planet. */
+.seasonal-toggle{position:absolute;z-index:40;right:0;bottom:0;min-height:38px;padding:8px 12px;border:1px solid #f2d49b;border-radius:999px;background:#f5f0e8;color:#173839;box-shadow:4px 4px 0 #bd6346;font:700 11px 'Noto Serif SC';pointer-events:auto;white-space:nowrap;transition:transform .2s ease,box-shadow .2s ease}.seasonal-toggle:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 #bd6346}.seasonal-toggle:focus-visible{outline:3px solid #e8833b;outline-offset:3px}
+.seasonal-recommendations.is-collapsed{left:auto;right:5.4vw;bottom:22px;width:170px;height:42px;contain:layout style;pointer-events:auto}.seasonal-recommendations.is-collapsed .seasonal-toggle{right:0;bottom:0}
+@media(min-width:1281px){
+  .seasonal-recommendations.is-expanded{left:auto;right:5.4vw;bottom:42px;width:320px;height:260px;transform:none}
+  .seasonal-recommendations.is-expanded>header{width:145px;padding:8px 9px}
+  .seasonal-recommendations.is-expanded>header>div b{font-size:13px;line-height:1.35}
+  .seasonal-recommendations.is-expanded>header>small{display:none}
+  .seasonal-recommendations.is-expanded .seasonal-filter-dock{width:164px;padding:6px}
+  .seasonal-recommendations.is-expanded .seasonal-filter-dock button{padding:5px 3px;font-size:6px}
+  .seasonal-recommendations.is-expanded .seasonal-fan{inset:72px 0 0}
+  .seasonal-recommendations.is-expanded .fan-stack{height:auto;top:0;bottom:0}
+  .seasonal-recommendations.is-expanded .fan-card{width:110px;height:150px;bottom:0}
+  .seasonal-recommendations.is-expanded .fan-access{left:7px;top:8px;padding:3px 4px;font-size:4px}
+  .seasonal-recommendations.is-expanded .fan-copy{left:8px;right:8px;bottom:8px}
+  .seasonal-recommendations.is-expanded .fan-copy>b{font-size:12px}.seasonal-recommendations.is-expanded .fan-copy>i,.seasonal-recommendations.is-expanded .fan-copy>u{display:none}
+  .seasonal-recommendations.is-expanded .fan-wish{right:7px;bottom:7px;width:23px;height:23px;font-size:12px}
+  .seasonal-recommendations.is-expanded .fan-controls{right:0;bottom:0;left:auto}
+  .seasonal-recommendations.is-expanded .seasonal-toggle{top:-44px;bottom:auto}
+}
+@media(max-width:1280px) and (min-width:761px){
+  .seasonal-recommendations.is-collapsed{right:2.5vw;bottom:18px}
+  .seasonal-recommendations.is-expanded{left:auto;right:2.5vw;bottom:34px;width:260px;height:244px;transform:none}
+  .seasonal-recommendations.is-expanded>header{width:126px;padding:7px 8px}.seasonal-recommendations.is-expanded>header>div b{font-size:12px}.seasonal-recommendations.is-expanded>header>small{display:none}
+  .seasonal-recommendations.is-expanded .seasonal-filter-dock{width:130px;padding:5px}.seasonal-recommendations.is-expanded .seasonal-filter-dock button{padding:4px 2px;font-size:5px}
+  .seasonal-recommendations.is-expanded .seasonal-fan{inset:68px 0 0}.seasonal-recommendations.is-expanded .fan-stack{height:auto;top:0;bottom:0}.seasonal-recommendations.is-expanded .fan-card{width:96px;height:136px;bottom:0}.seasonal-recommendations.is-expanded .fan-copy{left:7px;right:7px;bottom:7px}.seasonal-recommendations.is-expanded .fan-copy>b{font-size:11px}.seasonal-recommendations.is-expanded .fan-copy>i,.seasonal-recommendations.is-expanded .fan-copy>u{display:none}.seasonal-recommendations.is-expanded .fan-access{left:6px;top:6px;font-size:4px}.seasonal-recommendations.is-expanded .fan-wish{right:6px;bottom:6px;width:22px;height:22px}.seasonal-recommendations.is-expanded .fan-controls{right:0;bottom:0;left:auto}.seasonal-recommendations.is-expanded .seasonal-toggle{top:-44px;bottom:auto}
+}
+@media(max-width:760px){.seasonal-recommendations.is-collapsed{left:auto;right:14px;bottom:72px;width:160px;height:42px}.seasonal-recommendations.is-expanded .seasonal-toggle{top:-44px;bottom:auto}}

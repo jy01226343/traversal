@@ -220,6 +220,7 @@ function App() {
   }, [syncWeather]);
   const [selectedSeason, setSelectedSeason] = useState(() => getSeasonForDate(calendarNow));
   const [seasonContinent, setSeasonContinent] = useState('全球');
+  const [seasonalOpen, setSeasonalOpen] = useState(false);
   const [progressScope, setProgressScope] = useState('country');
   const [attractionPreference, setAttractionPreference] = useState('popular');
   const [attractionCategory, setAttractionCategory] = useState('全部');
@@ -879,10 +880,11 @@ function App() {
         <p className="progress-caption">已到访旅行区域 <b>{visitedCount}</b> / {taxonomyTotal}</p>
         <div className="progress-list"><p><span>心愿中</span><b>{wishlist.length ? `${wishlist.length} 处` : '待探索'}</b></p>{activeJourney && <p><span>准备中 Journey</span><b>{activeJourney.name} · {activeJourney.preparedness}%</b></p>}<p><span>统计口径</span><b>按 Family Atlas 旅行区域</b></p></div>
       </aside>
-      {mapLevel === 'world' && !worldHandoff && !routeFlight && <aside className="seasonal-recommendations" aria-label="当季旅行推荐">
-        <header><div><span>SEASONAL PLANNER · {MONTH_NAMES[calendarNow.getMonth()]} · {seasonContinent}</span><b>{TRAVEL_SEASONS.find(item => item.id === selectedSeason)?.label}本季探索精选 · {seasonalFanCards.length} 处</b></div><small>数据源：各国官方旅游局 / 文旅部门公开指南（非 OTA）</small></header>
+      {mapLevel === 'world' && !worldHandoff && !routeFlight && <aside className={`seasonal-recommendations ${seasonalOpen ? 'is-expanded' : 'is-collapsed'}`} aria-label="当季旅行推荐">
+        <button className="seasonal-toggle" type="button" aria-expanded={seasonalOpen} onClick={() => setSeasonalOpen(value => !value)}>{seasonalOpen ? '收起推荐' : `${TRAVEL_SEASONS.find(item => item.id === selectedSeason)?.label}季推荐`}</button>
+        {seasonalOpen && <><header><div><span>SEASONAL PLANNER · {MONTH_NAMES[calendarNow.getMonth()]} · {seasonContinent}</span><b>{TRAVEL_SEASONS.find(item => item.id === selectedSeason)?.label}本季探索精选 · {seasonalFanCards.length} 处</b></div><small>数据源：各国官方旅游局 / 文旅部门公开指南（非 OTA）</small></header>
         <div className="seasonal-filter-dock"><nav className="season-switch" aria-label="切换旅行季节">{TRAVEL_SEASONS.map(item => <button className={selectedSeason === item.id ? 'active' : ''} onClick={() => setSelectedSeason(item.id)} key={item.id}>{item.label}</button>)}</nav><nav className="continent-switch" aria-label="筛选大洲">{SEASON_CONTINENTS.map(item => <button className={seasonContinent === item ? 'active' : ''} onClick={() => setSeasonContinent(item)} key={item}>{item}</button>)}</nav></div>
-        <CardFanCarousel cards={seasonalFanCards} onCardSelect={handleSeasonalDestination} onWishToggle={handleWishToggle} reducedMotion={reducedMotion}/>
+        <CardFanCarousel cards={seasonalFanCards} onCardSelect={handleSeasonalDestination} onWishToggle={handleWishToggle} controlsMode="inline" reducedMotion={reducedMotion}/></>}
       </aside>}
       {unlockToast && <div className="unlock-toast"><span>✦ ATLAS UPDATE</span><b>{unlockToast}</b></div>}
     </section>
