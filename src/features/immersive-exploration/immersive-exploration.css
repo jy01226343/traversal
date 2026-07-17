@@ -1,0 +1,860 @@
+/* ==========================================================================
+   沉浸式景点探索 · UI 层样式（CONTRACT：前缀 ix-，暗色 atlas 主题）
+   背景 #0b1418 系 / 深色玻璃拟态面板 / 强调色 青金 #f0b429 + 青 #22d3ee
+   桌面断点 760px（≤760px 信息面板变底部抽屉）；触控目标 ≥44×44pt；无音频
+   ========================================================================== */
+
+.ix-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  background: #0b1418;
+  color: #e6f0f2;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ix-overlay button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ix-overlay :focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------- 场景画布与氛围 */
+.ix-stage { position: absolute; inset: 0; }
+.ix-stage__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 18%, #16303a 0%, #0e1e25 46%, #0b1418 100%);
+}
+.ix-stage__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ix-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(4, 10, 13, 0.6) 0%,
+    transparent 22%,
+    transparent 68%,
+    rgba(4, 10, 13, 0.72) 100%
+  );
+}
+
+/* ---------------------------------------------------------- 通用按钮 */
+.ix-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 197, 210, 0.2);
+  background: rgba(19, 34, 41, 0.78);
+  color: #e6f0f2;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+.ix-btn:hover { background: rgba(33, 56, 66, 0.9); }
+.ix-btn:active { transform: scale(0.97); }
+.ix-btn[disabled] { opacity: 0.42; cursor: not-allowed; }
+.ix-btn--sm { min-height: 44px; padding: 0 12px; font-size: 13px; }
+.ix-btn--ghost { background: rgba(11, 20, 24, 0.55); }
+.ix-btn--primary {
+  background: #f0b429;
+  border-color: #f0b429;
+  color: #20180a;
+  font-weight: 600;
+}
+.ix-btn--primary:hover { background: #ffc63f; border-color: #ffc63f; }
+.ix-btn--danger {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+  background: rgba(66, 24, 18, 0.5);
+}
+.ix-btn--danger:hover { background: rgba(88, 32, 24, 0.66); }
+.ix-btn--calm {
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #67e8f9;
+}
+.ix-btn__note { font-size: 11px; opacity: 0.8; }
+
+.ix-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 197, 210, 0.25);
+  font-size: 11px;
+  color: #9dc3cd;
+  white-space: nowrap;
+}
+.ix-chip--gold {
+  border-color: rgba(240, 180, 41, 0.5);
+  color: #ffd580;
+}
+
+.ix-link {
+  color: #67e8f9;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------------------------------------------------------- 三态口径角标 */
+.ix-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+}
+.ix-badge--sm { padding: 2px 9px; font-size: 11px; }
+.ix-badge__icon { font-size: 9px; line-height: 1; }
+.ix-badge--live {
+  background: rgba(16, 58, 44, 0.72);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #6ee7b7;
+}
+.ix-badge--preview {
+  background: rgba(12, 46, 60, 0.72);
+  border-color: rgba(34, 211, 238, 0.38);
+  color: #67e8f9;
+}
+.ix-badge--risk {
+  background: rgba(66, 24, 18, 0.78);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+}
+
+/* ---------------------------------------------------------- 顶栏 */
+.ix-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+}
+.ix-topbar__back { flex: none; }
+.ix-topbar__title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+.ix-topbar__title b { font-size: 16px; letter-spacing: 0.04em; }
+.ix-topbar__title span { font-size: 11px; color: #9dc3cd; }
+.ix-topbar__mode { margin-left: auto; }
+
+/* ---------------------------------------------------------- 空间标签层 */
+.ix-anchors {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.ix-anchor {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 197, 210, 0.24);
+  background: rgba(10, 20, 25, 0.8);
+  color: #e6f0f2;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: opacity 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.ix-anchor:hover { border-color: rgba(34, 211, 238, 0.55); }
+.ix-anchor__dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.85);
+}
+/* 引线：标签下方垂线 + 端点 */
+.ix-anchor::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(180deg, rgba(148, 197, 210, 0.65), transparent);
+}
+.ix-anchor--selected {
+  border-color: rgba(240, 180, 41, 0.7);
+  background: rgba(43, 32, 10, 0.85);
+  color: #ffe1a1;
+}
+.ix-anchor--selected .ix-anchor__dot {
+  background: #f0b429;
+  box-shadow: 0 0 9px rgba(240, 180, 41, 0.9);
+}
+.ix-anchor--dimmed { opacity: 0.32; }
+
+/* ---------------------------------------------------------- 底栏与主题菜单 */
+.ix-bottombar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  /* 覆盖全局 footer{background:#102d2f;min-height:160px;...} 泄漏（会遮挡相机 Dock） */
+  min-height: 0;
+  background: transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  animation: ix-fade-up 0.5s ease both;
+}
+.ix-theme-menu {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 197, 210, 0.16);
+  background: rgba(10, 20, 25, 0.74);
+  backdrop-filter: blur(14px);
+}
+.ix-theme-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 62px;
+  min-height: 54px;
+  padding: 7px 10px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #9dc3cd;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.ix-theme-tab:hover { background: rgba(34, 211, 238, 0.09); color: #e6f0f2; }
+.ix-theme-tab--active {
+  background: rgba(240, 180, 41, 0.15);
+  border-color: rgba(240, 180, 41, 0.5);
+  color: #ffd580;
+}
+
+/* ---------------------------------------------------------- 信息面板（桌面右侧） */
+.ix-panel {
+  position: absolute;
+  top: 74px;
+  right: 14px;
+  bottom: 104px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-width: calc(100vw - 28px);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 197, 210, 0.17);
+  background: rgba(10, 20, 25, 0.8);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  animation: ix-fade-up 0.32s ease both;
+}
+.ix-panel__handle { display: none; }
+.ix-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(148, 197, 210, 0.12);
+}
+.ix-panel__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ix-panel__title {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+}
+.ix-panel__detents { display: none; }
+.ix-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #9dc3cd;
+  cursor: pointer;
+}
+.ix-panel__close:hover { background: rgba(148, 197, 210, 0.12); color: #e6f0f2; }
+.ix-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 16px;
+}
+.ix-panel__empty { color: #9dc3cd; font-size: 13px; }
+
+/* ---------------------------------------------------------- 卡片 */
+.ix-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ix-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 197, 210, 0.15);
+  background: rgba(19, 34, 41, 0.55);
+  color: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+button.ix-card:hover { border-color: rgba(240, 180, 41, 0.42); }
+.ix-card--selected {
+  border-color: rgba(240, 180, 41, 0.65);
+  background: rgba(240, 180, 41, 0.1);
+}
+.ix-card--disabled { opacity: 0.55; }
+.ix-card--static { cursor: default; }
+.ix-card--risk {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(45, 20, 16, 0.5);
+}
+.ix-card__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  font-weight: 600;
+  font-size: 14px;
+}
+.ix-card__meta { font-size: 12px; color: #9dc3cd; }
+.ix-card__text { font-size: 12.5px; color: #c3d8de; }
+.ix-card__cta { align-self: flex-start; margin-top: 4px; }
+.ix-warn {
+  display: block;
+  font-size: 12px;
+  color: #fca5a5;
+}
+
+/* 风险五段说明 */
+.ix-risk-section { display: flex; flex-direction: column; gap: 4px; }
+.ix-risk-section__title {
+  margin: 0;
+  font-size: 12px;
+  color: #fda4a4;
+  letter-spacing: 0.06em;
+}
+.ix-risk-section__list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: #d3e2e7;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ix-risk-section__list b { color: #e6f0f2; }
+.ix-risk-section__current { color: #ffd580; font-weight: 600; }
+
+/* 锚点说明块 */
+.ix-anchor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(240, 180, 41, 0.35);
+  background: rgba(43, 32, 10, 0.4);
+}
+.ix-anchor-card__eyebrow { margin: 0; font-size: 11px; color: #ffd580; letter-spacing: 0.06em; }
+.ix-anchor-card__title { margin: 0; font-size: 14px; }
+.ix-anchor-card__body { margin: 0; font-size: 12.5px; color: #d3e2e7; }
+
+/* ---------------------------------------------------------- 风险演示面板 */
+.ix-risk {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(34, 15, 12, 0.86);
+}
+.ix-risk .ix-panel__title { color: #fecaca; }
+.ix-risk__progress { margin: 0; font-size: 13px; color: #ffd580; }
+.ix-risk__dots { display: flex; gap: 6px; }
+.ix-risk__dot {
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(248, 113, 113, 0.25);
+}
+.ix-risk__dot--done { background: #f87171; }
+.ix-risk__step {
+  padding: 12px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  background: rgba(66, 24, 18, 0.45);
+}
+.ix-risk__step-title { margin: 0 0 4px; font-size: 14px; color: #fecaca; }
+.ix-risk__step-desc { margin: 0; font-size: 12.5px; color: #e7d5d2; }
+.ix-risk__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------- 进入 / 抵达 */
+.ix-center-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  pointer-events: none;
+  background: radial-gradient(80% 60% at 50% 46%, rgba(4, 10, 13, 0.35), transparent 75%);
+}
+.ix-center-stage > * { pointer-events: auto; }
+.ix-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: #9dc3cd;
+}
+.ix-stage-title {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+  animation: ix-fade-up 0.5s ease both;
+}
+.ix-stage-subtitle { margin: 0; font-size: 14px; color: #b9d2da; }
+.ix-stage-type { margin: 0; font-size: 12px; color: #9dc3cd; letter-spacing: 0.1em; }
+.ix-stage-condition { margin: 0; font-size: 13px; color: #ffd580; }
+.ix-entering__beat { margin: 6px 0 0; font-size: 13px; color: #9dc3cd; min-height: 1.6em; }
+.ix-entering__beats { display: flex; gap: 6px; }
+.ix-entering__beat-dot {
+  width: 20px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(148, 197, 210, 0.25);
+}
+.ix-entering__beat-dot--done { background: #22d3ee; }
+.ix-entering__cancel { margin-top: 10px; }
+.ix-arrival__highlights {
+  display: flex;
+  gap: 22px;
+  margin: 10px 0 0;
+  animation: ix-fade-up 0.6s ease both;
+}
+.ix-arrival__row { display: flex; flex-direction: column; gap: 2px; }
+.ix-arrival__row dt { font-size: 11px; letter-spacing: 0.14em; color: #9dc3cd; }
+.ix-arrival__row dd { margin: 0; font-size: 16px; color: #ffe1a1; }
+.ix-arrival__skip { margin-top: 14px; }
+
+/* ---------------------------------------------------------- 总结页 */
+.ix-summary {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 72px 18px 42px;
+  background: rgba(6, 13, 17, 0.68);
+  backdrop-filter: blur(10px);
+  animation: ix-fade-in 0.3s ease both;
+}
+.ix-summary__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+}
+.ix-summary__header { display: flex; flex-direction: column; gap: 6px; }
+.ix-summary__title { margin: 0; font-size: 30px; letter-spacing: 0.06em; }
+.ix-summary__badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.ix-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.ix-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 197, 210, 0.17);
+  background: rgba(13, 24, 29, 0.72);
+}
+.ix-summary-card--risk { border-color: rgba(248, 113, 113, 0.35); }
+.ix-summary-card__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #9dc3cd;
+}
+.ix-summary-card__value { margin: 0; font-size: 15px; font-weight: 600; }
+.ix-summary-card__note { margin: 0; font-size: 12px; color: #ffd580; }
+.ix-summary-card__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: #fca5a5;
+}
+.ix-summary__block {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 197, 210, 0.14);
+  background: rgba(13, 24, 29, 0.6);
+}
+.ix-summary__block-title { margin: 0 0 8px; font-size: 14px; }
+.ix-summary__reasons,
+.ix-summary__preparations {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #c3d8de;
+}
+.ix-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+/* ---------------------------------------------------------- 等价图文页 */
+.ix-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 76px 20px 48px;
+  background: #0b1418;
+}
+.ix-fallback__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 760px;
+}
+.ix-fallback__header { display: flex; flex-direction: column; gap: 8px; }
+.ix-fallback__notice {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(66, 24, 18, 0.5);
+  color: #fca5a5;
+  font-size: 13px;
+}
+.ix-fallback__summary { margin: 0; font-size: 14px; color: #c3d8de; }
+.ix-fallback__section {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 197, 210, 0.14);
+  background: rgba(13, 24, 29, 0.6);
+}
+.ix-fallback__section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.ix-fallback__section-theme { font-size: 11px; color: #ffd580; letter-spacing: 0.08em; }
+.ix-fallback__section-body { margin: 0; font-size: 13px; color: #c3d8de; }
+.ix-fallback__anchors {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #c3d8de;
+}
+.ix-fallback__anchors b { color: #e6f0f2; }
+.ix-fallback__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------------------------------------------------------- 返回遮罩 */
+.ix-returning {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 13, 17, 0.78);
+  color: #9dc3cd;
+  animation: ix-fade-in 0.3s ease both;
+}
+
+/* ---------------------------------------------------------- 工具类 */
+.ix-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------- 动画 */
+@keyframes ix-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ix-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------------------------------------------------------- 移动端（≤760px）：面板变底部抽屉 */
+@media (max-width: 760px) {
+  .ix-stage-title { font-size: 32px; }
+  .ix-arrival__highlights { gap: 14px; }
+
+  .ix-panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 92px;
+    width: auto;
+    max-width: none;
+    border-radius: 18px;
+  }
+  .ix-panel--peek { height: 88px; }
+  .ix-panel--half { height: 46vh; }
+  .ix-panel--full { height: 76vh; bottom: 8px; }
+  .ix-panel--peek .ix-panel__body { display: none; }
+  .ix-panel--peek .ix-panel__header { border-bottom: none; }
+
+  .ix-panel__handle {
+    display: block;
+    align-self: center;
+    width: 42px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(148, 197, 210, 0.35);
+  }
+  .ix-panel__detents { display: inline-flex; gap: 4px; }
+  .ix-panel__detent {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 197, 210, 0.2);
+    background: transparent;
+    color: #9dc3cd;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .ix-panel__detent--active {
+    border-color: rgba(240, 180, 41, 0.55);
+    color: #ffd580;
+  }
+
+  .ix-bottombar { gap: 8px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .ix-bottombar__side { padding: 0 12px; font-size: 12px; }
+  .ix-theme-tab { min-width: 54px; }
+
+  .ix-summary { padding: 60px 12px 30px; }
+  .ix-summary__grid { grid-template-columns: repeat(2, 1fr); }
+  .ix-summary__actions .ix-btn { flex: 1 1 45%; }
+
+  .ix-topbar__title span { display: none; }
+}
+
+/* ---------------------------------------------------------- 减少动态效果（§12.4） */
+.ix-reduced-motion *,
+.ix-reduced-motion *::before,
+.ix-reduced-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ix-overlay *,
+  .ix-overlay *::before,
+  .ix-overlay *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* 注：.immersive-entry-cta / .immersive-entry-loading 样式已迁移至 src/exploration.css（全局加载），
+   避免沉浸层代码分包后入口按钮无样式。 */
+
+/* ---------------------------------------------------------- V1.2 实景照片背景层 */
+.ix-stage__backdrop { overflow: hidden; }
+.ix-stage__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+  filter: saturate(1.05) contrast(1.02);
+  transform-origin: 50% 55%;
+  pointer-events: none;
+  user-select: none;
+}
+.ix-stage__photo.is-active { opacity: 1; animation: ix-kenburns-a 11s ease-out both; }
+.ix-stage__photo.is-active:nth-child(2n) { animation-name: ix-kenburns-b; }
+.ix-stage__photo.is-static { animation: none !important; }
+@keyframes ix-kenburns-a {
+  from { transform: scale(1.02) translate(0.4%, 0.2%); }
+  to { transform: scale(1.12) translate(-1.2%, -1.4%); }
+}
+@keyframes ix-kenburns-b {
+  from { transform: scale(1.12) translate(1.1%, -0.8%); }
+  to { transform: scale(1.02) translate(-0.3%, 0.5%); }
+}
+.ix-stage__photo-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(6, 14, 18, 0.42) 0%, rgba(6, 14, 18, 0.08) 26%, rgba(6, 14, 18, 0.10) 55%, rgba(6, 14, 18, 0.62) 100%),
+    radial-gradient(130% 100% at 50% 42%, rgba(6, 14, 18, 0) 52%, rgba(6, 14, 18, 0.42) 100%);
+}
+.ix-stage__credit {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  z-index: 2;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(214, 232, 238, 0.66);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------- V1.2 场景视角控制坞 */
+/* 沉浸层打开时隐藏全局导航：.world-hero 的 isolation:isolate 把 .ix-overlay 关在 z-0 上下文中，
+   不隐藏的话 .nav(z-5) 会压到沉浸层顶栏上 */
+.immersive-open .nav { display: none; }
+.ix-stage__canvas { touch-action: none; cursor: grab; }
+.ix-stage__canvas:active { cursor: grabbing; }
+.ix-camera-dock {
+  position: absolute;
+  left: 18px;
+  bottom: 96px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ix-camera-dock__hint {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(196, 222, 230, 0.72);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+  user-select: none;
+  pointer-events: none;
+}
+.ix-camera-dock__row { display: flex; gap: 8px; }
+.ix-camera-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(158, 208, 220, 0.28);
+  background: rgba(10, 24, 30, 0.58);
+  backdrop-filter: blur(8px);
+  color: #cfe6ec;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+}
+.ix-camera-btn:hover { background: rgba(26, 52, 62, 0.72); border-color: rgba(158, 208, 220, 0.55); }
+.ix-camera-btn:active { transform: scale(0.94); }
+.ix-camera-btn--on {
+  background: rgba(255, 210, 142, 0.2);
+  border-color: rgba(255, 210, 142, 0.65);
+  color: #ffd28e;
+}
+@media (max-width: 760px) {
+  .ix-camera-dock { left: 12px; bottom: 132px; }
+  .ix-camera-dock__hint { display: none; }
+  .ix-stage__credit { display: none; }
+}

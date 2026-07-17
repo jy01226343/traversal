@@ -1,0 +1,545 @@
+/**
+ * 黄金样例 · 马尔代夫珊瑚花园（underwater）
+ *
+ * sceneDefinitionId: scene-maldives-coral-garden / entityId: maldives-coral-garden（CONTRACT 冻结）
+ * 内容口径：礁坪 1–3m、珊瑚花园 3–12m、陡坡 18–30m；旱季 12–4 月能见度常达 20–30m；
+ *   表层水温通常 27–30°C。
+ * 进入叙事：arrival.transitionBeats 为契约冻结的六拍（不可改字）。
+ * 生物文案：统一「通常有机会观察到」（名称 + 常见深度 + 季节可写），无固定概率与必然性。
+ */
+
+import type {
+  AnchorContent,
+  ExplorationEntity,
+  ImmersiveSceneDefinition,
+} from "../../domain/types";
+
+// ---------------------------------------------------------------- 探索对象
+
+export const MALDIVES_CORAL_GARDEN_ENTITY: ExplorationEntity = {
+  id: "maldives-coral-garden",
+  name: "马尔代夫珊瑚花园",
+  countryCode: "MV",
+  shape: "activity_site",
+  sceneFamily: "underwater",
+  channels: ["nature", "outdoor", "wonder", "leisure"],
+  coordinates: { lat: 4.1755, lng: 73.5093 },
+  activityTags: ["浮潜", "体验潜水", "持证潜水", "水下摄影", "生态观察"],
+  attributeTags: ["珊瑚礁", "热带海域", "潜点", "旱季12–4月能见度佳"],
+  sceneDefinitionId: "scene-maldives-coral-garden",
+  fallbackContentId: "fallback-maldives-coral-garden",
+};
+
+// ---------------------------------------------------------------- 锚点说明内容（与 anchors.contentId 一一对应）
+
+export const MALDIVES_CORAL_GARDEN_ANCHOR_CONTENTS: AnchorContent[] = [
+  {
+    id: "mal-entry-point",
+    title: "入水点（水深约 2m）",
+    body: "入水点位于礁坪边缘，水深约 2m，浮潜与体验潜水均由此入水。水面为船只接驳区，入水前请听潜导简报并确认集合信号。",
+  },
+  {
+    id: "mal-reef-flat",
+    title: "礁坪（1–3m）",
+    body: "礁坪水深 1–3m，阳光充足，鹿角珊瑚与桌状珊瑚成片分布。浮潜时在此通常有机会观察到小丑鱼、雀鲷等小型珊瑚礁鱼。",
+  },
+  {
+    id: "mal-coral-garden",
+    title: "珊瑚花园（3–12m）",
+    body: "珊瑚花园位于 3–12m 深度带，硬珊瑚覆盖较好。该深度范围内通常有机会观察到蝴蝶鱼、天使鱼，以及与海葵共生的小丑鱼；全年可见，旱季更清晰。",
+  },
+  {
+    id: "mal-fish-school",
+    title: "鱼群活动区（5–15m）",
+    body: "礁缘外侧 5–15m 通常有机会观察到成群的燕鱼与笛鲷；旱季（12–4 月）高能见度时群体聚集的景象更完整。观察时保持距离，不追逐鱼群。",
+  },
+  {
+    id: "mal-turtle-zone",
+    title: "海龟活动区（3–10m）",
+    body: "海草区与礁坪交界处是绿海龟的觅食场，通常有机会观察到海龟（常见深度 3–10m，全年各季均有机会）。观察时请保持数米距离，禁止触碰、追逐与投喂。",
+  },
+  {
+    id: "mal-drop-off",
+    title: "陡坡（18–30m）",
+    body: "陡坡自 12m 急降至 30m 以下，仅适合持证潜水员在潜导带领下前往。沿壁通常有机会观察到体型较大的远洋性鱼类经过，雨季浮游生物增多时机会相对更多。",
+  },
+  {
+    id: "mal-seagrass",
+    title: "海草区（2–5m）",
+    body: "海草区水深 2–5m，是幼鱼育幼与海龟觅食的重要栖息地，也是观察底栖生态的窗口。请勿踩踏或拔取海草。",
+  },
+  {
+    id: "mal-risk-current",
+    title: "海流风险区",
+    body: "礁区在海潮流经时可能出现横流与下潜流，大潮（满月与新月前后）及海峡地形处更明显。活动安排以当日潜导评估为准。",
+  },
+];
+
+// ---------------------------------------------------------------- 场景定义
+
+export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
+  id: "scene-maldives-coral-garden",
+  family: "underwater",
+  entityName: "马尔代夫珊瑚花园",
+  regionLabel: "马尔代夫 · 北马累环礁近海",
+  defaultCamera: {
+    position: [0, -8, 24],
+    lookAt: [0, -10, 0],
+    fov: 55,
+  },
+  arrival: {
+    subtitle: "热带珊瑚礁潜点 · 礁坪 1–3m 至陡坡 30m",
+    headlineSight: "珊瑚花园与礁缘鱼群",
+    headlineActivity: "浮潜与体验潜水",
+    observeMs: 6000,
+    transitionBeats: [
+      "接近水面",
+      "穿过水面",
+      "光线和空间状态变化",
+      "水下场景稳定",
+      "生态对象进入",
+      "主题入口出现",
+    ],
+  },
+  themes: [
+    { id: "highlights", label: "景色", defaultSelectionId: "preset-dry-season" },
+    { id: "experience", label: "怎么玩", defaultSelectionId: "act-snorkeling" },
+    { id: "audience", label: "适合谁", defaultSelectionId: "beginner" },
+    { id: "cautions", label: "注意什么", defaultSelectionId: "risk-current" },
+    { id: "underwater_ecology", label: "水下生态" },
+  ],
+  anchors: [
+    {
+      id: "anchor-entry-point",
+      label: "入水点",
+      anchorType: "facility",
+      positionRef: "node:entry_point",
+      themes: ["experience", "audience"],
+      contentId: "mal-entry-point",
+      priority: 1,
+    },
+    {
+      id: "anchor-reef-flat",
+      label: "礁坪 1–3m",
+      anchorType: "activity_zone",
+      positionRef: "node:reef_flat",
+      themes: ["experience", "underwater_ecology"],
+      contentId: "mal-reef-flat",
+      priority: 2,
+    },
+    {
+      id: "anchor-coral-garden",
+      label: "珊瑚花园 3–12m",
+      anchorType: "ecology",
+      positionRef: "node:coral_garden",
+      themes: ["highlights", "underwater_ecology"],
+      contentId: "mal-coral-garden",
+      priority: 3,
+    },
+    {
+      id: "anchor-fish-school",
+      label: "鱼群活动区",
+      anchorType: "ecology",
+      positionRef: "node:fish_school",
+      themes: ["highlights", "underwater_ecology"],
+      contentId: "mal-fish-school",
+      priority: 4,
+    },
+    {
+      id: "anchor-turtle-zone",
+      label: "海龟活动区",
+      anchorType: "ecology",
+      positionRef: "node:turtle_zone",
+      themes: ["underwater_ecology", "highlights"],
+      contentId: "mal-turtle-zone",
+      priority: 5,
+    },
+    {
+      id: "anchor-drop-off",
+      label: "陡坡 18–30m",
+      anchorType: "route",
+      positionRef: "node:drop_off",
+      themes: ["experience"],
+      contentId: "mal-drop-off",
+      priority: 6,
+    },
+    {
+      id: "anchor-seagrass",
+      label: "海草区",
+      anchorType: "ecology",
+      positionRef: "node:seagrass",
+      themes: ["underwater_ecology", "audience"],
+      contentId: "mal-seagrass",
+      priority: 7,
+    },
+    {
+      id: "anchor-risk-current",
+      label: "海流风险区",
+      anchorType: "risk_zone",
+      positionRef: "node:risk_current",
+      themes: ["cautions"],
+      contentId: "mal-risk-current",
+      priority: 8,
+    },
+  ],
+  previewPresets: [
+    {
+      id: "preset-dry-season",
+      label: "旱季高能见度",
+      months: [12, 1, 2, 3, 4],
+      representative: true,
+      mode: "typical_preview",
+      sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
+      visual: { visibility: 25, lightDepth: 20, plankton: 0.2, waveHeight: 0.3, light: "tropical_clear" },
+      whereText: "礁缘、珊瑚花园与陡坡沿壁，光线可直达约 20m 深度",
+      whenText: "12 月至次年 4 月，东北季风期",
+      whyText: "降雨少、海况稳，能见度常达 20–30m，是该潜点较具代表性的潜水时段",
+    },
+    {
+      id: "preset-plankton-season",
+      label: "雨季浮游生物季",
+      months: [5, 6, 7, 8, 9, 10, 11],
+      representative: false,
+      mode: "typical_preview",
+      sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
+      visual: { visibility: 12, lightDepth: 12, plankton: 0.8, waveHeight: 0.6, light: "diffused_green" },
+      whereText: "礁缘外侧与海峡方向",
+      whenText: "5 月至 11 月，西南季风期",
+      whyText: "浮游生物增多使能见度下降，但通常有机会吸引滤食性大型鱼类靠近礁缘",
+    },
+    {
+      id: "preset-dusk-dive",
+      label: "黄昏潜水",
+      months: [],
+      representative: false,
+      mode: "typical_preview",
+      sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
+      visual: { visibility: 15, lightDepth: 8, plankton: 0.4, waveHeight: 0.4, light: "dusk_blue" },
+      whereText: "珊瑚花园与礁坪边缘",
+      whenText: "全年，日落后约 1 小时",
+      whyText: "昼夜交替时夜行性生物出动、日间鱼群归巢，是行为观察的特别窗口",
+    },
+  ],
+  activities: [
+    {
+      id: "act-snorkeling",
+      label: "浮潜",
+      applicable: true,
+      zoneRefs: ["node:reef_flat", "node:seagrass"],
+      durationMinutes: 60,
+      difficulty: "easy",
+      requirements: ["会游泳", "潜导划定区域内活动"],
+      facilities: ["面镜呼吸管租赁", "救生衣", "冲洗区"],
+      limitations: ["请勿站立或踩踏珊瑚", "风浪大时暂停"],
+      description: "在礁坪与海草区水面浮潜，观察珊瑚与小型 reef 鱼，体力门槛低。",
+      sceneActions: [{ kind: "focus_camera", target: "node:reef_flat" }],
+    },
+    {
+      id: "act-discover-dive",
+      label: "体验潜水（5–12m）",
+      applicable: true,
+      zoneRefs: ["node:coral_garden", "node:entry_point"],
+      durationMinutes: 150,
+      difficulty: "moderate",
+      requirements: ["10 岁以上", "健康问卷", "潜导小比例陪同"],
+      facilities: ["潜水中心", "装备全套", "简报室"],
+      limitations: ["无需证照，但需通过现场健康评估", "单次水下约 30–40 分钟"],
+      description: "在潜导陪同下于珊瑚花园 5–12m 深度体验水肺潜水，含理论简报与浅水练习。",
+      sceneActions: [{ kind: "focus_camera", target: "node:coral_garden" }],
+    },
+    {
+      id: "act-certified-dive",
+      label: "持证潜水（18–30m）",
+      applicable: true,
+      routeRef: "node:drop_off",
+      durationMinutes: 45,
+      difficulty: "hard",
+      requirements: ["OW 及以上等级证照", "潜伴制度", "潜导带队"],
+      facilities: ["潜水船", "气瓶与配重"],
+      limitations: ["陡坡与海峡段视当日海流评估开放", "注意免减压时限"],
+      description: "沿陡坡 18–30m 潜行，观察沿壁生态与经过的大型鱼类，单瓶水下约 45 分钟。",
+      sceneActions: [{ kind: "show_route", target: "node:drop_off" }],
+    },
+    {
+      id: "act-uw-photo",
+      label: "水下摄影",
+      applicable: true,
+      zoneRefs: ["node:coral_garden", "node:fish_school"],
+      durationMinutes: 90,
+      difficulty: "moderate",
+      requirements: ["浮潜或潜水资质", "防水相机或防水壳"],
+      facilities: ["相机租赁", "淡水冲洗桶"],
+      limitations: ["禁止使用闪光灯直射生物", "不为取景触碰或移动生物"],
+      description: "在珊瑚花园与鱼群活动区拍摄，旱季高能见度时段出片条件较好。",
+      sceneActions: [{ kind: "highlight_anchor", target: "anchor-fish-school" }],
+    },
+    {
+      id: "act-eco-watch",
+      label: "生态观察",
+      applicable: true,
+      zoneRefs: ["node:seagrass", "node:turtle_zone"],
+      durationMinutes: 60,
+      difficulty: "easy",
+      requirements: ["由生态向导带领"],
+      facilities: ["观察浮具", "物种图鉴卡"],
+      limitations: ["禁止投喂、触碰与追逐任何生物"],
+      description: "在海草区与海龟活动区进行低干扰观察，向导讲解珊瑚礁生态与保护规则。",
+      sceneActions: [{ kind: "highlight_anchor", target: "anchor-turtle-zone" }],
+    },
+  ],
+  audiences: [
+    {
+      id: "beginner",
+      label: "初学者",
+      allowedActivityIds: ["act-snorkeling", "act-eco-watch", "act-discover-dive"],
+      preferredRouteIds: ["node:reef_flat"],
+      facilityPriority: ["救生衣", "冲洗区", "简报室"],
+      warnings: ["请在潜导划定区域内活动，不单独前往礁缘外侧"],
+    },
+    {
+      id: "experienced",
+      label: "有经验者",
+      allowedActivityIds: ["act-certified-dive", "act-uw-photo", "act-snorkeling"],
+      preferredRouteIds: ["node:drop_off"],
+      warnings: ["陡坡段视当日海流评估开放，请遵从潜导决定"],
+    },
+    {
+      id: "school_age_family",
+      label: "学龄家庭",
+      allowedActivityIds: ["act-snorkeling", "act-eco-watch"],
+      preferredRouteIds: ["node:reef_flat", "node:seagrass"],
+      facilityPriority: ["救生衣", "观察浮具", "冲洗区"],
+      warnings: ["10 岁以下儿童不参加体验潜水，可改以浮潜与生态观察替代", "儿童需成人一对一陪同下水"],
+    },
+    {
+      id: "toddler_family",
+      label: "幼儿家庭",
+      allowedActivityIds: ["act-eco-watch"],
+      facilityPriority: ["遮阳休息区", "冲洗区"],
+      warnings: ["不建议婴幼儿参与浮潜与潜水；可安排岸边浅水戏水与向导生态讲解"],
+    },
+    {
+      id: "photographer",
+      label: "摄影爱好者",
+      allowedActivityIds: ["act-uw-photo", "act-snorkeling", "act-certified-dive"],
+      preferredRouteIds: ["node:coral_garden", "node:fish_school"],
+    },
+  ],
+  risks: [
+    {
+      id: "risk-current",
+      label: "海流（含下潜流）",
+      applicable: true,
+      mode: "risk_simulation",
+      cause: [
+        "大潮期间潮流经海峡地形时加速",
+        "礁缘地形使表层流与深层流方向可能不一致",
+        "陡坡外侧在特定潮位出现向下的水流",
+      ],
+      sequence: [
+        {
+          id: "risk-current-step-1",
+          title: "潮流增强",
+          description: "潮位转换后流速增大，悬移颗粒顺流移动变快，鱼群开始贴礁躲避。",
+          sceneActions: [{ kind: "set_water", params: { current: 0.5 } }],
+        },
+        {
+          id: "risk-current-step-2",
+          title: "表层乱流",
+          description: "水面出现乱流与波纹紊乱，浮潜者维持位置变费力。",
+          sceneActions: [
+            { kind: "set_water", params: { current: 0.8, surfaceChop: 0.6 } },
+            { kind: "highlight_anchor", target: "anchor-risk-current" },
+          ],
+        },
+        {
+          id: "risk-current-step-3",
+          title: "下潜流形成",
+          description: "陡坡外侧出现向下水流，气泡轨迹被压弯，浮力控制变难。",
+          sceneActions: [
+            { kind: "set_water", params: { current: 1.0, downcurrent: true } },
+            { kind: "highlight_anchor", target: "anchor-drop-off" },
+          ],
+        },
+        {
+          id: "risk-current-step-4",
+          title: "流带外移减弱",
+          description: "潮流转向后流带外移，流速逐渐回落，仍需谨慎评估再入水。",
+          sceneActions: [{ kind: "set_water", params: { current: 0.3, downcurrent: false } }],
+        },
+      ],
+      affectedAnchorIds: ["anchor-drop-off", "anchor-risk-current"],
+      warningSignals: [
+        "气泡被水流向下拉扯而非垂直上升",
+        "礁区鱼群集体贴底或躲入缝隙",
+        "维持同一位置需要持续踢水",
+      ],
+      actions: [
+        "立即离开陡坡，向礁坪方向水平游动脱离流带",
+        "不要强行逆流顶流，节省体力与气体",
+        "必要时抓住岩石固定（避开珊瑚），等待流减弱",
+        "出水后立即向潜导报告，当日不再前往陡坡",
+      ],
+      impactTexts: {
+        routeText: "强流日取消持证潜水的陡坡段，改在珊瑚花园内活动",
+        waterText: "浮潜与体验潜水暂停入水；已入水者立即返回入水点",
+        familyText: "亲子与初学者活动全部移至海草区浅水带，或当日暂停下水",
+      },
+    },
+    {
+      id: "risk-visibility-drop",
+      label: "能见度下降",
+      applicable: true,
+      mode: "risk_simulation",
+      cause: [
+        "雨季浮游生物大量繁殖，水体悬浮颗粒增多",
+        "风浪搅动近岸沉积物，使浅水区浑浊",
+      ],
+      sequence: [
+        {
+          id: "risk-visibility-step-1",
+          title: "悬浮颗粒增多",
+          description: "水中悬浮物明显增多，远处景物开始发蒙。",
+          sceneActions: [{ kind: "set_light", params: { visibility: 15, plankton: 0.6 } }],
+        },
+        {
+          id: "risk-visibility-step-2",
+          title: "能见度收缩",
+          description: "可视距离缩短至数米，潜伴间轮廓变模糊。",
+          sceneActions: [{ kind: "set_light", params: { visibility: 8, plankton: 0.85 } }],
+        },
+        {
+          id: "risk-visibility-step-3",
+          title: "方向感下降",
+          description: "参照物减少，容易偏离预定活动范围。",
+          sceneActions: [{ kind: "set_light", params: { visibility: 5, plankton: 0.95 } }],
+        },
+      ],
+      affectedAnchorIds: ["anchor-coral-garden", "anchor-fish-school"],
+      warningSignals: [
+        "水中悬浮颗粒明显增多",
+        "数米外潜伴只剩模糊轮廓",
+        "阳光穿透深度明显变浅",
+      ],
+      actions: [
+        "缩小活动范围，留在熟悉区域",
+        "与潜伴保持目视接触，约定失散集合点",
+        "使用潜水灯与水面浮标辅助定位",
+        "能见度持续恶化时结束当次潜水",
+      ],
+      impactTexts: {
+        routeText: "陡坡与海峡路线在低能见度日取消",
+        waterText: "浮潜范围收缩至礁坪近岸侧，并缩短单次下水时间",
+        familyText: "亲子观察改为海草区浅水带，由向导带队并清点人数",
+      },
+    },
+    {
+      id: "risk-surface-wind",
+      label: "水面风浪",
+      applicable: true,
+      mode: "risk_simulation",
+      cause: [
+        "季风转换期阵风增强",
+        "雷雨前常出现短时强风与涌浪",
+      ],
+      sequence: [
+        {
+          id: "risk-surface-wind-step-1",
+          title: "阵风增强",
+          description: "水面白浪增多，接驳船摇晃加剧。",
+          sceneActions: [{ kind: "set_water", params: { waveHeight: 0.6, surfaceChop: 0.5 } }],
+        },
+        {
+          id: "risk-surface-wind-step-2",
+          title: "上下水变困难",
+          description: "入水点涌浪起伏变大，扶梯与平台湿滑。",
+          sceneActions: [
+            { kind: "set_water", params: { waveHeight: 0.9, surfaceChop: 0.8 } },
+            { kind: "highlight_anchor", target: "anchor-entry-point" },
+          ],
+        },
+        {
+          id: "risk-surface-wind-step-3",
+          title: "暂停入水",
+          description: "风浪超过安全阈值时暂停一切入水，等待海况回落。",
+          sceneActions: [{ kind: "set_water", params: { waveHeight: 1.0, surfaceChop: 0.9 } }],
+        },
+      ],
+      affectedAnchorIds: ["anchor-entry-point"],
+      warningSignals: [
+        "水面白浪连成线",
+        "接驳船明显摇晃、上下扶梯打滑",
+        "潜导发出暂停入水指令",
+      ],
+      actions: [
+        "暂停入水，等待海况回落与潜导指令",
+        "出水时抓紧绳索，避开水面与船体夹挤区",
+        "已下水者提前返回，预留体力应对涌浪",
+      ],
+      impactTexts: {
+        shoreText: "岸边观浪注意脚下湿滑，远离码头边缘",
+        waterText: "上下水是风浪天的高风险环节，风浪大时暂停一切入水与接驳",
+        familyText: "亲子与幼儿当日改为岸边活动或室内生态讲解",
+      },
+    },
+  ],
+  summaryRules: [
+    {
+      representativeActivityId: "act-snorkeling",
+      representativeReason: "浮潜门槛低、覆盖礁坪与海草区核心生态，是多数人接触该潜点的方式",
+      bestTimeText: "12 月至次年 4 月旱季能见度较佳；5–11 月雨季浮游生物增多，通常有机会吸引大型鱼类",
+      bestExperienceText: "在礁坪浮潜观察珊瑚与小丑鱼，或随潜导在珊瑚花园完成一次体验潜水",
+      preparationItems: [
+        "确认季风季节与当日海况评估",
+        "体验潜水需 10 岁以上并通过健康问卷",
+        "准备对珊瑚友好的防晒方式（长袖水母衣优先）",
+        "遵守不触碰、不投喂、不追逐的生态规则",
+      ],
+    },
+  ],
+  assets: {
+    proceduralNodes: [
+      "entry_point",
+      "reef_flat",
+      "coral_garden",
+      "seagrass",
+      "cave",
+      "drop_off",
+      "fish_school",
+      "turtle_zone",
+      "boat_channel",
+      "risk_current",
+    ],
+    estimatedBytes: 0,
+  },
+  fallback: {
+    summary: "马尔代夫珊瑚花园潜点图文导览：景观、玩法、人群适配与安全须知。",
+    sections: [
+      {
+        theme: "highlights",
+        title: "景色",
+        body: "旱季（12–4 月）能见度常达 20–30m，光线可至约 20m 深度；雨季浮游生物增多但通常有机会吸引大型鱼类；黄昏潜可观察昼夜交替的生物行为。",
+      },
+      {
+        theme: "experience",
+        title: "怎么玩",
+        body: "浮潜覆盖礁坪与海草区；体验潜水在珊瑚花园 5–12m 进行；持证潜水沿陡坡 18–30m；另有水下摄影与向导带领的生态观察。",
+      },
+      {
+        theme: "audience",
+        title: "适合谁",
+        body: "初学者以浮潜、生态观察和体验潜水为主；有经验者可参加持证潜水；学龄儿童以浮潜与生态观察替代（10 岁以下不参加体验潜水）；幼儿不建议下水。",
+      },
+      {
+        theme: "cautions",
+        title: "注意什么",
+        body: "大潮与海峡处警惕海流与下潜流，感觉气泡下压立即水平脱离；雨季注意能见度下降，与潜伴保持目视接触；风浪大时暂停一切入水。",
+      },
+      {
+        theme: "underwater_ecology",
+        title: "水下生态",
+        body: "珊瑚花园通常有机会观察到小丑鱼与蝴蝶鱼；礁缘 5–15m 通常有机会观察到成群燕鱼与笛鲷；海草区是幼鱼育幼与海龟觅食场所——观察时保持距离，禁止触碰与投喂。",
+      },
+    ],
+  },
+};

@@ -23,7 +23,7 @@ import { getUnlockProfile } from './data/unlock-destinations';
 import { fanStatusFromMeta, loadMastered, loadWishlist, resolveDestinationStatus, saveMastered, saveWishlist, toggleId } from './data/destination-status';
 import { destinationFromRegion, regionKeyFromWishId, resolveWishlistItem } from './data/wishlist-destinations';
 import { GLOBE_LAYERS, buildDestinationBeacons, filterBeaconsByLayers } from './data/beacons';
-import { AttractionExplorerPanel, resolveAttractions, selectAttractions } from './features/attraction-explorer';
+import { AttractionExplorerPanel, peekLocalAttractions, resolveAttractions, selectAttractions } from './features/attraction-explorer';
 import { filterAttractionsByExperiences, toggleExperience } from './features/attraction-explorer/manual-filters';
 import { AttractionComparePanel } from './features/attraction-explorer/AttractionComparePanel';
 import { toggleComparedAttraction } from './features/attraction-explorer/comparison';
@@ -38,6 +38,11 @@ import { DestinationLivePanel } from './features/live-data/DestinationLivePanel'
 import { AtlasSearchOverlay } from './features/search/AtlasSearchOverlay';
 import { buildAtlasSearchIndex, dedupeRecentSearches } from './features/search/search-index';
 import { MobileAtlasShell } from './features/mobile-explore/MobileAtlasShell';
+import { resolveImmersiveTarget, resolveImmersiveTargetByEntityId } from './features/immersive-exploration/data/resolve-immersive-target';
+import { isImmersiveExplorationEnabled } from './features/immersive-exploration/config';
+import { fetchDestinationLiveData } from './features/live-data/destination-live';
+// 沉浸层按需加载（three.js 场景代码分割，点击入口时才下载）
+const ImmersiveExperience = React.lazy(() => import('./features/immersive-exploration/ui/ImmersiveExperience').then(module => ({ default: module.ImmersiveExperience })));
 import { enqueueOfflineAction, getCameraBottomPadding, loadMobileViewState, readOfflineActions, removeOfflineAction, resolveInitialDetent, resolveMobileBackAction, resolveSheetHeight, saveMobileViewState } from './features/mobile-explore/mobile-state';
 import './features/explore/explore-ui.css';
 
@@ -675,23 +680,20 @@ function App() {
     else setSeasonContinent(homeContinent);
   }, [homeContinent, progressScope]);
   const [regionAttractions, setRegionAttractions] = useState([]);
+  const [attractionsLoading, setAttractionsLoading] = useState(false);
   React.useEffect(() => {
     let cancelled = false;
     if (!activeCountry?.code || !activeRegion?.id || mapLevel !== 'region') {
       setRegionAttractions([]);
+      setAttractionsLoading(false);
       return undefined;
     }
-    // Show fixed cache immediately if present, then refresh via API → scrape → seed → catalog
-    try {
-      const key = `${activeCountry.code}:${activeRegion.id}`;
-      const raw = localStorage.getItem(`atlas-attractions-fixed-v2:${key}`)
-        || localStorage.getItem(`atlas-attractions-api-v2:${key}`)
-        || localStorage.getItem(`atlas-attractions-scrape-v2:${key}`);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed?.data) && parsed.data.length) setRegionAttractions(parsed.data);
-      }
-    } catch { /* ignore */ }
+    // 第一帧本地快照秒出（持久缓存 → 官方种子 → 区域目录），实时管线后台刷新替换。
+    // 弱网/数据源不可达时列表也不再空等数十秒。
+    const local = peekLocalAttractions(activeCountry.code, activeRegion.id);
+    if (local.length) setRegionAttractions(local);
+    // 仅当本地完全无数据时才显示加载行
+    if (!local.length) setAttractionsLoading(true);
     resolveAttractions(activeCountry.code, activeRegion.id, { zoom: attractionMapView.zoom ?? 7.4 })
       .then(items => {
         if (cancelled) return;
@@ -703,7 +705,8 @@ function App() {
         if (!cancelled) {
           /* keep any cached list already painted */
         }
-      });
+      })
+      .finally(() => { if (!cancelled) setAttractionsLoading(false); });
     return () => { cancelled = true; };
   }, [activeCountry?.code, activeRegion?.id, mapLevel]);
   const filteredRegionAttractions = React.useMemo(() => filterAttractionsByExperiences(regionAttractions, attractionExperiences), [regionAttractions, attractionExperiences]);
@@ -784,6 +787,66 @@ function App() {
   const searchIndex = React.useMemo(() => buildAtlasSearchIndex(COUNTRIES_BY_CONTINENT, getRegionsForCountry, OFFICIAL_ATTRACTIONS), []);
   const globeQuality = React.useMemo(() => resolveGlobeQuality(globeQualityPreference, navigator.deviceMemory, navigator.hardwareConcurrency), [globeQualityPreference]);
   const reducedMotion = motionPreference === 'reduce' || (motionPreference === 'system' && systemReducedMotion);
+  /* ---------------- 沉浸式景点探索集成（P2/P8：入口 + 地图快照 + 业务闭环） ---------------- */
+  const [immersiveSession, setImmersiveSession] = useState(null); // { target, liveSnapshot, plannedMonth }
+  const immersiveSnapshotRef = React.useRef(null);
+  const immersiveTarget = React.useMemo(() => {
+    if (!selectedAttraction || !isImmersiveExplorationEnabled()) return null;
+    try { return resolveImmersiveTarget(selectedAttraction); } catch { return null; }
+  }, [selectedAttraction]);
+  const enterImmersive = () => {
+    if (!immersiveTarget || immersiveSession) return;
+    // §6.1：保存地图快照（中心/缩放/选中对象/列表状态），返回时恢复
+    immersiveSnapshotRef.current = { mapLevel, continent, activeCountry, activeRegion, selectedAttractionId, attractionMapView, mobileDetent };
+    const journeyMonth = activeJourney?.departureAt ? new Date(activeJourney.departureAt).getMonth() + 1 : null;
+    setImmersiveSession({ target: immersiveTarget, liveSnapshot: null, plannedMonth: journeyMonth });
+    const coords = immersiveTarget.entity.coordinates;
+    if (coords) {
+      fetchDestinationLiveData({ name: immersiveTarget.entity.name, lat: coords.lat, lng: coords.lng })
+        .then(snapshot => setImmersiveSession(current => current ? { ...current, liveSnapshot: snapshot } : current))
+        .catch(() => { /* 实况不可用 → 典型预览口径，不阻塞 */ });
+    }
+  };
+  const exitImmersive = () => {
+    const snapshot = immersiveSnapshotRef.current;
+    immersiveSnapshotRef.current = null;
+    setImmersiveSession(null);
+    if (snapshot) {
+      // P2-04：恢复进入前地图上下文
+      setContinent(snapshot.continent);
+      setActiveCountry(snapshot.activeCountry);
+      setActiveRegion(snapshot.activeRegion);
+      setSelectedAttractionId(snapshot.selectedAttractionId);
+      setAttractionMapView(snapshot.attractionMapView);
+      setMapLevel(snapshot.mapLevel);
+      if (mobileViewport && snapshot.mobileDetent) setMobileDetent(snapshot.mobileDetent);
+    }
+  };
+  const handleImmersiveWishlist = entity => toggleWishlist({ id: entity.id, title: entity.name });
+  const handleImmersivePreparation = entity => {
+    exitImmersive();
+    openDestinationUnlock({ id: entity.id, title: entity.name, reason: '查看该目的地的准备事项', continent, countryCode: entity.countryCode, regionId: activeRegion?.id });
+  };
+  const handleImmersiveAddJourney = () => {
+    exitImmersive();
+    addSelectedAttractionToJourney(); // 选中对象在沉浸期间保持，直接复用现有 Journey 流程
+  };
+  // 快捷验收入口：?ix=mount-fuji | lake-toya | maldives-coral-garden 直达沉浸场景
+  React.useEffect(() => {
+    const entityId = new URLSearchParams(window.location.search).get('ix');
+    if (!entityId || !isImmersiveExplorationEnabled()) return;
+    let target = null;
+    try { target = resolveImmersiveTargetByEntityId(entityId); } catch { target = null; }
+    if (!target) return;
+    immersiveSnapshotRef.current = { mapLevel, continent, activeCountry, activeRegion, selectedAttractionId, attractionMapView, mobileDetent };
+    setImmersiveSession({ target, liveSnapshot: null, plannedMonth: null });
+    const coords = target.entity.coordinates;
+    if (coords) {
+      fetchDestinationLiveData({ name: target.entity.name, lat: coords.lat, lng: coords.lng })
+        .then(snapshot => setImmersiveSession(current => current ? { ...current, liveSnapshot: snapshot } : current))
+        .catch(() => { /* 实况不可用 → 典型预览口径，不阻塞 */ });
+    }
+  }, []);
   const semanticFilterEnabled = import.meta.env.VITE_SEMANTIC_FILTER_ENABLED === 'true';
   const recentSearches = React.useMemo(() => recentSearchIds.map(id => searchIndex.find(item => item.id === id)).filter(Boolean), [recentSearchIds, searchIndex]);
   const openSearch = () => { setSearchQuery(''); setSearchOpen(true); };
@@ -832,7 +895,7 @@ function App() {
   const mobileSheetContent = mapLevel === 'world' ? <section className="mobile-world-explore"><p>{homeMode === 'departure_soon' ? '即将出发，先查看你的目的地与准备进度。' : '选择一个大洲，地图会带你进入可继续探索的国家与地区。'}</p><div className="mobile-season-strip" aria-label="当季推荐">{seasonalFanCards.slice(0, 4).map(card => <article key={card.id}><button type="button" onClick={() => handleSeasonalDestination(card)}><img src={card.imgUrl} alt=""/><span>{card.kicker}</span><b>{card.title}</b><small>{card.location}</small></button></article>)}</div><div className="mobile-explore-grid">{orderedContinentNames.map(name => <button type="button" key={name} onClick={() => selectContinent(name)}><b>{name}</b><small>{continents[name]?.[2] || '旅行区域'}</small></button>)}</div></section> : mapLevel === 'continent' ? <aside className="country-ranking mobile-ranking"><div className="ranking-head"><span>REGIONAL EXPLORATION GUIDE</span><b>{continent}区域探索图鉴</b><small>选择国家继续查看地区与地点。</small></div><div className="ranking-list">{rankedCountries.map(countryItem => <button type="button" data-country={countryItem.code} onClick={() => selectCountry(countryItem)} key={countryItem.code}><span><b>{countryItem.name}</b><small>{countryItem.tagline}</small></span></button>)}</div></aside> : mapLevel === 'country' ? <aside className="country-ranking region-ranking mobile-ranking"><div className="ranking-head"><span>REGIONAL EXPLORATION GUIDE</span><b>{activeCountry?.name}区域探索图鉴</b><small>所有地区都可进入查看，建议状态不会限制访问。</small></div><div className="region-list">{rankedRegions.map(regionItem => <button type="button" data-region={regionItem.id} onClick={() => selectRegion(regionItem)} key={regionItem.id}><span className="region-copy"><b>{regionItem.name}</b><small>{regionItem.summary}</small></span><span className="footprint-state">{regionItem.visited ? '已到访' : '待探索'}</span></button>)}</div></aside> : <section className="mobile-region-explorer"><div className="mobile-region-toolbar"><button type="button" aria-expanded={mobileFilterOpen} onClick={() => setMobileFilterOpen(open => !open)}>筛选与偏好</button><span>{displayedAttractions.length} 个地点</span></div>{mobileFilterOpen && <div className="mobile-filter-popover"><button type="button" onClick={() => { setAttractionCategory('全部'); setAttractionExperiences([]); setMobileFilterOpen(false); }}>清除筛选</button><button type="button" onClick={() => { setAttractionPreference(value => value === 'popular' ? 'niche' : 'popular'); }}>切换{attractionPreference === 'popular' ? '小众' : '热门'}偏好</button></div>}<AttractionExplorerPanel items={displayedAttractions} total={filteredRegionAttractions.length} zoom={attractionMapView.zoom} preference={attractionPreference} category={attractionCategory} experiences={attractionExperiences} selectedId={selectedAttractionId} hoveredId={hoveredAttractionId} comparedIds={comparedAttractionIds} semanticFilterEnabled={semanticFilterEnabled} currentRegionId={activeRegion?.id || ''} showNicheToggle={nichePreferenceUseful} onPreferenceChange={value => { setSelectedAttractionId(null); setHoveredAttractionId(null); setAttractionPreference(value); }} onCategoryChange={value => { setSelectedAttractionId(null); setAttractionCategory(value); }} onExperienceToggle={value => { setSelectedAttractionId(null); setAttractionExperiences(current => toggleExperience(current, value)); }} onClearExperiences={() => { setSelectedAttractionId(null); setAttractionExperiences([]); }} onSelect={selectAttraction} onHoverChange={setHoveredAttractionId} onCompareToggle={toggleAttractionComparison} onClearSelection={clearMobileAttractionSelection} onBack={handleMobileBack} backLabel={`返回 ${activeCountry?.name || continent}地区`}/>{comparedAttractions.length > 1 && <AttractionComparePanel items={comparedAttractions} onRemove={toggleAttractionComparison}/>}</section>;
   const mobileResultCount = mapLevel === 'region' ? displayedAttractions.length : mapLevel === 'country' ? rankedRegions.length : mapLevel === 'continent' ? rankedCountries.length : orderedContinentNames.length;
   const mobileContextLabel = selectedAttraction?.name || activeRegion?.name || activeCountry?.name || continent || '世界探索';
-  return <main className={reducedMotion ? 'motion-reduced' : ''}>
+  return <main className={`${reducedMotion ? 'motion-reduced' : ''} ${immersiveSession ? 'immersive-open' : ''}`.trim()}>
     <nav className="nav">
       <a className="logo" href="#top"><span>OUR</span> ATLAS<i /></a>
       <div className="navlinks">
@@ -871,9 +934,11 @@ function App() {
         <div className="region-list">{rankedRegions.map(regionItem => <button data-region={regionItem.id} className={`${regionItem.visited ? 'visited' : 'unvisited'} ${activeRegion?.id === regionItem.id ? 'selected' : ''}`} onClick={() => selectRegion(regionItem)} key={regionItem.id}><span className="region-copy"><b>{regionItem.name}</b><small>{regionItem.summary}</small><span className="resource-tags">{regionItem.resources.map(resource => <i key={resource.type}>{resource.type}</i>)}</span></span><span className="footprint-state">{regionItem.visited ? '已到访' : '待探索 · 仍可查看'}</span></button>)}</div>
         <div className="ranking-foot"><i/><span>所有地区均可进入地图查看详情</span></div>
       </aside>}
-      {mapLevel === 'region' && activeRegion && <AttractionExplorerPanel items={displayedAttractions} total={filteredRegionAttractions.length} zoom={attractionMapView.zoom} preference={attractionPreference} category={attractionCategory} experiences={attractionExperiences} selectedId={selectedAttractionId} hoveredId={hoveredAttractionId} comparedIds={comparedAttractionIds} semanticFilterEnabled={semanticFilterEnabled} currentRegionId={activeRegion.id} showNicheToggle={nichePreferenceUseful} onPreferenceChange={value => { setSelectedAttractionId(null); setHoveredAttractionId(null); setAttractionPreference(value); }} onCategoryChange={value => { setSelectedAttractionId(null); setHoveredAttractionId(null); setAttractionCategory(value); }} onExperienceToggle={value => { setSelectedAttractionId(null); setAttractionExperiences(current => toggleExperience(current, value)); }} onClearExperiences={() => { setSelectedAttractionId(null); setAttractionExperiences([]); }} onSelect={item => setSelectedAttractionId(item.id)} onHoverChange={setHoveredAttractionId} onCompareToggle={toggleAttractionComparison} onClearSelection={clearAttractionSelection} onBack={goBackMap} backLabel={`返回 ${activeCountry?.name || continent}地区`}/>} {/* explorer */}
+      {mapLevel === 'region' && activeRegion && <AttractionExplorerPanel items={displayedAttractions} total={filteredRegionAttractions.length} loading={attractionsLoading} zoom={attractionMapView.zoom} preference={attractionPreference} category={attractionCategory} experiences={attractionExperiences} selectedId={selectedAttractionId} hoveredId={hoveredAttractionId} comparedIds={comparedAttractionIds} semanticFilterEnabled={semanticFilterEnabled} currentRegionId={activeRegion.id} showNicheToggle={nichePreferenceUseful} onPreferenceChange={value => { setSelectedAttractionId(null); setHoveredAttractionId(null); setAttractionPreference(value); }} onCategoryChange={value => { setSelectedAttractionId(null); setHoveredAttractionId(null); setAttractionCategory(value); }} onExperienceToggle={value => { setSelectedAttractionId(null); setAttractionExperiences(current => toggleExperience(current, value)); }} onClearExperiences={() => { setSelectedAttractionId(null); setAttractionExperiences([]); }} onSelect={item => setSelectedAttractionId(item.id)} onHoverChange={setHoveredAttractionId} onCompareToggle={toggleAttractionComparison} onClearSelection={clearAttractionSelection} onBack={goBackMap} backLabel={`返回 ${activeCountry?.name || continent}地区`}/>} {/* explorer */}
       {mapLevel === 'region' && <AttractionComparePanel items={comparedAttractions} onRemove={toggleAttractionComparison}/>} {/* comparison */}
       {mapLevel === 'region' && selectedAttraction && <DestinationLivePanel destination={selectedAttraction} onAddToJourney={addSelectedAttractionToJourney} canAddToJourney={Boolean(activeJourney)}/>} {/* selected destination */}
+      {mapLevel === 'region' && immersiveTarget && !immersiveSession && <button type="button" className="immersive-entry-cta" style={{ bottom: mobileViewport ? mobileSheetHeight + 12 : 92 }} onClick={enterImmersive} aria-label={`进入 ${selectedAttraction.name} 沉浸式探索`}><Compass size={16}/><span>沉浸探索</span><small>3D 预演 · 旅行判断</small></button>} {/* immersive entry */}
+      {immersiveSession && <React.Suspense fallback={<div className="immersive-entry-loading" role="status">正在加载沉浸场景…</div>}><ImmersiveExperience entity={immersiveSession.target.entity} scene={immersiveSession.target.scene} plannedMonth={immersiveSession.plannedMonth} liveSnapshot={immersiveSession.liveSnapshot} quality={globeQuality} reducedMotion={reducedMotion} onAddWishlist={handleImmersiveWishlist} onViewPreparation={handleImmersivePreparation} onAddJourney={handleImmersiveAddJourney} onContinuePlanning={() => {}} onExit={exitImmersive}/></React.Suspense>} {/* immersive overlay */}
       <aside className="world-progress archive-card" data-progress-scope={progressScope}>
         <div className="progress-head"><span><small>FAMILY ATLAS</small><strong>{homeCountry.name}探索档案</strong></span></div>
         {!profile && <button className="progress-origin" onClick={openProfileSettings}><UserRound size={12}/><span>暂以中国为家乡 · 设定旅行身份</span></button>}

@@ -18,6 +18,10 @@ function TagIcon({ tag }: { tag: string }) {
 interface AttractionExplorerPanelProps {
   items: RankedAttraction[]
   total: number
+  /** True while the attraction pipeline (API → scraper → seed) is still
+   *  resolving and nothing is painted yet — show a loading row instead of
+   *  the "no attractions" empty state. */
+  loading?: boolean
   zoom: number
   preference: AttractionPreference
   category: "全部" | AttractionCategoryL1
@@ -44,6 +48,7 @@ interface AttractionExplorerPanelProps {
 export function AttractionExplorerPanel({
   items,
   total,
+  loading = false,
   zoom,
   preference,
   category,
@@ -107,7 +112,8 @@ export function AttractionExplorerPanel({
         <span className="attraction-copy"><em>{KIND_LABELS[item.selection_kind]}</em><b>{item.name}<small>{item.name_en}</small></b><i>{item.category_l2} · {item.best_season}</i><span>{item.tags.slice(0, 2).map(tag => <small key={tag}><TagIcon tag={tag} />{tag}</small>)}</span></span>
         <MapPin className="item-pin" size={15}/>
       </button><button type="button" className={`attraction-compare-toggle ${comparedIds.includes(item.id) ? "is-on" : ""}`} onClick={() => onCompareToggle(item.id)} aria-pressed={comparedIds.includes(item.id)}>{comparedIds.includes(item.id) ? "已比较" : "比较"}</button></div>)}
-      {!items.length && <div className="attraction-empty"><MapPin size={24}/><b>该地区暂无景点结果</b><p>已尝试 API → 爬虫（OSM/Wikipedia/官方站）→ 种子数据。稍后重试或切换地区。</p></div>}
+      {!items.length && loading && <div className="attraction-empty is-loading" data-attractions-loading="true"><Compass size={24}/><b>正在加载该地区景点…</b><p>依次尝试 API → 爬虫（OSM/Wikipedia/官方站）→ 种子数据；弱网或数据源不可达时可能需要十几秒，请稍候。</p></div>}
+      {!items.length && !loading && <div className="attraction-empty"><MapPin size={24}/><b>该地区暂无景点结果</b><p>已尝试 API → 爬虫（OSM/Wikipedia/官方站）→ 种子数据。稍后重试或切换地区。</p></div>}
     </div>
     {items.length > 0 && (
       <footer className="attraction-panel-foot">

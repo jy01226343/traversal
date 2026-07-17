@@ -102,6 +102,9 @@ const REGION_SPOTLIGHTS: Record<string, Record<string, string[]>> = {
   "west-ca": { 徒步: ["露易丝湖", "冰原大道"], 自驾: ["班夫", "贾斯珀"], 摄影: ["梦莲湖", "佩托湖"] },
   "south-th": { 潜水: ["斯米兰群岛", "皮皮岛"], 海岛: ["普吉岛", "兰塔岛"], 亲子: ["甲米", "攀牙湾"] },
   qld: { 潜水: ["大堡礁", "圣灵群岛"], 徒步: ["丹翠雨林", "库兰达"], 海岛: ["汉密尔顿岛", "磁岛"] },
+  "male-atolls": { 潜水: ["香蕉礁", "魔鬼鱼点"], 海岛: ["马累", "瑚湖尔岛"], 亲子: ["太阳岛", "天堂岛"] },
+  "ari-atolls": { 潜水: ["珊瑚花园", "玛雅提拉"], 海岛: ["阿里环礁潟湖", "港丽岛"], 摄影: ["鲸鲨点", "夕阳海钓"] },
+  "baa-atoll": { 潜水: ["哈尼法鲁湾", "蓝色洞穴"], 海岛: ["都喜天阙岛", "阿米拉岛"], 亲子: ["芭环礁生物圈", "海龟湾"] },
 }
 
 const SPOT_COORDINATES: Record<string, [number, number]> = {
@@ -123,6 +126,10 @@ const SPOT_COORDINATES: Record<string, [number, number]> = {
   露易丝湖: [51.416, -116.217], 冰原大道: [52.219, -117.224], 班夫: [51.178, -115.571], 贾斯珀: [52.873, -118.081], 梦莲湖: [51.321, -116.186], 佩托湖: [51.717, -116.508],
   斯米兰群岛: [8.658, 97.64], 皮皮岛: [7.741, 98.778], 普吉岛: [7.951, 98.339], 兰塔岛: [7.624, 99.079], 甲米: [8.086, 98.906], 攀牙湾: [8.274, 98.501],
   大堡礁: [-18.287, 147.699], 圣灵群岛: [-20.282, 148.957], 丹翠雨林: [-16.17, 145.418], 库兰达: [-16.819, 145.638], 汉密尔顿岛: [-20.352, 148.95], 磁岛: [-19.139, 146.842],
+  // —— 马尔代夫 ——
+  香蕉礁: [4.183, 73.532], 魔鬼鱼点: [3.978, 73.424], 马累: [4.175, 73.509], 瑚湖尔岛: [4.192, 73.541], 太阳岛: [4.278, 73.568], 天堂岛: [4.205, 73.532],
+  珊瑚花园: [3.579, 72.812], 玛雅提拉: [3.662, 72.848], 阿里环礁潟湖: [3.62, 72.83], 港丽岛: [3.492, 72.818], 鲸鲨点: [3.552, 72.801], 夕阳海钓: [3.62, 72.83],
+  哈尼法鲁湾: [5.189, 73.108], 蓝色洞穴: [5.102, 73.028], 都喜天阙岛: [5.131, 73.062], 阿米拉岛: [5.158, 73.068], 芭环礁生物圈: [5.189, 73.108], 海龟湾: [5.078, 73.002],
   // —— 日本：东北 / 中部 / 四国 ——
   银山温泉: [38.572, 140.523], 酸汤温泉: [40.464, 140.842], 十和田湖: [40.361, 141.013], 藏王: [38.166, 140.437], 仙台: [38.268, 140.872], 平泉: [38.989, 141.111],
   奥多摩: [35.808, 139.084], 上高地: [36.249, 137.69], 白马: [36.7, 137.732], 志贺高原: [36.76, 138.504], 北阿尔卑斯: [36.265, 137.646], 立山黑部: [36.541, 137.611],
@@ -183,6 +190,7 @@ export const COUNTRIES_BY_CONTINENT: Record<string, DestinationCountry[]> = {
     { code: "VNM", name: "越南", english: "Vietnam", focus: [16.2, 107.8], score: 91, tagline: "山海公路与古城", season: "02—04 月", visited: false },
     { code: "CHN", name: "中国", english: "China", focus: [35.8, 104.2], score: 90, tagline: "高原、森林与长城", season: "全年", visited: true },
     { code: "KOR", name: "韩国", english: "South Korea", focus: [36.4, 127.9], score: 87, tagline: "城市、美食与海岛", season: "04—10 月", visited: false },
+    { code: "MDV", name: "马尔代夫", english: "Maldives", focus: [3.2, 73.2], score: 94, tagline: "珊瑚环礁与水下花园", season: "11—04 月", visited: false },
   ],
   欧洲: [
     { code: "ITA", name: "意大利", english: "Italy", focus: [42.8, 12.5], score: 99, tagline: "艺术、山海与古城", season: "04—10 月", visited: false },
@@ -263,6 +271,12 @@ export const REGIONS_BY_COUNTRY: Record<string, DestinationRegion[]> = {
     { id: "central-th", name: "中部", english: "Central Thailand", focus: [14.0, 100.5], heat: 95, visited: false, summary: "曼谷与大城古都核心", resources: [{ type: "城市", score: 98 }, { type: "文化", score: 97 }, { type: "美食", score: 96 }] },
     { id: "east-th", name: "东部", english: "Eastern Thailand", focus: [12.9, 100.9], heat: 90, visited: false, summary: "芭堤雅与东南海岸度假", resources: [{ type: "海岸", score: 95 }, { type: "亲子", score: 91 }, { type: "潜水", score: 88 }] },
     { id: "south-th", name: "南部", english: "Southern Thailand", focus: [8.1, 98.4], heat: 98, visited: false, summary: "安达曼与泰国湾海岛潜点", resources: [{ type: "潜水", score: 99 }, { type: "海岛", score: 99 }, { type: "亲子", score: 92 }] },
+  ],
+  /* 马尔代夫：按旅游环礁分区 */
+  MDV: [
+    { id: "male-atolls", name: "马累环礁", english: "Malé (Kaafu) Atolls", focus: [4.09, 73.45], heat: 96, visited: false, summary: "首都圈与经典度假岛礁", resources: [{ type: "海岛", score: 98 }, { type: "潜水", score: 94 }, { type: "亲子", score: 93 }] },
+    { id: "ari-atolls", name: "阿里环礁", english: "Ari (Alifu) Atolls", focus: [3.62, 72.83], heat: 99, visited: false, summary: "珊瑚花园与鲸鲨潜点最密集", resources: [{ type: "潜水", score: 99 }, { type: "海岛", score: 97 }, { type: "摄影", score: 95 }] },
+    { id: "baa-atoll", name: "芭环礁", english: "Baa Atoll", focus: [5.10, 73.03], heat: 95, visited: false, summary: "联合国教科文组织生物圈保护区", resources: [{ type: "潜水", score: 98 }, { type: "海岛", score: 94 }, { type: "亲子", score: 90 }] },
   ],
   /* 印尼：主要大岛分区 */
   IDN: [

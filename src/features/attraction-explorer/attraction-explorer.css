@@ -23,6 +23,9 @@
 .attraction-list-item.kind-alternative{border-left:3px solid #3fb8a4}.attraction-list-item.kind-alternative>em{background:#3fb8a4;color:#06221f}
 .attraction-list-item.kind-easter-egg{border-left:3px solid #a87ad8}.attraction-list-item.kind-easter-egg>em{background:#a87ad8;color:#faf5ff}
 .attraction-empty{padding:26px 18px;text-align:center;color:#718079}.attraction-empty b{display:block;margin:8px;font:14px 'Noto Serif SC';color:#294643}.attraction-empty p{font-size:9px;line-height:1.6}
+.attraction-empty.is-loading svg{animation:atlas-attraction-spin 1.6s linear infinite;color:#3d7a6a}
+@keyframes atlas-attraction-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.attraction-empty.is-loading svg{animation:none}}
 /* Foot height follows content only — no reserved empty band */
 .attraction-panel-foot{
   flex:0 0 auto;height:auto;min-height:0;max-height:none;

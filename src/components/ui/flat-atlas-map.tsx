@@ -381,6 +381,18 @@ export function FlatAtlasMap({
   const onExitToCountryRef = useRef(onExitToCountry)
   const onExitToRegionListRef = useRef(onExitToRegionList)
   const onExitToContinentRef = useRef(onExitToContinent)
+  /** Grace window (ms epoch) after each programmatic flyTo starts. Stale
+   *  moveend/zoomend events from an interrupted previous flight are ignored
+   *  for exit/auto-advance decisions while inside this window — otherwise a
+   *  fast continent→country click bounces back via exitToContinent. */
+  const flightGraceUntilRef = useRef(0)
+  /** True synchronously around programmatic flyTo/zoomIn/zoomOut calls.
+   *  Leaflet fires `zoomstart` synchronously from flyTo's _moveStart, and our
+   *  zoomstart handler must ignore those: calling map.stop() there injects
+   *  setZoom(snap)+viewreset mid-flight, which races the flyTo frame loop and
+   *  can leave the tile pane with a stale scale transform (tiles vs borders
+   *  misaligned), besides corrupting flyingRef/userZoomedRef. */
+  const programmaticZoomRef = useRef(false)
   const levelRef = useRef(level)
   levelRef.current = level
   const wishedRegionKeysRef = useRef(wishedRegionKeys)
@@ -427,10 +439,48 @@ export function FlatAtlasMap({
     fogRendererRef.current = L.canvas({ pane: "atlas-fog-pane", padding: 0.8, tolerance: 8 })
     sectorOverlayRendererRef.current = L.canvas({ pane: "atlas-sector-pane", padding: 0.8, tolerance: 8 })
     resourceRendererRef.current = L.canvas({ pane: "atlas-resource-pane", padding: 0.8, tolerance: 8 })
-    imageryLayerRef.current = L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    // 卫星瓦片多源降级：services.arcgisonline.com 在部分网络不可达时，
+    // 自动切换到 Esri 经典端点，最终退到 Carto 暗色底图，避免"地图纹理消失"。
+    const IMAGERY_SOURCES = [
+      { url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attribution: "Imagery © Esri, Maxar, Earthstar Geographics" },
+      { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attribution: "Imagery © Esri, Maxar, Earthstar Geographics" },
+      { url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", attribution: "© OpenStreetMap contributors © CARTO" },
+    ]
+    let imagerySourceIndex = 0
+    let imageryErrorCount = 0
+    let imageryTileLoaded = false
+    let imageryProbeTimer = 0
+    const armImageryProbe = () => {
+      window.clearTimeout(imageryProbeTimer)
+      // 网络挂起（连接超时，非快速报错）时 tileerror 要等浏览器超时才触发，
+      // 纹理会空白十几秒。3 秒内没有任何瓦片加载成功就主动切到下一源。
+      imageryProbeTimer = window.setTimeout(() => {
+        if (!imageryTileLoaded) switchImagerySource()
+      }, 3000)
+    }
+    const switchImagerySource = () => {
+      if (imagerySourceIndex >= IMAGERY_SOURCES.length - 1) return
+      imagerySourceIndex += 1
+      imageryErrorCount = 0
+      imageryTileLoaded = false
+      const next = IMAGERY_SOURCES[imagerySourceIndex]
+      imageryLayer.setUrl(next.url)
+      if (map.attributionControl) {
+        map.attributionControl.setPrefix(false).addAttribution(next.attribution)
+      }
+      armImageryProbe()
+    }
+    const imageryLayer = L.tileLayer(IMAGERY_SOURCES[0].url, {
       maxZoom: 18,
-      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
-    }).addTo(map)
+      attribution: IMAGERY_SOURCES[0].attribution,
+    })
+    imageryLayer.on("tileload", () => { imageryTileLoaded = true })
+    imageryLayer.on("tileerror", () => {
+      imageryErrorCount += 1
+      if (imageryErrorCount >= 4) switchImagerySource()
+    })
+    armImageryProbe()
+    imageryLayerRef.current = imageryLayer.addTo(map)
     L.control.zoom({ position: "bottomleft" }).addTo(map)
     boundaryLayerRef.current = L.layerGroup().addTo(map)
     fogLayerRef.current = L.layerGroup().addTo(map)
@@ -472,25 +522,30 @@ export function FlatAtlasMap({
     const syncMapView = () => {
       const zoom = map.getZoom()
       const currentLevel = levelRef.current
+      // Settled = no programmatic flight in progress AND outside the post-flyTo
+      // grace window. Stale moveend/zoomend events from an interrupted flight
+      // fire at intermediate zooms; without the grace check they can trigger a
+      // false zoom-out exit (e.g. fast continent→country click bounces back).
+      const settled = !flyingRef.current && Date.now() >= flightGraceUntilRef.current
       setCityDetailMode(zoom >= 9.2)
       // Bug 2 fix: skip state feedback during programmatic flyTo to prevent
       // zoom-reset feedback loop on mobile pinch-zoom
-      if (!flyingRef.current) {
+      if (settled) {
         const bounds = map.getBounds()
         onMapViewChangeRef.current({ zoom, bounds: { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest() } })
       }
       // Bug 1 part 2: when at region level and user zooms out below country
       // threshold, exit back to country level (restore sectors + region hotlist)
-      if (currentLevel === "region" && zoom < 5.5 && !flyingRef.current) {
+      if (currentLevel === "region" && zoom < 5.5 && settled) {
         onExitToCountryRef.current?.()
       }
       // Country -> continent: when at country level and user zooms out below
       // continent threshold, exit back to continent view
-      if (currentLevel === "country" && zoom < 4.5 && !flyingRef.current) {
+      if (currentLevel === "country" && zoom < 4.5 && settled) {
         onExitToContinentRef.current?.()
       }
       // Zoom-in transitions: auto-enter deeper level when zoom crosses threshold
-      if (!flyingRef.current) {
+      if (settled) {
         if (currentLevel === "country" && zoom >= 6.2 && regions.length) {
           const center = map.getCenter()
           const nearest = nearestPoint(center.lat, center.lng, regions.map(r => ({ id: r.id, point: r.focus })))
@@ -506,13 +561,17 @@ export function FlatAtlasMap({
       // Bug 3: when at region level with a selected attraction, zooming out
       // below the detail threshold clears the selection so the list returns
       // to the attraction explorer panel (not the detail view)
-      if (currentLevel === "region" && zoom < 7.8 && !flyingRef.current) {
+      if (currentLevel === "region" && zoom < 7.8 && settled) {
         onExitToRegionListRef.current?.()
       }
       computeScaleBar()
     }
     // Bug 2 fix: cancel any pending programmatic flyTo when user manually interacts
     const onUserZoomStart = () => {
+      // 程序化 flyTo 的 zoomstart 是同步触发的：此时绝不能 map.stop()
+      // （stop 会 setZoom 吸附整数缩放 + fire viewreset，与飞行帧循环争抢
+      // 瓦片变换，可能留下残留 scale 导致瓦片/矢量错位）。
+      if (programmaticZoomRef.current) return
       if (flyingRef.current) {
         map.stop()
         flyingRef.current = false
@@ -544,6 +603,7 @@ export function FlatAtlasMap({
       map.off("zoomend", syncMapView)
       map.off("moveend", syncMapView)
       settleTimers.forEach(timer => window.clearTimeout(timer))
+      window.clearTimeout(imageryProbeTimer)
       map.remove()
       mapRef.current = null
       boundaryRendererRef.current = null
@@ -561,20 +621,25 @@ export function FlatAtlasMap({
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapCommand) return
-    if (mapCommand.type === "zoom_in") {
-      map.zoomIn(1, { animate: true })
-      return
+    programmaticZoomRef.current = true
+    try {
+      if (mapCommand.type === "zoom_in") {
+        map.zoomIn(1, { animate: true })
+        return
+      }
+      if (mapCommand.type === "zoom_out") {
+        map.zoomOut(1, { animate: true })
+        return
+      }
+      const target = level === "region" && region
+        ? region.focus
+        : level === "country" && country
+          ? country.focus
+          : continentConfig[continent].focus
+      map.flyTo(target, Math.max(map.getZoom(), level === "region" ? 7.4 : level === "country" ? 5.4 : continentConfig[continent].zoom), { animate: true, duration: 0.45 })
+    } finally {
+      programmaticZoomRef.current = false
     }
-    if (mapCommand.type === "zoom_out") {
-      map.zoomOut(1, { animate: true })
-      return
-    }
-    const target = level === "region" && region
-      ? region.focus
-      : level === "country" && country
-        ? country.focus
-        : continentConfig[continent].focus
-    map.flyTo(target, Math.max(map.getZoom(), level === "region" ? 7.4 : level === "country" ? 5.4 : continentConfig[continent].zoom), { animate: true, duration: 0.45 })
   }, [mapCommand, continent, country, level, region])
 
   useEffect(() => {
@@ -654,8 +719,22 @@ export function FlatAtlasMap({
 
     flyingRef.current = true
     userZoomedRef.current = false
-    map.flyTo(target, zoom, { animate: true, duration: flightDuration, easeLinearity: 0.28 })
-    flightComplete.then(() => { flyingRef.current = false })
+    flightGraceUntilRef.current = Date.now() + flightDuration * 1000 + 700
+    programmaticZoomRef.current = true
+    try {
+      map.flyTo(target, zoom, { animate: true, duration: flightDuration, easeLinearity: 0.28 })
+    } finally {
+      programmaticZoomRef.current = false
+    }
+    flightComplete.then(() => {
+      flyingRef.current = false
+      // 保险：飞行结束后若瓦片 pane 仍残留缩放变换（被中断的 zoom 动画），
+      // 触发一次 viewreset 让瓦片层按当前视图复位（矢量层随之重绘）。
+      const tilePane = map.getPane("tilePane")
+      if (tilePane && (tilePane.style.transform || "").includes("scale")) {
+        map.fire("viewreset")
+      }
+    })
 
     const continentUrl = `/geo/continents/${config.file}.geojson`
     const loadGeoJson = async (url: string) => {
@@ -916,16 +995,28 @@ export function FlatAtlasMap({
       // Bug 2 fix: don't auto-fly if user is actively zooming/panning
       if (userZoomedRef.current) return
       flyingRef.current = true
-      map.flyTo([selectedAttraction.lat_wgs84, selectedAttraction.lng_wgs84], 8.75, { animate: true, duration: 0.7, easeLinearity: 0.3 })
-        .once("moveend", () => {
-          if (cameraBottomPadding) map.panBy([0, Math.round(cameraBottomPadding / 2)], { animate: true, duration: 0.22 })
-          flyingRef.current = false
-        })
+      flightGraceUntilRef.current = Date.now() + 1400
+      programmaticZoomRef.current = true
+      try {
+        map.flyTo([selectedAttraction.lat_wgs84, selectedAttraction.lng_wgs84], 8.75, { animate: true, duration: 0.7, easeLinearity: 0.3 })
+          .once("moveend", () => {
+            if (cameraBottomPadding) map.panBy([0, Math.round(cameraBottomPadding / 2)], { animate: true, duration: 0.22 })
+            flyingRef.current = false
+          })
+      } finally {
+        programmaticZoomRef.current = false
+      }
     } else if (previousId && region) {
       if (userZoomedRef.current) return
       flyingRef.current = true
-      map.flyTo(region.focus, 7.4, { animate: true, duration: 0.6, easeLinearity: 0.32 })
-        .once("moveend", () => { flyingRef.current = false })
+      flightGraceUntilRef.current = Date.now() + 1300
+      programmaticZoomRef.current = true
+      try {
+        map.flyTo(region.focus, 7.4, { animate: true, duration: 0.6, easeLinearity: 0.32 })
+          .once("moveend", () => { flyingRef.current = false })
+      } finally {
+        programmaticZoomRef.current = false
+      }
     }
     previousSelectedAttractionRef.current = selectedAttraction?.id || null
   }, [level, region?.id, selectedAttraction?.id, cameraBottomPadding])

@@ -109,3 +109,54 @@
   .flight-reticle i:nth-child(3){inset:-8px}
   .cinematic-flight>b{font-size:22px}
 }
+
+/* ---------------- 沉浸式景点探索：地图入口 CTA 与加载占位（全局加载，入口按钮不依赖沉浸分包 CSS） ---------------- */
+.immersive-entry-cta {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid rgba(240, 180, 41, 0.55);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(11, 20, 24, 0.92), rgba(16, 32, 38, 0.88));
+  color: #f0b429;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 18px rgba(240, 180, 41, 0.18);
+  backdrop-filter: blur(10px);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.immersive-entry-cta small {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(240, 180, 41, 0.72);
+}
+.immersive-entry-cta:hover,
+.immersive-entry-cta:focus-visible {
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55), 0 0 26px rgba(240, 180, 41, 0.3);
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .immersive-entry-cta { transition: none; }
+  .immersive-entry-cta:hover, .immersive-entry-cta:focus-visible { transform: translateX(-50%); }
+}
+.immersive-entry-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 14, 17, 0.92);
+  color: #9db8c0;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}

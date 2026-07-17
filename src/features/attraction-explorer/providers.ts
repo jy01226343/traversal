@@ -107,31 +107,24 @@ export function createDefaultAttractionProvider(fetcher: typeof fetch = fetch): 
         || readStore(API_STORE, key)
         || readStore(SCRAPE_STORE, key)
 
-      // 1) Live API
-      if (api) {
-        try {
-          const remote = await api.query(query)
-          if (remote?.length) {
-            console.info(`[attractions] API hit ${key}: ${remote.length} → saved`)
-            return land(key, remote, API_STORE)
-          }
-          console.warn(`[attractions] API empty for ${key}, trying crawler`)
-        } catch (error) {
-          console.warn("[attractions] API failed, trying crawler", error)
-        }
+      // Live stages race in PARALLEL with an overall budget. Previously the API
+      // stage was awaited serially before the crawler even started, so a hanging
+      // endpoint held the whole pipeline for 30s+. First non-empty source wins;
+      // if the budget expires we fall through to durable/seed/catalog instantly.
+      const live = await raceLiveProviders(
+        [
+          api
+            ? { label: "API", store: API_STORE, run: () => api.query(query) }
+            : null,
+          { label: "scrape", store: SCRAPE_STORE, run: () => scraper.query(query) },
+        ].filter(Boolean) as LiveStage[],
+        LIVE_BUDGET_MS,
+      )
+      if (live?.items.length) {
+        console.info(`[attractions] ${live.label} hit ${key}: ${live.items.length} → saved`)
+        return land(key, live.items, live.store)
       }
-
-      // 2) Live crawler
-      try {
-        const scraped = await scraper.query(query)
-        if (scraped?.length) {
-          console.info(`[attractions] scrape hit ${key}: ${scraped.length} → saved`)
-          return land(key, scraped, SCRAPE_STORE)
-        }
-        console.warn(`[attractions] scrape empty for ${key}`)
-      } catch (error) {
-        console.warn("[attractions] crawler failed", error)
-      }
+      console.warn(`[attractions] live unavailable for ${key}, using local fallback`)
 
       // 3) Durable snapshot from earlier sessions
       if (previousFixed?.length) {
@@ -156,6 +149,48 @@ export function createDefaultAttractionProvider(fetcher: typeof fetch = fetch): 
       return previousFixed || []
     },
   }
+}
+
+interface LiveStage {
+  label: string
+  store: string
+  run: () => Promise<Attraction[] | null | undefined>
+}
+
+/** 实时管线整体预算：超出即回退本地数据（UI 已用 peekLocalAttractions 秒出）。 */
+const LIVE_BUDGET_MS = 15000
+
+/**
+ * 并行竞速：首个非空结果胜出；全部为空/失败/超预算 → null。
+ * 胜出的 promise 决定落库 bucket；未完成的请求放任后台结束（fetcher 自带超时兜底）。
+ */
+function raceLiveProviders(stages: LiveStage[], budgetMs: number): Promise<{ label: string; store: string; items: Attraction[] } | null> {
+  return new Promise(resolve => {
+    if (!stages.length) return resolve(null)
+    let settled = false
+    let pending = stages.length
+    const finish = (value: { label: string; store: string; items: Attraction[] } | null) => {
+      if (settled) return
+      settled = true
+      resolve(value)
+    }
+    const timer = setTimeout(() => finish(null), budgetMs)
+    const clear = (value: { label: string; store: string; items: Attraction[] } | null) => {
+      clearTimeout(timer)
+      finish(value)
+    }
+    for (const stage of stages) {
+      stage
+        .run()
+        .then(items => {
+          if (items?.length) return clear({ label: stage.label, store: stage.store, items })
+          if (--pending === 0) clear(null)
+        })
+        .catch(() => {
+          if (--pending === 0) clear(null)
+        })
+    }
+  })
 }
 
 export async function resolveAttractions(countryCode?: string, regionId?: string, options: Partial<AttractionQuery> = {}) {
@@ -193,6 +228,20 @@ export async function resolveAttractions(countryCode?: string, regionId?: string
 export function peekFixedAttractions(countryCode?: string, regionId?: string) {
   const key = storageKey(countryCode, regionId)
   return readStore(FIXED_STORE, key) || readStore(API_STORE, key) || readStore(SCRAPE_STORE, key) || []
+}
+
+/**
+ * 同步本地快照：持久缓存 → 官方种子 → 区域资源目录。
+ * 供 UI 在进入区域的第一帧即刻绘制景点列表（实时管线随后后台刷新替换），
+ * 避免弱网/数据源不可达时面板长时间空等。
+ */
+export function peekLocalAttractions(countryCode?: string, regionId?: string): Attraction[] {
+  const key = storageKey(countryCode, regionId)
+  const cached = readStore(FIXED_STORE, key) || readStore(API_STORE, key) || readStore(SCRAPE_STORE, key)
+  if (cached?.length) return cached
+  const seed = getOfficialAttractions(countryCode, regionId)
+  if (seed?.length) return seed
+  return getCatalogAttractions(countryCode, regionId) || []
 }
 
 export { createScrapeAttractionProvider }
