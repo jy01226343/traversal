@@ -23,6 +23,7 @@ export interface Env {
   TOMTOM_API_KEY?: string
   AMAP_DAILY_SOFT_LIMIT?: string
   TOMTOM_DAILY_SOFT_LIMIT?: string
+  OVERPASS_DAILY_SOFT_LIMIT?: string
   UPSTREAM_TIMEOUT_MS?: string
 }
 

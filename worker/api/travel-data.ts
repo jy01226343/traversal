@@ -28,6 +28,14 @@ function routeCacheKey(input: RouteRequest) {
   return `route:v1:${input.countryCode}:${input.mode}:${p(input.origin)}:${p(input.destination)}:${input.departAt?.slice(0, 13) || "none"}`
 }
 
+function escapeOverpassText(value: string) {
+  return value.replace(/[\\"\n\r]/g, " ").slice(0, 80)
+}
+
+function osmPlaceId(element: { type: string; id: number }) {
+  return `osm:${element.type}:${element.id}`
+}
+
 function normalizeTomTom(payload: any) {
   const route = payload?.routes?.[0]
   const summary = route?.summary
@@ -108,9 +116,7 @@ export async function handlePlaceSearch(request: Request, env: Env) {
   const countryCode = (url.searchParams.get("countryCode") || "").toUpperCase()
   const query = (url.searchParams.get("q") || "").trim()
   if (!countryCode || !query) return json({ error: "countryCode 和 q 为必填项" }, 400)
-  if (countryCode !== "CN") {
-    return json(providerFailure("osm-overpass", "UNSUPPORTED_REGION", "境外 OSM/Overpass Provider 等待用户明确授权后启用", false), 503)
-  }
+  if (countryCode !== "CN") return handleOsmPlaceSearch(url, countryCode, query, env)
   if (!env.AMAP_WEB_SERVICE_KEY) return json(providerFailure("amap", "MISSING_SECRET", "中国 POI 服务暂未配置", false), 503)
   if (!canUseProvider("amap", env.AMAP_DAILY_SOFT_LIMIT)) return json(providerFailure("amap", "RATE_LIMITED", "高德调用已达到当前软阈值", true), 429)
   try {
@@ -133,6 +139,37 @@ export async function handlePlaceSearch(request: Request, env: Env) {
   } catch (error) {
     const safe = safeProviderError(error)
     return json(providerFailure("amap", safe.code, safe.message, true), 502)
+  }
+}
+
+/**
+ * Public Overpass is intentionally limited to explicit searches near a point.
+ * Results are cached for a day; it is never used as keystroke autocomplete.
+ */
+async function handleOsmPlaceSearch(url: URL, countryCode: string, query: string, env: Env) {
+  const lat = Number(url.searchParams.get("lat"))
+  const lng = Number(url.searchParams.get("lng"))
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return json({ error: "境外 OSM 搜索需要 WGS-84 lat 和 lng" }, 400)
+  if (!canUseProvider("osm-overpass", env.OVERPASS_DAILY_SOFT_LIMIT)) return json(providerFailure("osm-overpass", "RATE_LIMITED", "Overpass 调用已达到当前软阈值，正在使用缓存或等待恢复", true), 429)
+  try {
+    const cacheKey = `osm-place:v1:${countryCode}:${escapeOverpassText(query)}:${lat.toFixed(3)}:${lng.toFixed(3)}`
+    const cached = await staleWhileRevalidate(cacheKey, 24 * 60 * 60_000, () => {
+      const safeQuery = escapeOverpassText(query)
+      const overpass = `[out:json][timeout:15];(nwr["name"~"${safeQuery}",i](around:5000,${lat},${lng}););out center tags 20;`
+      return fetchJsonWithTimeout("https://overpass-api.de/api/interpreter", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "Family-Atlas/1.0 (destination POI lookup)" }, body: new URLSearchParams({ data: overpass }) }, timeoutMs(env))
+    })
+    const payload = cached.value as { elements?: Array<{ type: string; id: number; lat?: number; lon?: number; center?: { lat?: number; lon?: number }; tags?: Record<string, string> }> }
+    const pois = (payload.elements || []).flatMap(element => {
+      const latitude = element.lat ?? element.center?.lat
+      const longitude = element.lon ?? element.center?.lon
+      const tags = element.tags || {}
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !tags.name) return []
+      return [{ id: osmPlaceId(element), name: tags.name, countryCode, latitude, longitude, address: [tags["addr:full"], tags["addr:street"], tags["addr:city"]].filter(Boolean).join(", ") || undefined, categories: [tags.tourism, tags.amenity, tags.leisure, tags.shop].filter(Boolean), phone: tags.phone || tags["contact:phone"] || undefined, website: tags.website || tags["contact:website"] || undefined, openingHoursReference: tags.opening_hours || undefined, openingHoursNotice: tags.opening_hours ? "参考营业时间 · 来源 OpenStreetMap · 建议出发前查看官方公告" : undefined }]
+    })
+    return json({ ok: true, data: pois, source: { provider: "osm-overpass", sourceName: "OpenStreetMap / Overpass", sourceUrl: "https://www.openstreetmap.org/copyright", confidence: "map_provider", fetchedAt: new Date().toISOString(), fromCache: cached.fromCache, stale: cached.stale }, attribution: "© OpenStreetMap contributors", attributionUrl: "https://www.openstreetmap.org/copyright", warnings: cached.stale ? ["Overpass 暂不可用，正在显示缓存 POI"] : [] })
+  } catch (error) {
+    const safe = safeProviderError(error)
+    return json(providerFailure("osm-overpass", safe.code, safe.message, true), 502)
   }
 }
 

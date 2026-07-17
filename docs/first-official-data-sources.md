@@ -16,5 +16,5 @@
 
 - 风险卡按来源分组展示，不合成为单一“全球官方等级”。
 - 中国领事服务网和中国驻外使领馆优先展示给中国用户。
-- OSM/Overpass 尚未启用，待用户明确授权后再接入，并会显示 OpenStreetMap attribution 与“参考营业时间”文案。
+- OSM/Overpass 已获用户授权并启用，响应与前端均须显示 OpenStreetMap attribution；`opening_hours` 固定标为“参考营业时间”，不得包装为实时开放。
 - Provider 访问失败时保留最后成功缓存或返回明确不可用状态，不能阻塞地图和列表的基础浏览。

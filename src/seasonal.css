@@ -21,7 +21,9 @@
 /* PC: chrome above fan, seasonal below title, controls at fan-stack bottom-right */
 @media(min-width:761px){
   .seasonal-recommendations{
-    /* Keep block low enough that top edge stays under world-title */
+    /* Separate the seasonal control band from the atmosphere status card. */
+    left:calc(5.4vw + 330px);
+    width:min(560px,calc(100vw - 5.4vw - 350px));
     bottom:94px;
     height:328px;
     contain:layout style;
@@ -59,7 +61,7 @@
   }
 }
 @media(max-width:1180px) and (min-width:761px){
-  .seasonal-recommendations{left:2.5vw;height:312px;transform:scale(.9);transform-origin:left bottom}
+  .seasonal-recommendations{left:calc(2.5vw + 260px);width:min(500px,calc(100vw - 2.5vw - 280px));height:312px;transform:scale(.9);transform-origin:left bottom}
   .seasonal-fan{inset:84px 0 0}
 }
 @media(max-width:760px){
