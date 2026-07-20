@@ -89,10 +89,26 @@ export function selectAttractions(items: Attraction[], query: AttractionQuery): 
     return groupDifference || compareByFreshnessThenName(a, b)
   })
 
-  // Pick top items with spatial distribution (grid limit avoids clustering)
+  // Pick top items with spatial distribution (grid limit avoids clustering).
+  // Curated entries (官方种子，含 3D 场景 POI) are pinned: they always enter
+  // first and occupy limit slots, but skip the per-cell grid cap — otherwise
+  // fresher catalog entries in the same cell evict them (compareByFreshnessThenName
+  // ranks catalog last_updated=now ahead of fixed seed timestamps) and their
+  // 3D badge / CTA disappears (马尔代夫珊瑚花园 bug)。
+  const limit = query.limit || 6
   const selectedIds = new Set<string>()
   const cells = new Map<string, number>()
-  const result = takeWithGridLimit(sorted, query.limit || 6, bounds, selectedIds, cells)
+  const pinned: RankedAttraction[] = []
+  const rest: RankedAttraction[] = []
+  for (const item of sorted) {
+    if (item.curated === true && pinned.length < limit) {
+      selectedIds.add(item.id)
+      pinned.push(item)
+    } else {
+      rest.push(item)
+    }
+  }
+  const result = [...pinned, ...takeWithGridLimit(rest, limit - pinned.length, bounds, selectedIds, cells)]
 
   return result.map((item, index) => ({ ...item, selection_rank: index + 1 }))
 }

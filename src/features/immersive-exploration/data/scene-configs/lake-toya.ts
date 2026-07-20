@@ -5,8 +5,18 @@
  * 数据口径：来源引用 docs/first-official-data-sources.md 登记的官方入口——
  *   北海道官方旅游网站（景区基础信息、活动入口）
  *   洞爷湖町官网（临时关闭、公共活动、灾害公告）
- * 事实基础：破火山口湖，直径约 10km、周长约 43km、最深约 180m；湖心为中岛；
- *   洞爷湖长跑花火每年 4 月下旬–10 月每晚在湖上燃放；冬季不封冻。
+ * 事实基础：破火山口湖，直径约 10km、周长约 43km、最深约 180m；湖心为中岛
+ *   （大岛、观音岛、弁天岛、馒头岛四岛总称，最高点海拔约 455m，是破火山口
+ *   形成后火山活动隆起的岛屿群）；南岸为有珠山与 1943 年隆起的昭和新山；
+ *   北西远方为羊蹄山（虾夷富士，海拔约 1,898m，对称锥形成层火山）；
+ *   湖水透明度高、呈深蓝色调；洞爷湖长跑花火每年 4 月下旬–10 月每晚在湖上
+ *   燃放；冬季不封冻。
+ * 地貌还原说明：场景几何由 waterside 家族渲染器（契约节点名冻结）承载——
+ *   近乎圆形的破火山口湖面、噪声海岸破圆、湖心中岛、环湖岸线山丘、温泉街
+ *   剪影与自定义水 shader（菲涅尔天空反射 + 深浅水渐变 + 岸线泡沫）。本文件
+ *   通过 defaultCamera 机位、preset visual 参数（waveHeight/mist/reflection/
+ *   light/season/fireworks/snow）与锚点/文案层把真实地貌关系（湖盆–中岛–
+ *   环湖山脊–南岸火山群–羊蹄山远景）映射到该渲染器上。
  * 文案约束：生物与景观统一「通常有机会观察到」，无固定概率与必然性表述。
  */
 
@@ -41,7 +51,13 @@ export const LAKE_TOYA_ENTITY: ExplorationEntity = {
     [42.66, 140.92],
   ],
   activityTags: ["湖边漫步", "游船", "独木舟", "SUP", "骑行", "摄影"],
-  attributeTags: ["破火山口湖", "温泉", "花火季 4–10月", "最佳季节：全年 / 花火季4–10月"],
+  attributeTags: [
+    "破火山口湖 直径约10km",
+    "湖心中岛 · 远眺羊蹄山（虾夷富士）",
+    "温泉",
+    "花火季 4–10月",
+    "最佳季节：全年 / 花火季4–10月",
+  ],
   sceneDefinitionId: "scene-lake-toya",
   fallbackContentId: "fallback-lake-toya",
 };
@@ -52,7 +68,7 @@ export const LAKE_TOYA_ANCHOR_CONTENTS: AnchorContent[] = [
   {
     id: "toya-shore-walk",
     title: "湖畔步道",
-    body: "洞爷湖温泉街前的湖畔步道沿东岸延伸约 1.5km，全程平坦，设有长椅与足汤。傍晚可边散步边等待湖上花火。",
+    body: "洞爷湖温泉街前的湖畔步道沿东岸延伸约 1.5km，全程平坦，设有长椅与足汤。沿步道南望可见有珠山与 1943 年隆起的昭和新山，傍晚可边散步边等待湖上花火。",
     sourceMeta: { ...HOKKAIDO_TOURISM, mode: "typical_preview" },
   },
   {
@@ -64,12 +80,12 @@ export const LAKE_TOYA_ANCHOR_CONTENTS: AnchorContent[] = [
   {
     id: "toya-boat-zone",
     title: "游船航区",
-    body: "游船航区覆盖湖心与中岛周边水域。中岛为湖中央小岛群，岛上森林是虾夷鹿栖息地，登岛步道上通常有机会观察到鹿的活动痕迹。",
+    body: "游船航区覆盖湖心与中岛周边水域。中岛为大岛、观音岛、弁天岛、馒头岛四岛总称，是破火山口形成后火山活动隆起的岛屿群，最高点海拔约 455m；岛上森林是虾夷鹿栖息地，登岛步道上通常有机会观察到鹿的活动痕迹。",
   },
   {
     id: "toya-viewpoint-a",
     title: "西岸展望（筒仓展望台）",
-    body: "筒仓展望台位于湖西岸高台，可俯瞰湖面全景、中岛与远处羊蹄山。晴天上午光线顺，适合拍摄湖面倒影。",
+    body: "筒仓展望台位于湖西岸高台，可俯瞰近乎圆形的破火山口湖全景、湖心中岛，以及远处羊蹄山（虾夷富士，海拔约 1,898m）的对称锥形山体。晴天上午光线顺，适合拍摄湖面倒影。",
   },
   {
     id: "toya-paddle-zone",
@@ -84,7 +100,7 @@ export const LAKE_TOYA_ANCHOR_CONTENTS: AnchorContent[] = [
   {
     id: "toya-viewpoint-b",
     title: "东岸温泉街展望",
-    body: "温泉街高处可眺望湖心与中岛日落。花火季（4 月下旬–10 月）花火通常于每晚 20:45 前后在湖上燃放约 20 分钟，以当年公告为准。",
+    body: "温泉街高处可眺望湖心与中岛日落，转向南岸方向可见有珠山与昭和新山的火山轮廓。花火季（4 月下旬–10 月）花火通常于每晚 20:45 前后在湖上燃放约 20 分钟，以当年公告为准。",
     sourceMeta: { ...TOYAKO_TOWN, mode: "typical_preview" },
   },
   {
@@ -102,18 +118,21 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
   entityName: "洞爷湖",
   regionLabel: "日本 · 北海道 洞爷湖町",
   defaultCamera: {
-    position: [0, 260, 1500],
-    lookAt: [0, 0, 0],
-    fov: 48,
+    // 东岸温泉街上空侧向机位：越过近岸望向湖心中岛与北岸天际线，
+    // 与 arrival「相机定位于东岸温泉街上空」一致；距离约 32（< 渲染器 maxDistance 48）。
+    position: [12, 7, 24],
+    lookAt: [-1.5, 0.3, -4],
+    fov: 47,
   },
   arrival: {
-    subtitle: "北海道破火山口湖 · 周长约 43km、最深约 180m",
-    headlineSight: "湖心中岛与湖面倒影",
+    subtitle: "北海道破火山口湖 · 直径约 10km、周长约 43km、最深约 180m",
+    headlineSight: "湖心中岛与远处羊蹄山（虾夷富士）的对称锥形轮廓",
     headlineActivity: "湖畔步道漫步与环湖游船",
     observeMs: 6000,
     transitionBeats: [
-      "接近湖面，视野越过岸线",
-      "掠过水面朝向湖心中岛",
+      "接近湖面，视野越过破火山口环湖山脊与岸线",
+      "掠过静谧镜面朝向湖心中岛（四岛总称）",
+      "远处羊蹄山的对称锥形轮廓进入视野",
       "相机定位于东岸温泉街上空",
       "主题入口出现",
     ],
@@ -234,7 +253,19 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       visual: { waveHeight: 0.02, mist: 0, reflection: 1.0, light: "clear_day", fireworks: false },
       whereText: "筒仓展望台与北岸开阔湖段",
       whenText: "全年晴朗且风小的上午",
-      whyText: "无风时湖面如镜，羊蹄山（虾夷富士）与中岛倒影清晰可见",
+      whyText: "无风时高透明度的湖面如镜，羊蹄山（虾夷富士）与中岛倒影清晰可见",
+    },
+    {
+      id: "preset-yotei-vista",
+      label: "深秋羊蹄山",
+      months: [10, 11],
+      representative: false,
+      mode: "typical_preview",
+      sourceMeta: { ...HOKKAIDO_TOURISM, mode: "typical_preview" },
+      visual: { waveHeight: 0.03, mist: 0.05, reflection: 0.9, light: "clear_autumn", season: "autumn", fireworks: false },
+      whereText: "西岸筒仓展望台与北岸开阔湖段，朝向羊蹄山方向",
+      whenText: "10 月至 11 月，晴朗上午",
+      whyText: "深秋空气通透，羊蹄山对称锥形山体与初雪冠映在湖面，环湖山脊红叶点缀",
     },
     {
       id: "preset-winter-calm",
@@ -246,7 +277,7 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       visual: { waveHeight: 0.1, mist: 0.1, reflection: 0.6, light: "winter_soft", snow: true, fireworks: false },
       whereText: "东岸温泉街湖畔步道",
       whenText: "12 月至 2 月，雪后晴天",
-      whyText: "洞爷湖冬季通常不封冻，雪岸与蓝色湖水对比鲜明，温泉蒸汽升腾",
+      whyText: "洞爷湖冬季通常不封冻，雪岸与深蓝色湖水对比鲜明，温泉蒸汽升腾",
     },
   ],
   activities: [
@@ -259,7 +290,7 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       difficulty: "easy",
       facilities: ["长椅", "足汤", "餐饮", "厕所"],
       limitations: ["冬季步道可能有积雪薄冰，注意防滑"],
-      description: "沿东岸温泉街湖畔步道步行约 1.5km，途中可泡足汤、看中岛与花火。",
+      description: "沿东岸温泉街湖畔步道步行约 1.5km，途中可泡足汤、看中岛与花火，南望有珠山与昭和新山。",
       sceneActions: [{ kind: "show_route", target: "node:shore_walk" }],
     },
     {
@@ -272,7 +303,7 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       requirements: ["码头现场购票"],
       facilities: ["码头候船区", "船上室内座席"],
       limitations: ["大风天气可能临时停航，以运营方公告为准"],
-      description: "从温泉街码头出发环湖约 50 分钟，可登中岛步道短停。",
+      description: "从温泉街码头出发环湖约 50 分钟，可登中岛步道短停，从湖心回望环湖山脊与远处羊蹄山。",
       sceneActions: [{ kind: "focus_camera", target: "node:boat_zone" }],
     },
     {
@@ -311,7 +342,7 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       requirements: ["租赁自行车或电助力车"],
       facilities: ["沿途休息点", "租赁店"],
       limitations: ["环湖约 43km，部分路段与机动车共道", "冬季路面结冰不建议骑行"],
-      description: "环湖一周约 43km，沿途经过展望台、牧场与湖畔小镇，建议顺时针骑行。",
+      description: "环湖一周约 43km，沿途经过展望台、牧场与湖畔小镇，南岸路段可近观有珠山与昭和新山，建议顺时针骑行。",
       sceneActions: [{ kind: "show_route", target: "node:lakeside_trail" }],
     },
     {
@@ -323,7 +354,7 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       difficulty: "easy",
       facilities: ["驻车观景位", "三脚架架设空间"],
       limitations: ["花火季夜间机位紧张，建议提前占位"],
-      description: "筒仓展望台拍全景与倒影，温泉街湖畔拍花火与夜景。",
+      description: "筒仓展望台拍湖盆全景与羊蹄山倒影，温泉街湖畔拍花火与夜景。",
       sceneActions: [{ kind: "focus_camera", target: "node:viewpoint_a" }],
     },
   ],
@@ -374,7 +405,7 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       mode: "risk_simulation",
       cause: [
         "午后湖面南风增强，开阔水面浪高随之增大",
-        "破火山口湖盆地形使风在湖面加速汇聚",
+        "破火山口湖盆近乎圆形、四周山脊环抱，风入湖后易在湖面加速汇聚",
         "小型船只与桨板受风浪影响明显",
       ],
       sequence: [
@@ -474,8 +505,8 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
     {
       representativeActivityId: "act-cruise",
       representativeReason: "环湖游船覆盖湖心与中岛，体力门槛低，是多数人认识洞爷湖的方式",
-      bestTimeText: "花火季为 4 月下旬至 10 月；5–9 月清晨常见薄雾，冬季雪景通透",
-      bestExperienceText: "傍晚沿湖畔步道看湖上花火，或乘游船登中岛远眺羊蹄山",
+      bestTimeText: "花火季为 4 月下旬至 10 月；5–9 月清晨常见薄雾，10–11 月羊蹄山倒影通透，冬季雪景不封冻",
+      bestExperienceText: "傍晚沿湖畔步道看湖上花火，或乘游船登中岛，远眺羊蹄山与南岸有珠山、昭和新山",
       preparationItems: [
         "确认花火燃放时间与游船班次（以当年公告为准）",
         "水上活动备防风外套并全程穿救生衣",
@@ -503,12 +534,12 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       {
         theme: "highlights",
         title: "景色",
-        body: "4 月下旬–10 月每晚湖上花火是代表性画面；5–9 月清晨常见薄雾；无风晴天可拍羊蹄山倒影；冬季雪岸与蓝色湖水对比鲜明。",
+        body: "近乎圆形的破火山口湖直径约 10km，湖心中岛（四岛总称，最高点约 455m）矗立湖心；北西远方是羊蹄山（虾夷富士）的对称锥形山体，南岸为有珠山与 1943 年隆起的昭和新山。4 月下旬–10 月每晚湖上花火是代表性画面；5–9 月清晨常见薄雾；无风晴天可拍羊蹄山倒影；冬季雪岸与深蓝色湖水对比鲜明。",
       },
       {
         theme: "experience",
         title: "怎么玩",
-        body: "湖畔步道漫步约 1.5km；环湖游船约 50 分钟可登中岛；5–10 月有独木舟与 SUP；环湖骑行约 43km；双展望台适合摄影。",
+        body: "湖畔步道漫步约 1.5km；环湖游船约 50 分钟可登中岛；5–10 月有独木舟与 SUP；环湖骑行约 43km，南岸路段近观有珠山与昭和新山；双展望台适合摄影。",
       },
       {
         theme: "audience",
@@ -523,7 +554,7 @@ export const LAKE_TOYA_SCENE: ImmersiveSceneDefinition = {
       {
         theme: "water_ecology",
         title: "水域生态",
-        body: "入湖河口湿地春秋季通常有机会观察到迁徙水鸟；中岛森林是虾夷鹿栖息地；湖色随光线在蓝绿间变化，湖岸芦苇带是鱼类产卵与幼鱼隐蔽场所。",
+        body: "湖盆最深约 180m、透明度高，湖色随光线在深蓝与蓝绿间变化；入湖河口湿地春秋季通常有机会观察到迁徙水鸟；中岛森林是虾夷鹿栖息地；湖岸芦苇带是鱼类产卵与幼鱼隐蔽场所。",
       },
     ],
   },

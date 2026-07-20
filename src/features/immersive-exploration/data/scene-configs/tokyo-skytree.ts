@@ -23,7 +23,14 @@ export const TOKYO_SKYTREE_ENTITY: ExplorationEntity = {
   channels: ["history", "leisure", "wonder"],
   coordinates: { lat: 35.7101, lng: 139.8107 },
   activityTags: ["观景", "摄影", "散步", "美食"],
-  attributeTags: ["电波塔", "高634m", "展望台350m/450m", "最佳季节：全年 / 夜景日落后"],
+  attributeTags: [
+    "电波塔",
+    "高634m",
+    "展望台350m/450m",
+    "三角→圆形扭转塔身（nelesh 结构）",
+    "夜间粋/雅点灯",
+    "最佳季节：全年 / 夜景日落后",
+  ],
   sceneDefinitionId: "scene-tokyo-skytree",
   fallbackContentId: "fallback-tokyo-skytree",
 };
@@ -34,7 +41,7 @@ export const TOKYO_SKYTREE_ANCHOR_CONTENTS: AnchorContent[] = [
   {
     id: "skytree-tower",
     title: "晴空塔本体 634m",
-    body: "东京晴空塔高 634m，2012 年开业，是世界最高的自立式电波塔之一。塔身采用三角形基座渐变为圆形的独特截面，涂装色「晴空塔白」以蓝白为基调。",
+    body: "东京晴空塔高 634m，2012 年开业，是世界最高的自立式电波塔之一。塔身底部为三角形截面，随高度缓缓扭转并渐变为圆形（nelesh 结构），外覆白色 lattice 桁架；涂装色「晴空塔白」以蓝白为基调，夜间有「粋」（淡蓝）与「雅」（江户紫）两套代表点灯样式。",
   },
   {
     id: "skytree-skyline",
@@ -49,7 +56,7 @@ export const TOKYO_SKYTREE_ANCHOR_CONTENTS: AnchorContent[] = [
   {
     id: "skytree-night-deck",
     title: "夜景展望层",
-    body: "展望台分为 350m 的天望甲板与 450m 的天望回廊两层，夜间可俯瞰城市灯海与街道灯河。展望台开放时间与票价以运营方公告为准。",
+    body: "展望台分为 350m 的天望甲板与 450m 的天望回廊两层，夜间可俯瞰城市灯海与街道灯河。塔身夜间点灯以「粋」（淡蓝）与「雅」（江户紫）两套样式为主，随季节与活动更换。展望台开放时间与票价以运营方公告为准。",
   },
   {
     id: "skytree-market",
@@ -81,9 +88,9 @@ export const TOKYO_SKYTREE_SCENE: ImmersiveSceneDefinition = {
   entityName: "东京晴空塔",
   regionLabel: "日本 · 东京都墨田区",
   defaultCamera: {
-    position: [180, 220, 420],
-    lookAt: [0, 180, 0],
-    fov: 45,
+    position: [13, 7.5, 24],
+    lookAt: [0, 6, 0],
+    fov: 46,
   },
   arrival: {
     subtitle: "高 634m 的电波塔 · 下町街区之上的城市地标",
@@ -186,10 +193,10 @@ export const TOKYO_SKYTREE_SCENE: ImmersiveSceneDefinition = {
       representative: true,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { night: 1.0, windowLight: 1.0, trafficFlow: 0.8, light: "night_clear", hazeDensity: 0.1 },
+      visual: { night: 1.0, illumination: 1.0, light: "night_clear" },
       whereText: "展望台 350m/450m 两层与吾妻桥河岸机位",
       whenText: "日落后至闭馆前，点灯样式随季节与活动更换",
-      whyText: "入夜后街道灯河与建筑窗灯亮起，塔身点灯与城区灯海同框，是晴空塔较具代表性的画面",
+      whyText: "入夜后街道灯河与建筑窗灯亮起，塔身以「粋」（淡蓝）、「雅」（江户紫）等样式投光，与城区灯海同框，是晴空塔较具代表性的画面",
     },
     {
       id: "preset-clear-day",
@@ -198,7 +205,7 @@ export const TOKYO_SKYTREE_SCENE: ImmersiveSceneDefinition = {
       representative: false,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { night: 0.0, windowLight: 0.2, trafficFlow: 0.5, light: "winter_clear", hazeDensity: 0.06 },
+      visual: { night: 0.0, illumination: 0.25, light: "winter_clear" },
       whereText: "展望台西侧，可远眺新宿副都心与富士山方向",
       whenText: "秋冬季晴天上午，空气透明度较高",
       whyText: "秋冬空气干燥通透，远景可见度较好，适合观察城市尺度与天际线层次",
@@ -210,7 +217,7 @@ export const TOKYO_SKYTREE_SCENE: ImmersiveSceneDefinition = {
       representative: false,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { night: 0.0, windowLight: 0.3, trafficFlow: 0.4, light: "spring_soft", hazeDensity: 0.2 },
+      visual: { night: 0.0, illumination: 0.3, light: "spring_soft" },
       whereText: "隅田川步道与浅草一侧河岸",
       whenText: "约 3 月下旬至 4 月上旬，花期随当年气温变化",
       whyText: "河岸樱花与塔身同框是春季经典构图；花季步道人流较多，清晨相对宽松",

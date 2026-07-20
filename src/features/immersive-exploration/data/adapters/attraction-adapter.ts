@@ -62,7 +62,7 @@ const CURATED_RULES: readonly CuratedRule[] = [
       a.id === "maldives-coral-garden" ||
       a.name.includes("珊瑚花园") ||
       /(coral\s*garden)/i.test(a.name_en) ||
-      (a.country_code === "MV" && /(珊瑚|coral)/i.test(`${a.name} ${a.name_en}`) && !isEventLike(a)),
+      (a.country_code === "MDV" && /(珊瑚|coral)/i.test(`${a.name} ${a.name_en}`) && !isEventLike(a)),
   },
   {
     entityId: "masai-mara",

@@ -2,8 +2,10 @@
  * 人文城市场景 · 都市天际线（东京风格，SCENES 拥有）
  *
  * 视觉元素（全部程序化，无外链资产）：
- * - 程序化楼群（InstancedMesh 盒子 + 程序化窗灯 emissive 纹理，夜景 emissive 增强）
- * - 地标塔（分段收分塔身 + 环状观景台 + 天线，accent 自发光缓慢变色）
+ * - 程序化楼群（InstancedMesh 盒子 + 程序化窗灯 emissive 纹理，低矮体块突出塔高，夜景 emissive 增强）
+ * - 地标塔（晴空塔 634m：三角→圆形扭转渐变截面 nelesh 结构 + 白色桁架外骨骼 + 三足塔腿
+ *   + 350m 天望甲板 / 450m 天望回廊 + 天线段；夜间「粋（淡蓝）/雅（江户紫）」投光 + 航空障碍灯）
+ * - 塔下 Tokyo Solamachi 低层商业裙楼（暖色窗光）
  * - 街道灯河（发光网格线 + 双向车流光点：去程白 / 回程红）
  * - 滨河步道（反光河面条带 + 步道虚线）、老街街区（低矮盒子群 + 暖灯笼点）
  * - 日夜随 preset（light 文案/dusk/night）：窗灯/街灯/天空/雾色联动，夜景 bloom 友好
@@ -235,7 +237,8 @@ export function createHumanCityScene(canvas: HTMLCanvasElement, sceneDef: Immers
       if (gz > 10) continue
       if (gx < -14 && gz > 2) continue
       const centerBoost = 1 - clamp01(Math.hypot(gx, gz) / 34)
-      const h = 1.2 + hashNoise(i, 5.5) * 3.2 + centerBoost * centerBoost * hashNoise(i, 6.6) * 9
+      // 下町—锦糸町方向以中低层建筑为主（约 0.35–4.2 单位 ≈ 18–215m），突出晴空塔的绝对高度
+      const h = 0.35 + hashNoise(i, 5.5) * 1.15 + centerBoost * centerBoost * hashNoise(i, 6.6) * 2.7
       const w = 1.1 + hashNoise(i, 7.7) * 1.6
       const d = 1.1 + hashNoise(i, 8.8) * 1.6
       pos.set(gx, 0, gz)
@@ -252,31 +255,258 @@ export function createHumanCityScene(canvas: HTMLCanvasElement, sceneDef: Immers
   }
   scene.add(buildings)
 
-  // ================================================================ 地标塔（晴空塔风格收分塔身）
+  // ================================================================ 地标塔（东京晴空塔 · 634m 高保真建模）
+  // 比例：塔顶 12.4 单位 ≈ 634m（1 单位 ≈ 51m）；350m 天望甲板 → y≈6.85；450m 天望回廊 → y≈8.8
   const towerGroup = new THREE.Group()
   towerGroup.name = "landmark_tower_structure"
-  const towerMaterial = new THREE.MeshStandardMaterial({ color: 0xb8c4d0, roughness: 0.5, metalness: 0.5 })
+  const TOWER_TOP_Y = 12.4
+  const DECK350_Y = 6.85
+  const DECK450_Y = 8.8
+  const SHAFT_BASE_Y = 0.9
+  const SHAFT_AROUND = 64
+  const SHAFT_LEVELS = 72
+  const TOWER_TWIST = Math.PI / 4 // 三角截面随高度累计扭转约 45°，向上渐变为圆形（nelesh 结构）
+
+  /** 塔身桁架 lattice 纹理（白色斜交网格，背景透明，alphaTest 镂空出桁架间隙） */
+  function createLatticeTexture(repeatY: number): THREE.CanvasTexture {
+    const canvas = document.createElement("canvas")
+    canvas.width = 256
+    canvas.height = 512
+    const ctx = canvas.getContext("2d")!
+    ctx.clearRect(0, 0, 256, 512)
+    ctx.strokeStyle = "rgba(255,255,255,0.97)"
+    ctx.lineWidth = 4
+    const cell = 512 / 8
+    for (let i = -1; i <= 8; i += 1) {
+      ctx.beginPath()
+      ctx.moveTo(-8, i * cell)
+      ctx.lineTo(264, i * cell + cell)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(264, i * cell)
+      ctx.lineTo(-8, i * cell + cell)
+      ctx.stroke()
+    }
+    ctx.lineWidth = 2.5
+    for (let i = 0; i <= 8; i += 1) {
+      ctx.beginPath()
+      ctx.moveTo(0, i * cell)
+      ctx.lineTo(256, i * cell)
+      ctx.stroke()
+    }
+    const texture = new THREE.CanvasTexture(canvas)
+    texture.wrapS = THREE.RepeatWrapping
+    texture.wrapT = THREE.RepeatWrapping
+    texture.repeat.set(6, repeatY)
+    texture.colorSpace = THREE.SRGBColorSpace
+    return texture
+  }
+  const latticeTexture = createLatticeTexture(18)
+  const mastLatticeTexture = createLatticeTexture(7)
+
+  // 白色桁架外骨骼：涂装「晴空塔白」（蓝白基调），夜间 emissive 呈现「粋/雅」投光
+  const latticeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xe9eff4,
+    map: latticeTexture,
+    alphaTest: 0.18,
+    side: THREE.DoubleSide,
+    roughness: 0.5,
+    metalness: 0.4,
+    emissive: 0x8fd6ff,
+    emissiveMap: latticeTexture,
+    emissiveIntensity: 0.12,
+  })
+  const mastLatticeMaterial = latticeMaterial.clone()
+  mastLatticeMaterial.map = mastLatticeTexture
+  mastLatticeMaterial.emissiveMap = mastLatticeTexture
+
+  // 实体件涂装「晴空塔白」（塔腿 / 展望台主体 / 天线顶）
+  const towerWhiteMaterial = new THREE.MeshStandardMaterial({ color: 0xe8eef2, roughness: 0.45, metalness: 0.35 })
+  // 三根角柱：随截面扭转盘旋上行，夜间与桁架同色调投光
+  const cornerMaterial = new THREE.MeshStandardMaterial({
+    color: 0xe9eff4,
+    roughness: 0.45,
+    metalness: 0.4,
+    emissive: 0x8fd6ff,
+    emissiveIntensity: 0.15,
+  })
+
+  /** 塔身 loft：底部三角形截面随高度扭转并渐变为圆形，350m 处完全成圆 */
+  function buildTowerShaftGeometry(radiusScale: number): THREE.BufferGeometry {
+    const positions: number[] = []
+    const uvs: number[] = []
+    const indices: number[] = []
+    const third = (Math.PI * 2) / 3
+    for (let iy = 0; iy <= SHAFT_LEVELS; iy += 1) {
+      const t = iy / SHAFT_LEVELS
+      const y = SHAFT_BASE_Y + (DECK350_Y - SHAFT_BASE_Y) * t
+      // 收分曲线：根部收分快、上部趋缓（底部外接圆半径 0.78 → 350m 处 0.16）
+      const radius = (0.16 + 0.62 * Math.pow(1 - t, 1.55)) * radiusScale
+      // 形变系数：0 = 三角形 → 1 = 圆形（中上段加速变圆）
+      const morph = Math.min(1, Math.pow(t, 1.25) * 1.12)
+      const twist = t * TOWER_TWIST
+      for (let ia = 0; ia <= SHAFT_AROUND; ia += 1) {
+        const u = ia / SHAFT_AROUND
+        const theta = u * Math.PI * 2 + twist
+        // 等边三角形极坐标边界（角点半径 = 外接圆半径，边中点内收）
+        const sector = ((theta % third) + third) % third - third / 2
+        const triR = (radius * Math.cos(third / 2)) / Math.cos(sector)
+        const r = triR + (radius - triR) * morph
+        positions.push(Math.cos(theta) * r, y, Math.sin(theta) * r)
+        uvs.push(u, t)
+      }
+    }
+    const row = SHAFT_AROUND + 1
+    for (let iy = 0; iy < SHAFT_LEVELS; iy += 1) {
+      for (let ia = 0; ia < SHAFT_AROUND; ia += 1) {
+        const a = iy * row + ia
+        const b = a + row
+        indices.push(a, b, a + 1, b, b + 1, a + 1)
+      }
+    }
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3))
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2))
+    geometry.setIndex(indices)
+    geometry.computeVertexNormals()
+    return geometry
+  }
+
+  // 桁架表皮 + 深色内核（夜间透过桁架间隙看到暗色塔芯，还原镂空观感）
+  const shaftSkin = new THREE.Mesh(buildTowerShaftGeometry(1), latticeMaterial)
+  shaftSkin.name = "tower_shaft_lattice"
+  const shaftCore = new THREE.Mesh(
+    buildTowerShaftGeometry(0.86),
+    new THREE.MeshStandardMaterial({ color: 0x161d26, roughness: 0.9, metalness: 0.1 }),
+  )
+  shaftCore.name = "tower_shaft_core"
+  towerGroup.add(shaftSkin, shaftCore)
+
+  // 三根角柱：沿三角形角点随扭转盘旋而上，是 nelesh 结构的视觉主线
+  for (let c = 0; c < 3; c += 1) {
+    const points: THREE.Vector3[] = []
+    for (let i = 0; i <= 40; i += 1) {
+      const t = i / 40
+      const y = SHAFT_BASE_Y + (DECK350_Y - SHAFT_BASE_Y) * t
+      const radius = 0.16 + 0.62 * Math.pow(1 - t, 1.55)
+      const theta = (c * Math.PI * 2) / 3 + t * TOWER_TWIST
+      points.push(new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius))
+    }
+    const column = new THREE.Mesh(
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 48, 0.035, 6),
+      cornerMaterial,
+    )
+    column.name = `tower_corner_column_${c}`
+    towerGroup.add(column)
+  }
+
+  // 底部三足塔腿：从三角形角点向外张开至地面基座
+  for (let c = 0; c < 3; c += 1) {
+    const theta = (c * Math.PI * 2) / 3
+    const foot = new THREE.Vector3(Math.cos(theta) * 1.18, 0.03, Math.sin(theta) * 1.18)
+    const hip = new THREE.Vector3(Math.cos(theta) * 0.78, SHAFT_BASE_Y, Math.sin(theta) * 0.78)
+    const curve = new THREE.QuadraticBezierCurve3(
+      foot,
+      new THREE.Vector3(Math.cos(theta) * 1.05, SHAFT_BASE_Y * 0.55, Math.sin(theta) * 1.05),
+      hip,
+    )
+    const leg = new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.075, 8), towerWhiteMaterial)
+    leg.name = `tower_leg_${c}`
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.08, 10), towerWhiteMaterial)
+    pad.position.set(foot.x, 0.04, foot.z)
+    towerGroup.add(leg, pad)
+  }
+
+  // 350m 天望甲板（三层圆盘 + 暖光窗带）、450m 天望回廊（圆盘 + 玻璃环廊）、天线段与信标
+  const deckWindowMaterial = new THREE.MeshBasicMaterial({
+    map: windowTexture,
+    transparent: true,
+    opacity: 0.15,
+    depthWrite: false,
+  })
   const towerAccentMaterial = new THREE.MeshBasicMaterial({ color: 0x8fd6ff, transparent: true, opacity: 0.9 })
+  const aviationMaterial = new THREE.MeshBasicMaterial({ color: 0xff4034, transparent: true, opacity: 0.9 })
   {
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.9, 1.2, 8), towerMaterial)
-    base.position.y = 0.6
-    const shaft1 = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 1.15, 5.2, 8), towerMaterial)
-    shaft1.position.y = 3.8
-    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.09, 8, 24), towerAccentMaterial)
-    ring1.rotation.x = Math.PI / 2
-    ring1.position.y = 6.6
-    const shaft2 = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.55, 3.2, 8), towerMaterial)
-    shaft2.position.y = 7.9
-    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.07, 8, 24), towerAccentMaterial)
-    ring2.rotation.x = Math.PI / 2
-    ring2.position.y = 9.6
-    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.1, 2.6, 6), towerMaterial)
-    antenna.position.y = 10.8
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), towerAccentMaterial)
-    beacon.position.y = 12.1
-    towerGroup.add(base, shaft1, ring1, shaft2, ring2, antenna, beacon)
+    const deck350 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.27, 0.36, 32), towerWhiteMaterial)
+    deck350.position.y = DECK350_Y + 0.16
+    const deck350Windows = new THREE.Mesh(new THREE.CylinderGeometry(0.305, 0.305, 0.22, 32, 1, true), deckWindowMaterial)
+    deck350Windows.position.y = DECK350_Y + 0.14
+    const ring350 = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.025, 8, 40), towerAccentMaterial)
+    ring350.rotation.x = Math.PI / 2
+    ring350.position.y = DECK350_Y
+    const mast = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.075, 0.115, DECK450_Y - DECK350_Y, 24, 1, true),
+      mastLatticeMaterial,
+    )
+    mast.position.y = (DECK350_Y + DECK450_Y) / 2
+    const deck450 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.17, 0.2, 24), towerWhiteMaterial)
+    deck450.position.y = DECK450_Y
+    const galleria = new THREE.Mesh(
+      new THREE.TorusGeometry(0.155, 0.035, 8, 32),
+      new THREE.MeshPhongMaterial({ color: 0xaad4ff, transparent: true, opacity: 0.35, shininess: 120 }),
+    )
+    galleria.rotation.x = Math.PI / 2
+    galleria.position.y = DECK450_Y + 0.13
+    const ring450 = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.02, 8, 32), towerAccentMaterial)
+    ring450.rotation.x = Math.PI / 2
+    ring450.position.y = DECK450_Y + 0.02
+    // 天线段（gain tower，450m → 634m）：收分桁架 + 顶端信标 + 航空障碍灯
+    const gainTower = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.05, TOWER_TOP_Y - DECK450_Y, 16, 1, true),
+      mastLatticeMaterial,
+    )
+    gainTower.position.y = (DECK450_Y + TOWER_TOP_Y) / 2
+    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.016, 0.35, 8), towerWhiteMaterial)
+    tip.position.y = TOWER_TOP_Y - 0.05
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), towerAccentMaterial)
+    beacon.position.y = TOWER_TOP_Y + 0.08
+    const aviation1 = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), aviationMaterial)
+    aviation1.position.y = 9.7
+    const aviation2 = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), aviationMaterial)
+    aviation2.position.y = 11.3
+    const aviation3 = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 5), aviationMaterial)
+    aviation3.position.y = TOWER_TOP_Y + 0.16
+    towerGroup.add(
+      deck350,
+      deck350Windows,
+      ring350,
+      mast,
+      deck450,
+      galleria,
+      ring450,
+      gainTower,
+      tip,
+      beacon,
+      aviation1,
+      aviation2,
+      aviation3,
+    )
   }
   scene.add(towerGroup)
+
+  // ---- 塔下商业街区（Tokyo Solamachi 低层裙楼，暖色窗光）
+  const podiumMaterial = new THREE.MeshStandardMaterial({
+    color: 0x39424e,
+    roughness: 0.8,
+    metalness: 0.1,
+    emissive: 0xffffff,
+    emissiveMap: windowTexture,
+    emissiveIntensity: 0.4,
+  })
+  const podiumGroup = new THREE.Group()
+  podiumGroup.name = "solamachi_podium"
+  for (let i = 0; i < 6; i += 1) {
+    const a = -Math.PI * 0.55 + (i / 5) * Math.PI * 1.1
+    const r = 1.95 + hashNoise(i, 21.3) * 0.6
+    const w = 0.9 + hashNoise(i, 22.7) * 0.7
+    const h = 0.22 + hashNoise(i, 23.9) * 0.22
+    const d = 0.7 + hashNoise(i, 25.1) * 0.5
+    const block = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), podiumMaterial)
+    block.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r)
+    block.rotation.y = -a + Math.PI / 2
+    podiumGroup.add(block)
+  }
+  scene.add(podiumGroup)
 
   // ================================================================ 滨河带（反光河面 + 步道虚线）
   const riverMaterial = new THREE.MeshPhongMaterial({
@@ -457,6 +687,10 @@ export function createHumanCityScene(canvas: HTMLCanvasElement, sceneDef: Immers
   const DUSK_HORIZON = new THREE.Color(0xd86a3c)
   const RAIN_TOP = new THREE.Color(0x0a0e14)
   const RAIN_HORIZON = new THREE.Color(0x232a32)
+  // 晴空塔夜间点灯两套代表样式：「粋」（淡蓝）与「雅」（江户紫）
+  const IKI_COLOR = new THREE.Color(0x8fd6ff)
+  const MIYABI_COLOR = new THREE.Color(0xb48fe8)
+  const accentColor = new THREE.Color(0x8fd6ff)
 
   function applyVisualState(): void {
     const dusk = clamp01(night * 2) * (1 - clamp01((night - 0.5) * 2))
@@ -484,6 +718,12 @@ export function createHumanCityScene(canvas: HTMLCanvasElement, sceneDef: Immers
     carLights.visible = session.quality !== "low" && illumination > 0.05
     lanternMaterial.opacity = (0.3 + nightT * 0.7) * illumination
     towerAccentMaterial.opacity = 0.35 + nightT * 0.65
+    // 塔身投光：夜间「粋/雅」灯光秀强度、角柱泛光、展望台窗带与 Solamachi 裙楼窗光
+    latticeMaterial.emissiveIntensity = (0.1 + nightT * 1.35) * (0.35 + illumination * 0.65)
+    mastLatticeMaterial.emissiveIntensity = latticeMaterial.emissiveIntensity
+    cornerMaterial.emissiveIntensity = 0.12 + nightT * 1.1 * illumination
+    deckWindowMaterial.opacity = (0.12 + nightT * 0.85) * illumination
+    podiumMaterial.emissiveIntensity = (0.15 + nightT * 0.9) * illumination
     // 河面反光：夜景反射城市灯色
     riverMaterial.specular.set(nightT > 0.4 ? 0xffc878 : 0x9fc8e8)
 
@@ -620,9 +860,15 @@ export function createHumanCityScene(canvas: HTMLCanvasElement, sceneDef: Immers
       }
       ;(carGeometry.attributes.position as THREE.BufferAttribute).needsUpdate = true
     }
-    // 地标塔 accent 缓慢变色（夜景灯色循环）
-    const hue = (t * 0.01) % 1
-    towerAccentMaterial.color.setHSL(0.52 + Math.sin(hue * Math.PI * 2) * 0.12, 0.7, 0.65)
+    // 晴空塔夜间点灯：「粋」（淡蓝）与「雅」（江户紫）两套样式之间缓慢渐变
+    const ikiBlend = 0.5 + 0.5 * Math.sin(t * 0.06)
+    accentColor.copy(IKI_COLOR).lerp(MIYABI_COLOR, ikiBlend)
+    towerAccentMaterial.color.copy(accentColor)
+    latticeMaterial.emissive.copy(accentColor)
+    mastLatticeMaterial.emissive.copy(accentColor)
+    cornerMaterial.emissive.copy(accentColor)
+    // 航空障碍灯红色闪烁
+    aviationMaterial.opacity = Math.sin(t * 3.2) > 0 ? 0.95 : 0.18
     // 人群粒子绕街市涡动
     if (crowd.visible) {
       for (let i = 0; i < CROWD_COUNT; i += 1) {

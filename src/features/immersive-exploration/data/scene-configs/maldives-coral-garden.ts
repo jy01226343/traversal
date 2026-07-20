@@ -2,8 +2,19 @@
  * 黄金样例 · 马尔代夫珊瑚花园（underwater）
  *
  * sceneDefinitionId: scene-maldives-coral-garden / entityId: maldives-coral-garden（CONTRACT 冻结）
- * 内容口径：礁坪 1–3m、珊瑚花园 3–12m、陡坡 18–30m；旱季 12–4 月能见度常达 20–30m；
- *   表层水温通常 27–30°C。
+ *
+ * ≥90% 还原口径（阿里环礁真实水下地貌）：
+ * - 地貌分层：浅水礁坪 3–6m（白沙海床）→ 珊瑚花园礁坡 6–15m → 礁缘陡坡 15–30m+（kandu 海峡侧）。
+ * - 珊瑚形态学：鹿角珊瑚（多叉分枝）、桌形轴孔珊瑚（水平桌面）、脑珊瑚（沟回团块）、
+ *   柳珊瑚（扇面）按真实形态差异写入锚点与生态文案；渲染层由参数化程序化珊瑚原语
+ *   （递归分枝锥柱 / 沟槽球体 / 展开扇面 / 触手锥簇）表达，而非随机球堆。
+ * - 生物：雀鲷、笛鲷、蝴蝶鱼的群游行为，礁鲨与鳐鱼沿陡坡巡游，绿海龟在海草区觅食。
+ * - 水下光学：水面焦散光斑、透过水体的光柱（耶稣光）、随深度加剧的蓝色衰减、悬浮颗粒；
+ *   由 previewPresets[].visual（visibility / lightDepth / plankton / waveHeight / light）
+ *   与 risks[].sequence[].sceneActions（set_water / set_light）驱动渲染层。
+ * - 环境口径：旱季 12–4 月能见度常达 20–30m，表层水温通常 27–30°C。
+ * - 默认机位：水下中层平视珊瑚花园与礁坪，不穿入海底地形。
+ *
  * 进入叙事：arrival.transitionBeats 为契约冻结的六拍（不可改字）。
  * 生物文案：统一「通常有机会观察到」（名称 + 常见深度 + 季节可写），无固定概率与必然性。
  */
@@ -23,9 +34,9 @@ export const MALDIVES_CORAL_GARDEN_ENTITY: ExplorationEntity = {
   shape: "activity_site",
   sceneFamily: "underwater",
   channels: ["nature", "outdoor", "wonder", "leisure"],
-  coordinates: { lat: 4.1755, lng: 73.5093 },
+  coordinates: { lat: 3.579, lng: 72.812 },
   activityTags: ["浮潜", "体验潜水", "持证潜水", "水下摄影", "生态观察"],
-  attributeTags: ["珊瑚礁", "热带海域", "潜点", "旱季12–4月能见度佳"],
+  attributeTags: ["珊瑚礁", "阿里环礁", "热带海域", "潜点", "旱季12–4月能见度佳"],
   sceneDefinitionId: "scene-maldives-coral-garden",
   fallbackContentId: "fallback-maldives-coral-garden",
 };
@@ -35,43 +46,43 @@ export const MALDIVES_CORAL_GARDEN_ENTITY: ExplorationEntity = {
 export const MALDIVES_CORAL_GARDEN_ANCHOR_CONTENTS: AnchorContent[] = [
   {
     id: "mal-entry-point",
-    title: "入水点（水深约 2m）",
-    body: "入水点位于礁坪边缘，水深约 2m，浮潜与体验潜水均由此入水。水面为船只接驳区，入水前请听潜导简报并确认集合信号。",
+    title: "入水点（水深约 3m）",
+    body: "入水点位于阿里环礁外礁的礁坪边缘，水深约 3m，接驳船在浮标线外侧等候，沿下潜绳入水。浮潜与体验潜水均由此开始；入水前请听潜导简报，确认集合信号与当日海流评估。",
   },
   {
     id: "mal-reef-flat",
-    title: "礁坪（1–3m）",
-    body: "礁坪水深 1–3m，阳光充足，鹿角珊瑚与桌状珊瑚成片分布。浮潜时在此通常有机会观察到小丑鱼、雀鲷等小型珊瑚礁鱼。",
+    title: "礁坪（3–6m）",
+    body: "礁坪是水深 3–6m 的浅水台地，白沙海床上鹿角珊瑚与桌形轴孔珊瑚成片分布——前者多叉分枝向上生长，后者展开成水平桌面。正午阳光穿过清澈水体，在沙地上投下流动的焦散光斑。浮潜时在此通常有机会观察到成群的雀鲷与藏身海葵的小丑鱼。",
   },
   {
     id: "mal-coral-garden",
-    title: "珊瑚花园（3–12m）",
-    body: "珊瑚花园位于 3–12m 深度带，硬珊瑚覆盖较好。该深度范围内通常有机会观察到蝴蝶鱼、天使鱼，以及与海葵共生的小丑鱼；全年可见，旱季更清晰。",
+    title: "珊瑚花园（6–15m）",
+    body: "珊瑚花园沿礁坡上部 6–15m 展开，硬珊瑚覆盖较好：脑珊瑚呈带沟回的团块，柳珊瑚垂直于水流展开扇面，其间点缀触手状的软珊瑚；阳光在此形成可见的水下光柱。该深度带通常有机会观察到成对的蝴蝶鱼、天使鱼，以及与海葵共生的小丑鱼；全年可见，旱季更清晰。",
   },
   {
     id: "mal-fish-school",
     title: "鱼群活动区（5–15m）",
-    body: "礁缘外侧 5–15m 通常有机会观察到成群的燕鱼与笛鲷；旱季（12–4 月）高能见度时群体聚集的景象更完整。观察时保持距离，不追逐鱼群。",
+    body: "礁缘外侧 5–15m 通常有机会观察到笛鲷聚成缓慢移动的鱼墙，以及绕珊瑚头穿梭的雀鲷群与蝴蝶鱼；受惊时群体同步转向的群游行为，是旱季高能见度时的代表画面。观察时保持距离，不追逐鱼群。",
   },
   {
     id: "mal-turtle-zone",
     title: "海龟活动区（3–10m）",
-    body: "海草区与礁坪交界处是绿海龟的觅食场，通常有机会观察到海龟（常见深度 3–10m，全年各季均有机会）。观察时请保持数米距离，禁止触碰、追逐与投喂。",
+    body: "海草区与礁坪交界处是绿海龟的觅食场，通常有机会观察到绿海龟（常见深度 3–10m，全年各季均有机会），玳瑁也偶尔沿礁坡觅食海绵。观察时请保持数米距离，禁止触碰、追逐与投喂。",
   },
   {
     id: "mal-drop-off",
-    title: "陡坡（18–30m）",
-    body: "陡坡自 12m 急降至 30m 以下，仅适合持证潜水员在潜导带领下前往。沿壁通常有机会观察到体型较大的远洋性鱼类经过，雨季浮游生物增多时机会相对更多。",
+    title: "陡坡（15–30m+）",
+    body: "礁缘自约 15m 急降为陡坡，直入 30m 以下的深蓝——水体对暖色光的吸收使色彩随深度迅速衰减为蓝色调。沿壁柳珊瑚扇体更大，通常有机会观察到白鳍礁鲨沿壁巡游、鳐鱼贴沙滑翔；雨季浮游生物增多时，远洋性鱼类靠近的机会相对更多。仅适合持证潜水员在潜导带领下前往。",
   },
   {
     id: "mal-seagrass",
     title: "海草区（2–5m）",
-    body: "海草区水深 2–5m，是幼鱼育幼与海龟觅食的重要栖息地，也是观察底栖生态的窗口。请勿踩踏或拔取海草。",
+    body: "海草区水深 2–5m，海草床嵌在白沙洼地之间，是幼鱼育幼与海龟觅食的重要栖息地，也是观察海星、海参等底栖生态的窗口。请勿踩踏或拔取海草。",
   },
   {
     id: "mal-risk-current",
-    title: "海流风险区",
-    body: "礁区在海潮流经时可能出现横流与下潜流，大潮（满月与新月前后）及海峡地形处更明显。活动安排以当日潜导评估为准。",
+    title: "海流风险区（海峡地形）",
+    body: "阿里环礁的礁缘海峡在海潮流经时可能出现横流与下潜流，大潮（满月与新月前后）及海峡收窄处更明显；悬浮颗粒顺流加速移动是流速增大的直观信号。活动安排以当日潜导评估为准。",
   },
 ];
 
@@ -81,15 +92,15 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
   id: "scene-maldives-coral-garden",
   family: "underwater",
   entityName: "马尔代夫珊瑚花园",
-  regionLabel: "马尔代夫 · 北马累环礁近海",
+  regionLabel: "马尔代夫 · 阿里环礁礁缘",
   defaultCamera: {
-    position: [0, -8, 24],
-    lookAt: [0, -10, 0],
+    position: [1.5, 1.2, 15],
+    lookAt: [-2, -3, 0],
     fov: 55,
   },
   arrival: {
-    subtitle: "热带珊瑚礁潜点 · 礁坪 1–3m 至陡坡 30m",
-    headlineSight: "珊瑚花园与礁缘鱼群",
+    subtitle: "阿里环礁珊瑚礁潜点 · 礁坪 3–15m 至陡坡 30m+",
+    headlineSight: "珊瑚花园、礁缘鱼群与水下光柱",
     headlineActivity: "浮潜与体验潜水",
     observeMs: 6000,
     transitionBeats: [
@@ -120,7 +131,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
     },
     {
       id: "anchor-reef-flat",
-      label: "礁坪 1–3m",
+      label: "礁坪 3–6m",
       anchorType: "activity_zone",
       positionRef: "node:reef_flat",
       themes: ["experience", "underwater_ecology"],
@@ -129,7 +140,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
     },
     {
       id: "anchor-coral-garden",
-      label: "珊瑚花园 3–12m",
+      label: "珊瑚花园 6–15m",
       anchorType: "ecology",
       positionRef: "node:coral_garden",
       themes: ["highlights", "underwater_ecology"],
@@ -156,7 +167,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
     },
     {
       id: "anchor-drop-off",
-      label: "陡坡 18–30m",
+      label: "陡坡 15–30m+",
       anchorType: "route",
       positionRef: "node:drop_off",
       themes: ["experience"],
@@ -190,10 +201,10 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       representative: true,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { visibility: 25, lightDepth: 20, plankton: 0.2, waveHeight: 0.3, light: "tropical_clear" },
-      whereText: "礁缘、珊瑚花园与陡坡沿壁，光线可直达约 20m 深度",
-      whenText: "12 月至次年 4 月，东北季风期",
-      whyText: "降雨少、海况稳，能见度常达 20–30m，是该潜点较具代表性的潜水时段",
+      visual: { visibility: 25, lightDepth: 22, plankton: 0.15, waveHeight: 0.25, light: "tropical_clear" },
+      whereText: "礁坪、珊瑚花园与陡坡沿壁；正午前后水下光柱与沙地焦散最清晰，光线可直达约 20m 深度",
+      whenText: "12 月至次年 4 月，东北季风期，表层水温通常 27–30°C",
+      whyText: "降雨少、海况稳，能见度常达 20–30m，是阿里环礁珊瑚礁较具代表性的潜水时段",
     },
     {
       id: "preset-plankton-season",
@@ -202,10 +213,10 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       representative: false,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { visibility: 12, lightDepth: 12, plankton: 0.8, waveHeight: 0.6, light: "diffused_green" },
-      whereText: "礁缘外侧与海峡方向",
+      visual: { visibility: 12, lightDepth: 10, plankton: 0.8, waveHeight: 0.6, light: "diffused_green" },
+      whereText: "礁缘外侧与海峡方向，水体呈散射的绿色调，悬浮颗粒明显",
       whenText: "5 月至 11 月，西南季风期",
-      whyText: "浮游生物增多使能见度下降，但通常有机会吸引滤食性大型鱼类靠近礁缘",
+      whyText: "浮游生物增多使能见度下降、阳光穿透变浅，但通常有机会吸引滤食性大型鱼类靠近礁缘",
     },
     {
       id: "preset-dusk-dive",
@@ -215,7 +226,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
       visual: { visibility: 15, lightDepth: 8, plankton: 0.4, waveHeight: 0.4, light: "dusk_blue" },
-      whereText: "珊瑚花园与礁坪边缘",
+      whereText: "珊瑚花园与礁坪边缘，蓝色调随光线减弱而加深",
       whenText: "全年，日落后约 1 小时",
       whyText: "昼夜交替时夜行性生物出动、日间鱼群归巢，是行为观察的特别窗口",
     },
@@ -231,12 +242,12 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       requirements: ["会游泳", "潜导划定区域内活动"],
       facilities: ["面镜呼吸管租赁", "救生衣", "冲洗区"],
       limitations: ["请勿站立或踩踏珊瑚", "风浪大时暂停"],
-      description: "在礁坪与海草区水面浮潜，观察珊瑚与小型 reef 鱼，体力门槛低。",
+      description: "在礁坪与海草区水面浮潜，俯视白沙海床上的鹿角珊瑚与桌形轴孔珊瑚，观察雀鲷、小丑鱼等小型珊瑚礁鱼，体力门槛低。",
       sceneActions: [{ kind: "focus_camera", target: "node:reef_flat" }],
     },
     {
       id: "act-discover-dive",
-      label: "体验潜水（5–12m）",
+      label: "体验潜水（5–15m）",
       applicable: true,
       zoneRefs: ["node:coral_garden", "node:entry_point"],
       durationMinutes: 150,
@@ -244,20 +255,20 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       requirements: ["10 岁以上", "健康问卷", "潜导小比例陪同"],
       facilities: ["潜水中心", "装备全套", "简报室"],
       limitations: ["无需证照，但需通过现场健康评估", "单次水下约 30–40 分钟"],
-      description: "在潜导陪同下于珊瑚花园 5–12m 深度体验水肺潜水，含理论简报与浅水练习。",
+      description: "在潜导陪同下于珊瑚花园 5–15m 深度体验水肺潜水，穿行于脑珊瑚团块与柳珊瑚扇之间的水下光柱中，含理论简报与浅水练习。",
       sceneActions: [{ kind: "focus_camera", target: "node:coral_garden" }],
     },
     {
       id: "act-certified-dive",
-      label: "持证潜水（18–30m）",
+      label: "持证潜水（15–30m）",
       applicable: true,
       routeRef: "node:drop_off",
       durationMinutes: 45,
       difficulty: "hard",
       requirements: ["OW 及以上等级证照", "潜伴制度", "潜导带队"],
       facilities: ["潜水船", "气瓶与配重"],
-      limitations: ["陡坡与海峡段视当日海流评估开放", "注意免减压时限"],
-      description: "沿陡坡 18–30m 潜行，观察沿壁生态与经过的大型鱼类，单瓶水下约 45 分钟。",
+      limitations: ["陡坡与海峡段视当日海流评估开放", "注意免减压时限与蓝色衰减下的深度判断"],
+      description: "沿陡坡 15–30m 潜行，观察沿壁海扇与通常有机会经过的礁鲨、鳐鱼，单瓶水下约 45 分钟。",
       sceneActions: [{ kind: "show_route", target: "node:drop_off" }],
     },
     {
@@ -270,7 +281,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       requirements: ["浮潜或潜水资质", "防水相机或防水壳"],
       facilities: ["相机租赁", "淡水冲洗桶"],
       limitations: ["禁止使用闪光灯直射生物", "不为取景触碰或移动生物"],
-      description: "在珊瑚花园与鱼群活动区拍摄，旱季高能见度时段出片条件较好。",
+      description: "在珊瑚花园与鱼群活动区拍摄，旱季正午的水下光柱、沙地焦散与笛鲷鱼墙出片条件较好。",
       sceneActions: [{ kind: "highlight_anchor", target: "anchor-fish-school" }],
     },
     {
@@ -283,7 +294,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       requirements: ["由生态向导带领"],
       facilities: ["观察浮具", "物种图鉴卡"],
       limitations: ["禁止投喂、触碰与追逐任何生物"],
-      description: "在海草区与海龟活动区进行低干扰观察，向导讲解珊瑚礁生态与保护规则。",
+      description: "在海草区与海龟活动区进行低干扰观察，向导讲解珊瑚形态差异与珊瑚礁生态规则。",
       sceneActions: [{ kind: "highlight_anchor", target: "anchor-turtle-zone" }],
     },
   ],
@@ -340,13 +351,13 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
         {
           id: "risk-current-step-1",
           title: "潮流增强",
-          description: "潮位转换后流速增大，悬移颗粒顺流移动变快，鱼群开始贴礁躲避。",
+          description: "潮位转换后流速增大，水中悬浮颗粒顺流移动变快，鱼群开始贴礁躲避。",
           sceneActions: [{ kind: "set_water", params: { current: 0.5 } }],
         },
         {
           id: "risk-current-step-2",
           title: "表层乱流",
-          description: "水面出现乱流与波纹紊乱，浮潜者维持位置变费力。",
+          description: "水面出现乱流与波纹紊乱，水下光柱随之抖动，浮潜者维持位置变费力。",
           sceneActions: [
             { kind: "set_water", params: { current: 0.8, surfaceChop: 0.6 } },
             { kind: "highlight_anchor", target: "anchor-risk-current" },
@@ -399,19 +410,19 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
         {
           id: "risk-visibility-step-1",
           title: "悬浮颗粒增多",
-          description: "水中悬浮物明显增多，远处景物开始发蒙。",
+          description: "水中悬浮物明显增多，阳光穿透变浅，远处景物开始发蒙。",
           sceneActions: [{ kind: "set_light", params: { visibility: 15, plankton: 0.6 } }],
         },
         {
           id: "risk-visibility-step-2",
           title: "能见度收缩",
-          description: "可视距离缩短至数米，潜伴间轮廓变模糊。",
+          description: "可视距离缩短至数米，水下光柱变暗，潜伴间轮廓变模糊。",
           sceneActions: [{ kind: "set_light", params: { visibility: 8, plankton: 0.85 } }],
         },
         {
           id: "risk-visibility-step-3",
           title: "方向感下降",
-          description: "参照物减少，容易偏离预定活动范围。",
+          description: "参照物减少，蓝色衰减加剧，容易偏离预定活动范围。",
           sceneActions: [{ kind: "set_light", params: { visibility: 5, plankton: 0.95 } }],
         },
       ],
@@ -446,7 +457,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
         {
           id: "risk-surface-wind-step-1",
           title: "阵风增强",
-          description: "水面白浪增多，接驳船摇晃加剧。",
+          description: "水面白浪增多，水下光柱开始抖动，接驳船摇晃加剧。",
           sceneActions: [{ kind: "set_water", params: { waveHeight: 0.6, surfaceChop: 0.5 } }],
         },
         {
@@ -488,7 +499,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       representativeActivityId: "act-snorkeling",
       representativeReason: "浮潜门槛低、覆盖礁坪与海草区核心生态，是多数人接触该潜点的方式",
       bestTimeText: "12 月至次年 4 月旱季能见度较佳；5–11 月雨季浮游生物增多，通常有机会吸引大型鱼类",
-      bestExperienceText: "在礁坪浮潜观察珊瑚与小丑鱼，或随潜导在珊瑚花园完成一次体验潜水",
+      bestExperienceText: "在礁坪浮潜观察鹿角珊瑚、桌形轴孔珊瑚与雀鲷群，或随潜导在珊瑚花园的水下光柱中完成一次体验潜水",
       preparationItems: [
         "确认季风季节与当日海况评估",
         "体验潜水需 10 岁以上并通过健康问卷",
@@ -513,17 +524,17 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
     estimatedBytes: 0,
   },
   fallback: {
-    summary: "马尔代夫珊瑚花园潜点图文导览：景观、玩法、人群适配与安全须知。",
+    summary: "马尔代夫阿里环礁珊瑚花园潜点图文导览：景观、玩法、人群适配与安全须知。",
     sections: [
       {
         theme: "highlights",
         title: "景色",
-        body: "旱季（12–4 月）能见度常达 20–30m，光线可至约 20m 深度；雨季浮游生物增多但通常有机会吸引大型鱼类；黄昏潜可观察昼夜交替的生物行为。",
+        body: "旱季（12–4 月）能见度常达 20–30m，水下光柱与沙地焦散清晰，光线可至约 20m 深度；雨季浮游生物增多但通常有机会吸引大型鱼类；黄昏潜可观察昼夜交替的生物行为。",
       },
       {
         theme: "experience",
         title: "怎么玩",
-        body: "浮潜覆盖礁坪与海草区；体验潜水在珊瑚花园 5–12m 进行；持证潜水沿陡坡 18–30m；另有水下摄影与向导带领的生态观察。",
+        body: "浮潜覆盖礁坪与海草区；体验潜水在珊瑚花园 5–15m 进行；持证潜水沿陡坡 15–30m；另有水下摄影与向导带领的生态观察。",
       },
       {
         theme: "audience",
@@ -538,7 +549,7 @@ export const MALDIVES_CORAL_GARDEN_SCENE: ImmersiveSceneDefinition = {
       {
         theme: "underwater_ecology",
         title: "水下生态",
-        body: "珊瑚花园通常有机会观察到小丑鱼与蝴蝶鱼；礁缘 5–15m 通常有机会观察到成群燕鱼与笛鲷；海草区是幼鱼育幼与海龟觅食场所——观察时保持距离，禁止触碰与投喂。",
+        body: "礁坪白沙海床上鹿角珊瑚与桌形轴孔珊瑚成片，珊瑚花园可见脑珊瑚团块与柳珊瑚扇；通常有机会观察到小丑鱼、蝴蝶鱼、成群的雀鲷与笛鲷；陡坡沿壁通常有机会观察到礁鲨与鳐鱼；海草区是幼鱼育幼与海龟觅食场所——观察时保持距离，禁止触碰与投喂。",
       },
     ],
   },

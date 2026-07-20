@@ -81,6 +81,66 @@ const SCENE_PHOTOS: Readonly<Record<string, readonly ScenePhoto[]>> = {
       sourceUrl: UNSPLASH_URL,
     },
   ],
+  "scene-masai-mara": [
+    {
+      src: "/immersive/photos/masai-mara-1.jpg",
+      caption: "塞伦盖蒂 · 游猎车与金合欢日落",
+      credit: UNSPLASH,
+      sourceUrl: UNSPLASH_URL,
+    },
+    {
+      src: "/immersive/photos/masai-mara-2.jpg",
+      caption: "稀树草原 · 孤独伞形金合欢与金色地平线",
+      credit: UNSPLASH,
+      sourceUrl: UNSPLASH_URL,
+    },
+    {
+      src: "/immersive/photos/masai-mara-3.jpg",
+      caption: "马赛马拉 · 雨季草海中的非洲水牛群",
+      credit: UNSPLASH,
+      sourceUrl: UNSPLASH_URL,
+    },
+  ],
+  "scene-tokyo-skytree": [
+    {
+      src: "/immersive/photos/tokyo-skytree-1.jpg",
+      caption: "东京晴空塔 · 白色桁架塔身仰拍",
+      credit: "Basile Morin / Wikimedia Commons (CC BY-SA 4.0)",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Worm%27s-eye_view_of_Tokyo_Skytree_with_vertical_symmetry_impression,_a_sunny_day,_in_Japan.jpg",
+    },
+    {
+      src: "/immersive/photos/tokyo-skytree-2.jpg",
+      caption: "东京晴空塔 · 夜间「粋」淡蓝点灯",
+      credit: "Kakidai / Wikimedia Commons (CC BY-SA 3.0)",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Tokyo_Skytree_at_night_(Iki).jpg",
+    },
+    {
+      src: "/immersive/photos/tokyo-skytree-3.jpg",
+      caption: "东京晴空塔 · 夜间「雅」江户紫点灯",
+      credit: "Kakidai / Wikimedia Commons (CC BY-SA 3.0)",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Tokyo_Skytree_at_night_(Miyabi).jpg",
+    },
+  ],
+  "scene-duku-highway": [
+    {
+      src: "/immersive/photos/duku-highway-1.jpg",
+      caption: "独库公路 · 盘山路段与远处雪山",
+      credit: UNSPLASH,
+      sourceUrl: "https://unsplash.com/photos/CJ-9tI7vSLU",
+    },
+    {
+      src: "/immersive/photos/duku-highway-2.jpg",
+      caption: "那拉提段 · 绿色高山草甸",
+      credit: UNSPLASH,
+      sourceUrl: "https://unsplash.com/photos/DznqzDPA0WM",
+    },
+    {
+      src: "/immersive/photos/duku-highway-3.jpg",
+      caption: "哈希勒根达坂 · 雪山垭口与云杉林",
+      credit: UNSPLASH,
+      sourceUrl: "https://unsplash.com/photos/AzhDCpq2AqE",
+    },
+  ],
 };
 
 /** 按 sceneDefinitionId 取实景照片组；未配置返回空数组（背景层自动隐藏）。 */

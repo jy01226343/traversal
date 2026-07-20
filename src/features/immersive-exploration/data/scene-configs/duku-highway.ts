@@ -3,6 +3,15 @@
  *
  * sceneDefinitionId: scene-duku-highway / entityId: duku-highway（V2 新增）
  * 内容口径：G217 独山子—库车段约 561km，穿越天山，季节性通车（通常 6–9 月）。
+ * 地貌口径（还原目标）：北段独山子大峡谷灰褐色深切峡谷与陡峭岩壁 →
+ * 哈希勒根达坂（海拔约 3400m）雪山垭口与防雪长廊 → 中段那拉提/巴音布鲁克
+ * 绿色高山草甸 → 南段库车红层（天山神秘大峡谷红色砂岩），盘山展线多发夹弯。
+ *
+ * 渲染说明：3D 场景由共享的 EngineeringRouteScene 程序化生成，本文件通过
+ * previewPresets[].visual 的渲染参数键（light / season / snowLine / traffic /
+ * night）驱动季节与光照状态，通过 defaultCamera 给出「近景峡谷＋盘山公路、
+ * 中景草甸、远景雪山垭口」的纵深构图。
+ *
  * 文案约束：无固定概率与必然性表述（copy-validator 强制）。
  */
 
@@ -34,42 +43,42 @@ export const DUKU_HIGHWAY_ANCHOR_CONTENTS: AnchorContent[] = [
   {
     id: "duku-route-main",
     title: "天山主线",
-    body: "独库公路北起独山子、南至库车，纵贯天山南北，一路串联峡谷、草原、达坂与荒漠多种地貌。全程为山区双向两车道，弯多坡陡，需按限速行驶。",
+    body: "独库公路（G217）北起独山子、南至库车，纵贯天山南北，全程约 561km。北段穿行独山子大峡谷的灰褐色深切峡谷，中段进入那拉提、巴音布鲁克的绿色高山草甸，南段掠过库车红层的红色砂岩峡谷，海拔起伏让一条路呈现「一日四季」的地貌纵深。全线为山区双向两车道，盘山展线弯多坡陡，需按限速行驶。",
   },
   {
     id: "duku-bridge",
     title: "峡谷高架桥",
-    body: "沿线多处峡谷以高架桥跨越，桥塔立于深切河谷两侧。桥梁段横风明显，经过时请握紧方向盘、避免在桥面停车观望。",
+    body: "北段多处深切河谷以高架桥跨越，桥塔立于灰褐色陡峭岩壁之间，桥下可见季节性洪流冲刷的河谷。桥梁段横风明显，经过时请握紧方向盘、避免在桥面停车观望。",
   },
   {
     id: "duku-tunnel",
-    title: "达坂隧道",
-    body: "高海拔达坂以隧道穿越分水岭，缩短了翻山里程并避开部分积雪路段。隧道内光线变化大，请提前开启车灯、保持车距。",
+    title: "达坂隧道与防雪长廊",
+    body: "高海拔达坂以隧道穿越分水岭，缩短翻山里程并避开部分积雪路段；哈希勒根段建有紧贴山壁的防雪长廊，用于抵御雪崩与风吹雪对路面的掩埋。隧道与长廊内光线变化大，请提前开启车灯、保持车距。",
   },
   {
     id: "duku-pass",
     title: "哈希勒根达坂",
-    body: "全线海拔较高的达坂之一，夏季垭口两侧仍可见残雪与冰川侵蚀地貌。垭口天气转换快，短时云雾与降温常见。",
+    body: "海拔约 3400m，是全线海拔较高的达坂之一。夏季垭口两侧仍可见残雪与冰川侵蚀地貌，盘山发夹弯沿坡面展线攀升。垭口天气转换快，短时云雾与降温常见。",
   },
   {
     id: "duku-viewpoint-a",
     title: "乔尔玛观景带",
-    body: "乔尔玛一带河谷开阔、草甸连绵，设有停车观景位，可回望盘山路段与雪山背景。此处也是分段休息与补给的常用节点。",
+    body: "乔尔玛一带河谷开阔、草甸连绵，设有停车观景位，可回望盘山发夹弯路段与远处雪山背景。此处也是分段休息与补给的常用节点。",
   },
   {
     id: "duku-service",
     title: "那拉提服务区",
-    body: "沿线服务区提供加油、餐饮与简易维修，旺季车位紧张。山区路段补给点间距较长，建议在服务区补足燃油与饮水。",
+    body: "那拉提一带为中段高山草甸的核心段落，沿线服务区提供加油、餐饮与简易维修，旺季车位紧张。山区路段补给点间距较长，建议在服务区补足燃油与饮水。",
   },
   {
     id: "duku-scenic-spur",
     title: "巴音布鲁克支线",
-    body: "那拉提以南可接巴音布鲁克草原方向，天鹅湖与九曲十八弯日落是摄影热点。支线为草原公路，注意避让牲畜横穿。",
+    body: "那拉提以南可接巴音布鲁克草原方向，天鹅湖与九曲十八弯日落是摄影热点，开都河在开阔草甸上蜿蜒成多重河曲。支线为草原公路，注意避让牲畜横穿。",
   },
   {
     id: "duku-risk-rockfall",
     title: "落石易发段",
-    body: "峡谷与陡壁路段在融冻、降雨后落石活动增多，路面可见碎石堆积。经过时请观察上方坡面、快速通过，不在陡壁下停车。",
+    body: "峡谷灰褐色岩壁与库车红层砂岩路段在融冻、降雨后落石活动增多，路面可见碎石堆积。经过时请观察上方坡面、快速通过，不在陡壁下停车。",
   },
 ];
 
@@ -80,20 +89,22 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
   family: "engineering_route",
   entityName: "独库公路",
   regionLabel: "中国 · 新疆（独山子—库车）",
+  // 纵深构图：近景峡谷岩壁与盘山公路、中景草甸过渡、远景雪山垭口（路东端抬升处）
   defaultCamera: {
-    position: [0, 260, 620],
-    lookAt: [0, 60, 0],
-    fov: 45,
+    position: [-36, 12, 30],
+    lookAt: [14, 3, -2],
+    fov: 47,
   },
   arrival: {
     subtitle: "纵贯天山的季节性公路 · 约 561km 的工程走廊",
-    headlineSight: "盘山路段、峡谷高架桥与达坂残雪",
+    headlineSight: "峡谷、草甸、雪山达坂与红层串成的盘山走廊",
     headlineActivity: "自驾穿越与高点观景",
     observeMs: 6000,
     transitionBeats: [
-      "从高空俯瞰天山山系",
-      "沿路线低空飞行，辨认桥梁、隧道与达坂",
-      "相机定位于主线上方的默认视角",
+      "从独山子大峡谷上空进入，俯瞰灰褐色深切峡谷",
+      "沿盘山公路低空飞行，辨认发夹弯、高架桥与防雪长廊",
+      "掠过绿色高山草甸，远眺哈希勒根达坂雪山垭口",
+      "相机定位于峡谷上方的默认视角",
       "主题入口出现",
     ],
   },
@@ -186,10 +197,11 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       representative: true,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { snowCover: 0.15, grassColor: "#4d7d3a", trafficFlow: 0.8, light: "summer_bright", hazeDensity: 0.1 },
-      whereText: "全线通车，草原段与达坂段景观对比鲜明",
+      // 渲染参数键与 EngineeringRouteScene 对齐：正午光照、雪线抬到达坂高度、车流较密
+      visual: { light: "noon", season: "summer", snowLine: 9.2, traffic: 0.85 },
+      whereText: "全线通车，北段峡谷、中段草甸与达坂残雪景观对比鲜明",
       whenText: "通常 6 月至 9 月，具体开闭时间以交管部门公告为准",
-      whyText: "夏季积雪消退、草甸返青，是一年中通行条件较好的时段；旺季车流明显增多",
+      whyText: "夏季积雪退到达坂以上、草甸返青，是一年中通行条件较好的时段；旺季车流明显增多",
     },
     {
       id: "preset-early-autumn",
@@ -198,7 +210,8 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       representative: false,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { snowCover: 0.3, grassColor: "#b58a3c", trafficFlow: 0.5, light: "clear_autumn", hazeDensity: 0.08 },
+      // 午后斜照、雪线开始下移、车流回落
+      visual: { light: "afternoon", season: "autumn", snowLine: 7.5, traffic: 0.5 },
       whereText: "那拉提与巴音布鲁克方向草甸转金",
       whenText: "9 月至 10 月初，视当年降温与降雪节奏",
       whyText: "初秋草甸金黄、空气通透，达坂可能迎来初雪，通行窗口随时可能收窄",
@@ -210,7 +223,8 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       representative: false,
       mode: "typical_preview",
       sourceMeta: { mode: "typical_preview", sourceName: "本地策展配置（季节规律）" },
-      visual: { snowCover: 1.0, grassColor: "#6b6f5b", trafficFlow: 0.0, light: "winter_clear", hazeDensity: 0.12 },
+      // 冬季清冷晨光、雪线压到谷地、车流归零（封路）
+      visual: { light: "morning", season: "winter", snowLine: 2.8, traffic: 0.0 },
       whereText: "高海拔路段积雪深厚，全线或大部分路段封闭",
       whenText: "通常 11 月至次年 5 月",
       whyText: "冬春季达坂积雪与雪崩风险使公路封闭养护，可借此了解除雪与养护作业",
@@ -227,7 +241,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       requirements: ["确认通车公告", "山区驾驶经验", "车辆状况检查"],
       facilities: ["服务区", "停车观景位"],
       limitations: ["仅限通车期", "部分时段有交通管制", "弯多坡陡需按限速行驶"],
-      description: "分 1–2 天纵贯天山，依次经过峡谷、草原、达坂与荒漠地貌，服务区与观景带分段休息。",
+      description: "分 1–2 天纵贯天山，依次经过灰褐色峡谷、绿色高山草甸、雪山达坂与库车红层等地貌段落，服务区与观景带分段休息。",
       sceneActions: [{ kind: "show_route", target: "node:route_main" }],
     },
     {
@@ -239,7 +253,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       difficulty: "easy",
       facilities: ["垭口停车区"],
       limitations: ["海拔较高注意保暖与缓行", "天气变化快，勿久留"],
-      description: "在哈希勒根达坂停车区观察残雪、冰川侵蚀地貌与盘山路段全貌。",
+      description: "在哈希勒根达坂停车区观察残雪、冰川侵蚀地貌与防雪长廊，俯瞰盘山发夹弯路段全貌。",
       sceneActions: [{ kind: "focus_camera", target: "node:pass_summit" }],
     },
     {
@@ -251,7 +265,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       difficulty: "easy",
       facilities: ["桥头观景点（路侧）"],
       limitations: ["桥面与隧道内禁止停车", "请在指定路侧区域观察"],
-      description: "观察峡谷高架桥的桥塔与拉索布置、达坂隧道的洞口工程，理解路线如何跨越地形障碍。",
+      description: "观察峡谷高架桥的桥塔与拉索布置、达坂隧道的洞口工程与防雪长廊结构，理解路线如何跨越地形障碍。",
       sceneActions: [{ kind: "highlight_anchor", target: "anchor-bridge" }],
     },
     {
@@ -263,7 +277,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       difficulty: "easy",
       facilities: ["景区停车场", "餐饮"],
       limitations: ["注意避让牲畜横穿", "日落时段回程注意视线"],
-      description: "从那拉提接巴音布鲁克方向，草原公路延伸至天鹅湖与九曲十八弯，日落前后光影层次丰富。",
+      description: "从那拉提接巴音布鲁克方向，草原公路延伸至天鹅湖与九曲十八弯，日落前后草甸与河曲的光影层次丰富。",
       sceneActions: [{ kind: "show_route", target: "node:scenic_spur" }],
     },
     {
@@ -275,7 +289,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       difficulty: "easy",
       facilities: ["停车观景位"],
       limitations: ["仅在停车观景位拍摄，弯道处勿停车"],
-      description: "乔尔玛观景带回望盘山路段，达坂拍残雪与车队光轨；清晨与傍晚侧光更有层次。",
+      description: "乔尔玛观景带回望盘山发夹弯与雪山背景，达坂拍残雪与车队光轨；清晨与傍晚侧光更有层次。",
       sceneActions: [{ kind: "focus_camera", target: "node:viewpoint_a" }],
     },
   ],
@@ -325,7 +339,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       applicable: true,
       mode: "risk_simulation",
       cause: [
-        "峡谷陡壁岩体风化破碎",
+        "峡谷灰褐色岩壁与库车红层砂岩风化破碎",
         "融冻与降雨使坡面岩块松动",
         "车辆震动可能触发临界岩块崩落",
       ],
@@ -426,9 +440,9 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
   summaryRules: [
     {
       representativeActivityId: "act-self-drive",
-      representativeReason: "自驾穿越是体验独库公路的核心方式，一路串联多种地貌与工程节点",
+      representativeReason: "自驾穿越是体验独库公路的核心方式，一条路串联峡谷、草甸、雪山与红层多种地貌与工程节点",
       bestTimeText: "通常 6–9 月通车期；9–10 月初秋草甸金黄但窗口收窄，以交管公告为准",
-      bestExperienceText: "清晨从北段出发，午后翻越大坂，傍晚在乔尔玛观景带回望盘山路段",
+      bestExperienceText: "清晨从独山子出发穿峡谷，午后翻越哈希勒根达坂，傍晚在乔尔玛观景带回望盘山发夹弯",
       preparationItems: [
         "出发前确认通车与管制公告",
         "检查车况并备防滑链与保暖物资",
@@ -456,7 +470,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       {
         theme: "highlights",
         title: "景色",
-        body: "夏季通车期草原段返青、达坂残雪尚存；初秋草甸金黄；峡谷高架桥与盘山路段是标志性画面；冬春封闭期可了解除雪养护。",
+        body: "一条路穿越四季地貌：北段独山子大峡谷灰褐色深切峡谷与陡壁，中段那拉提、巴音布鲁克绿色高山草甸，哈希勒根达坂雪山垭口残雪，南段库车红层红色砂岩；初秋草甸金黄，冬春封闭期可了解除雪养护。",
       },
       {
         theme: "experience",
@@ -476,7 +490,7 @@ export const DUKU_HIGHWAY_SCENE: ImmersiveSceneDefinition = {
       {
         theme: "engineering_operation",
         title: "工程解读",
-        body: "路线以高架桥跨越深切峡谷、以隧道穿越达坂分水岭，盘山展线克服高差；冬春封闭期进行除雪与养护，是理解山区公路选线的样本。",
+        body: "路线以高架桥跨越深切峡谷、以隧道穿越达坂分水岭、以盘山展线与发夹弯克服高差，哈希勒根段防雪长廊抵御雪崩与风吹雪；冬春封闭期进行除雪与养护，是理解山区公路选线的样本。",
       },
     ],
   },

@@ -26,6 +26,11 @@ export interface Attraction {
   image_url: string
   score_basis: string
   last_updated: string
+  /** 官方策展种子条目（由 providers.mergeWithCurated 打标）。
+   *  策展条目在 selectAttractions 中永远优先入选：占用 limit 名额，
+   *  但跳过 3×3 网格每格 2 个的限量——否则同格更新的目录条目会把
+   *  3D 场景 POI（如马尔代夫珊瑚花园）挤出列表，徽标/CTA 随之消失。 */
+  curated?: boolean
 }
 
 export interface MapBoundsWgs84 {

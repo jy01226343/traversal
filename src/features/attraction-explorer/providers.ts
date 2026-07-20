@@ -180,7 +180,7 @@ export function mergeWithCurated(live: Attraction[], countryCode?: string, regio
     if (name) seenNames.add(name)
     return true
   })
-  const keptSeed = pick(seed)
+  const keptSeed = pick(seed).map(item => ({ ...item, curated: true }))
   const keptCatalog = pick(catalog)
   return keptSeed.length || keptCatalog.length ? [...keptSeed, ...live, ...keptCatalog] : live
 }
