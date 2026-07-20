@@ -44,7 +44,8 @@ export interface InfoPanelProps {
 
 export function InfoPanel({ scene, state, defaultPreviewId, live, dispatch }: InfoPanelProps) {
   const { activeTheme, selectedAnchorId, selectedPreviewId, selectedActivityId, selectedAudienceId } = state.context
-  const [detent, setDetent] = useState<Detent>("half")
+  // 默认收起（peek）：让场景占主要视觉面积，用户可手动展开
+  const [detent, setDetent] = useState<Detent>("peek")
   const titleRef = useRef<HTMLHeadingElement>(null)
 
   const model = resolveThemePanel(scene, activeTheme)

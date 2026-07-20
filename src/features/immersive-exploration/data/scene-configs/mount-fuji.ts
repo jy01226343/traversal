@@ -15,9 +15,9 @@
  * - 雪线随季节大幅变化：冬季约 1,000–1,300m，7–9 月仅山顶残雪
  *
  * 渲染链路：本文件的地貌模型常量 → previewPresets.visual（snowLine / leafColor /
- * light / hazeDensity / cloudCover）→ 场景层程序化地形（分段剖面 Lathe + 火山口碗
- * + 放射状冲沟噪声）按 preset 重算顶点色与雪线。defaultCamera 使用场景本地坐标
- * （山体高约 7.2 单位），勿用米制量纲。
+ * light / hazeDensity / cloudCover）→ 场景层真实 DEM 地形（public/terrain/fuji，
+ * 1 单位 = 1km，山顶为原点，海拔/1000）按 preset 重算雪线海拔与森林色。
+ * defaultCamera 使用场景本地坐标（河口湖上空低空斜视，非等距俯视），勿用米制量纲。
  *
  * 文案约束：无固定概率与必然性表述（copy-validator 强制）。
  */
@@ -184,12 +184,12 @@ export const MOUNT_FUJI_SCENE: ImmersiveSceneDefinition = {
   family: "mountain",
   entityName: "富士山",
   regionLabel: "日本 · 山梨县 / 静冈县",
-  // 场景本地坐标（山体高约 7.2 单位、controls 限距 7–55）：东南侧中距视角，
-  // 完整收入锥形山体、雪冠与山麓，勿用米制量纲
+  // 场景本地坐标（1 单位 = 1km，山顶为原点、海拔/1000，controls 限距 2.5–70）：
+  // 河口湖北岸上空约 1.2 单位高低空斜视，前景湖面 + 中景山体 + 地平线可见，勿用米制量纲
   defaultCamera: {
-    position: [9.5, 4.8, 23.5],
-    lookAt: [0, 3.1, 0],
-    fov: 45,
+    position: [3.0, 1.6, -16.5],
+    lookAt: [0, 2.2, 0],
+    fov: 46,
   },
   arrival: {
     subtitle: "日本最高峰 · 海拔 3,776m 的对称成层火山",
@@ -197,9 +197,9 @@ export const MOUNT_FUJI_SCENE: ImmersiveSceneDefinition = {
     headlineActivity: "吉田口五合目观景与吉田路线登山",
     observeMs: 6000,
     transitionBeats: [
-      "接近山体，视野从山麓森林带抬升",
-      "环绕山体一周，辨认五合目、登山道与火山口轮廓",
-      "相机定位于东南侧默认视角",
+      "接近山体，视野从河口湖湖面低空望向山麓森林带",
+      "视线沿山体抬升，辨认五合目、登山道与火山口轮廓",
+      "相机定位于河口湖上空低空斜视视角",
       "主题入口出现",
     ],
   },

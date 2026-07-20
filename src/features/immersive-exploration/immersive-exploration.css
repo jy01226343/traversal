@@ -316,6 +316,29 @@
   letter-spacing: 0.03em;
 }
 .ix-panel__detents { display: none; }
+
+/* 桌面默认收起（peek）：面板收缩为标题条，场景占主要视觉面积；点「半屏/展开」打开 */
+@media (min-width: 761px) {
+  .ix-panel--peek { bottom: auto; }
+  .ix-panel--peek .ix-panel__body { display: none; }
+  .ix-panel--peek .ix-panel__header { border-bottom: none; }
+  .ix-panel--peek .ix-panel__detents { display: inline-flex; gap: 4px; }
+  .ix-panel--peek .ix-panel__detent {
+    min-height: 32px;
+    min-width: 44px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 197, 210, 0.2);
+    background: transparent;
+    color: #9dc3cd;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .ix-panel--peek .ix-panel__detent--active {
+    border-color: rgba(240, 180, 41, 0.55);
+    color: #ffd580;
+  }
+}
 .ix-panel__close {
   display: inline-flex;
   align-items: center;

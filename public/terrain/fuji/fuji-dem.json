@@ -1,0 +1,18 @@
+{
+  "west": 138.55,
+  "east": 139.05,
+  "south": 35.25,
+  "north": 35.62,
+  "width": 1456,
+  "height": 1323,
+  "minElevation": -381.0,
+  "maxElevation": 3754.0,
+  "source": "Mapzen Terrarium terrain tiles (AWS elevation-tiles-prod), zoom 12",
+  "note": "PNG 16-bit gray; elevation = minElevation + v/65535*(maxElevation-minElevation)",
+  "binary": {
+    "file": "fuji-dem.bin",
+    "format": "uint16-le",
+    "layout": "row-major, north-up",
+    "elevation": "minElevation + v/65535*(maxElevation-minElevation)"
+  }
+}

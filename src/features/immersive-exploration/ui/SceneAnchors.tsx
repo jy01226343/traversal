@@ -39,6 +39,34 @@ function capVisible(
   return selected ? [...sliced.slice(0, cap - 1), selected] : sliced
 }
 
+/**
+ * 屏幕空间标签避让：两标签水平重叠且垂直距离过近时，后者依次下移。
+ * 纯函数，输入/输出均为 positionRef → {x,y} 映射（按 anchors 顺序处理）。
+ */
+export function resolveLabelOverlap(
+  anchors: readonly SceneAnchorDefinition[],
+  positions: Record<string, { x: number; y: number }>,
+): Record<string, { x: number; y: number }> {
+  const MIN_DX = 130
+  const MIN_DY = 30
+  const STEP = 34
+  const placed: Array<{ x: number; y: number }> = []
+  const out: Record<string, { x: number; y: number }> = {}
+  for (const anchor of anchors) {
+    const pos = positions[anchor.positionRef] ?? positions[anchor.id]
+    if (!pos) continue
+    const next = { ...pos }
+    for (let guard = 0; guard < 8; guard += 1) {
+      const hit = placed.some(p => Math.abs(p.x - next.x) < MIN_DX && Math.abs(p.y - next.y) < MIN_DY)
+      if (!hit) break
+      next.y += STEP
+    }
+    placed.push(next)
+    out[anchor.positionRef] = next
+  }
+  return out
+}
+
 export function SceneAnchors({ scene, activeTheme, selectedAnchorId, controller, onSelect }: SceneAnchorsProps) {
   const cap = activeTheme ? ANCHOR_CAP_THEME : ANCHOR_CAP_DEFAULT
   // memo 保持数组/集合身份稳定：useAnchorPositions 以 anchors 为 effect 依赖，
@@ -48,7 +76,8 @@ export function SceneAnchors({ scene, activeTheme, selectedAnchorId, controller,
     [scene, activeTheme, selectedAnchorId, cap],
   )
   const dimmed = useMemo(() => selectDimmedAnchorIds(visible, selectedAnchorId), [visible, selectedAnchorId])
-  const positions = useAnchorPositions(controller, visible)
+  const rawPositions = useAnchorPositions(controller, visible)
+  const positions = useMemo(() => resolveLabelOverlap(visible, rawPositions), [visible, rawPositions])
 
   return (
     <div className="ix-anchors" role="group" aria-label="场景空间标签" data-testid="ix-anchors">
