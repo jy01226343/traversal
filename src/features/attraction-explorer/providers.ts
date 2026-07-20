@@ -4,11 +4,12 @@ import { createScrapeAttractionProvider } from "./scraper"
 import type { Attraction, AttractionProvider, AttractionQuery } from "./types"
 
 /** Unified durable store — API / scrape / seed / catalog all land here.
- *  Bumped to -v2 after the spot-coordinate accuracy fix so stale v1 caches
- *  (which carried incorrect region-center fallbacks) are ignored. */
-const FIXED_STORE = "atlas-attractions-fixed-v2"
-const API_STORE = "atlas-attractions-api-v2"
-const SCRAPE_STORE = "atlas-attractions-scrape-v2"
+ *  Bumped to -v3 after the curated-merge fix: stale v2 caches were written by
+ *  live-only replacements that dropped curated POIs (e.g. 独库公路), so they
+ *  are ignored and the seed/catalog snapshot is re-landed on next refresh. */
+const FIXED_STORE = "atlas-attractions-fixed-v3"
+const API_STORE = "atlas-attractions-api-v3"
+const SCRAPE_STORE = "atlas-attractions-scrape-v3"
 
 function storageKey(countryCode?: string, regionId?: string) {
   return `${countryCode || "ALL"}:${regionId || "ALL"}`
@@ -89,8 +90,8 @@ function envBase() {
 
 /**
  * Resolution order (every non-empty result is written to localStorage):
- * 1. Live API → land fixed
- * 2. Live crawler (OSM/Wiki/official) → land fixed
+ * 1. Live API → merge with curated seed → land fixed
+ * 2. Live crawler (OSM/Wiki/official) → merge with curated seed → land fixed
  * 3. Previously fixed snapshot
  * 4. Official seed catalog → land fixed
  * 5. Region resource catalog (always has POIs) → land fixed
@@ -121,8 +122,9 @@ export function createDefaultAttractionProvider(fetcher: typeof fetch = fetch): 
         LIVE_BUDGET_MS,
       )
       if (live?.items.length) {
-        console.info(`[attractions] ${live.label} hit ${key}: ${live.items.length} → saved`)
-        return land(key, live.items, live.store)
+        const merged = mergeWithCurated(live.items, query.countryCode, query.regionId)
+        console.info(`[attractions] ${live.label} hit ${key}: ${live.items.length} live + ${merged.length - live.items.length} curated → saved`)
+        return land(key, merged, live.store)
       }
       console.warn(`[attractions] live unavailable for ${key}, using local fallback`)
 
@@ -155,6 +157,21 @@ interface LiveStage {
   label: string
   store: string
   run: () => Promise<Attraction[] | null | undefined>
+}
+
+/**
+ * 官方策展条目（含挂 3D 沉浸场景的 POI，如独库公路/富士山）常驻保护。
+ * live 源（OSM/Wiki 等）通常不含这些策展条目，若直接用 live 结果整体替换，
+ * 它们会连同 3D 徽标/CTA 一起从列表与地图上消失（独库公路数据消失 bug）。
+ * 这里按 id / 规范化名称求并集：同 id 以 live 数据为准，策展独有条目始终保留并置顶。
+ */
+export function mergeWithCurated(live: Attraction[], countryCode?: string, regionId?: string): Attraction[] {
+  const curated = getOfficialAttractions(countryCode, regionId) || []
+  if (!curated.length) return live
+  const seenIds = new Set(live.map(a => a.id))
+  const seenNames = new Set(live.map(a => (a.name || "").trim().toLowerCase()).filter(Boolean))
+  const kept = curated.filter(c => !seenIds.has(c.id) && !seenNames.has((c.name || "").trim().toLowerCase()))
+  return kept.length ? [...kept, ...live] : live
 }
 
 /** 实时管线整体预算：超出即回退本地数据（UI 已用 peekLocalAttractions 秒出）。 */

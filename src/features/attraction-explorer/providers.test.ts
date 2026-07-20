@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { peekLocalAttractions, createDefaultAttractionProvider } from "./providers"
+import { peekLocalAttractions, createDefaultAttractionProvider, mergeWithCurated } from "./providers"
 import { getOfficialAttractions } from "./official-attractions"
 import { getCatalogAttractions } from "./region-catalog"
 
-const FIXED_KEY = "atlas-attractions-fixed-v2:JPN:hokkaido"
+const FIXED_KEY = "atlas-attractions-fixed-v3:JPN:hokkaido"
 
 function cachedPayload(count: number) {
   return JSON.stringify({
@@ -32,6 +32,32 @@ describe("peekLocalAttractions（同步本地快照）", () => {
 
   it("未知区域返回空数组而不抛出", () => {
     expect(peekLocalAttractions("XX", "nowhere")).toEqual([])
+  })
+})
+
+describe("mergeWithCurated（策展条目常驻保护）", () => {
+  it("live 结果缺失策展条目时按并集补回（独库公路不再被替换吞掉）", () => {
+    const seed = getOfficialAttractions("CHN", "northwest")
+    expect(seed.some(a => a.id === "cn-xj-duku")).toBe(true)
+    const live = [{ id: "osm-1", name: "那拉提草原" } as never]
+    const merged = mergeWithCurated(live, "CHN", "northwest")
+    expect(merged.some(a => a.id === "cn-xj-duku")).toBe(true)
+    expect(merged.some(a => a.id === "osm-1")).toBe(true)
+    // 策展条目置顶
+    expect(merged[0].id).toBe(seed[0].id)
+  })
+
+  it("同 id 或同名条目以 live 数据为准且不重复", () => {
+    const seed = getOfficialAttractions("CHN", "northwest")
+    const duku = seed.find(a => a.id === "cn-xj-duku")!
+    const live = [{ ...duku, id: "osm-duku", popularity_score: 1 } as never]
+    const merged = mergeWithCurated(live, "CHN", "northwest")
+    expect(merged.filter(a => (a.name || "").trim() === "独库公路").length).toBe(1)
+  })
+
+  it("无策展种子的区域原样返回 live 结果", () => {
+    const live = [{ id: "a" } as never, { id: "b" } as never]
+    expect(mergeWithCurated(live, "XX", "nowhere")).toEqual(live)
   })
 })
 
