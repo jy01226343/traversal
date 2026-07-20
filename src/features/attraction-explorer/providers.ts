@@ -160,18 +160,29 @@ interface LiveStage {
 }
 
 /**
- * 官方策展条目（含挂 3D 沉浸场景的 POI，如独库公路/富士山）常驻保护。
- * live 源（OSM/Wiki 等）通常不含这些策展条目，若直接用 live 结果整体替换，
+ * 本地策展数据（官方种子 + 区域资源目录）常驻保护。
+ * live 源（OSM/Wiki 等）通常不含这些条目，若直接用 live 结果整体替换，
  * 它们会连同 3D 徽标/CTA 一起从列表与地图上消失（独库公路数据消失 bug）。
- * 这里按 id / 规范化名称求并集：同 id 以 live 数据为准，策展独有条目始终保留并置顶。
+ * 这里按 id / 规范化名称求并集：同 id/同名以 live 数据为准；
+ * 排序为 官方种子（含 3D POI，置顶）→ live 新数据 → 区域目录补充条目。
  */
 export function mergeWithCurated(live: Attraction[], countryCode?: string, regionId?: string): Attraction[] {
-  const curated = getOfficialAttractions(countryCode, regionId) || []
-  if (!curated.length) return live
+  const seed = getOfficialAttractions(countryCode, regionId) || []
+  const catalog = getCatalogAttractions(countryCode, regionId) || []
+  if (!seed.length && !catalog.length) return live
   const seenIds = new Set(live.map(a => a.id))
   const seenNames = new Set(live.map(a => (a.name || "").trim().toLowerCase()).filter(Boolean))
-  const kept = curated.filter(c => !seenIds.has(c.id) && !seenNames.has((c.name || "").trim().toLowerCase()))
-  return kept.length ? [...kept, ...live] : live
+  const pick = (items: Attraction[]) => items.filter(c => {
+    if (seenIds.has(c.id)) return false
+    const name = (c.name || "").trim().toLowerCase()
+    if (name && seenNames.has(name)) return false
+    seenIds.add(c.id)
+    if (name) seenNames.add(name)
+    return true
+  })
+  const keptSeed = pick(seed)
+  const keptCatalog = pick(catalog)
+  return keptSeed.length || keptCatalog.length ? [...keptSeed, ...live, ...keptCatalog] : live
 }
 
 /** 实时管线整体预算：超出即回退本地数据（UI 已用 peekLocalAttractions 秒出）。 */
@@ -256,9 +267,8 @@ export function peekLocalAttractions(countryCode?: string, regionId?: string): A
   const key = storageKey(countryCode, regionId)
   const cached = readStore(FIXED_STORE, key) || readStore(API_STORE, key) || readStore(SCRAPE_STORE, key)
   if (cached?.length) return cached
-  const seed = getOfficialAttractions(countryCode, regionId)
-  if (seed?.length) return seed
-  return getCatalogAttractions(countryCode, regionId) || []
+  // 种子 + 区域目录并集，首帧即给出完整本地数据
+  return mergeWithCurated([], countryCode, regionId)
 }
 
 export { createScrapeAttractionProvider }

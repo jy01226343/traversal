@@ -22,12 +22,12 @@ describe("peekLocalAttractions（同步本地快照）", () => {
     expect(items.length).toBe(2)
   })
 
-  it("无缓存时回退官方种子/区域目录（同步非空）", () => {
+  it("无缓存时回退官方种子+区域目录并集（同步非空）", () => {
     const items = peekLocalAttractions("JPN", "hokkaido")
     const seed = getOfficialAttractions("JPN", "hokkaido")
     const catalog = getCatalogAttractions("JPN", "hokkaido")
     expect(items.length).toBeGreaterThan(0)
-    expect(items.length).toBe(Math.max(seed.length, 0) || catalog.length)
+    expect(items.length).toBeGreaterThanOrEqual(Math.max(seed.length, catalog.length))
   })
 
   it("未知区域返回空数组而不抛出", () => {
